@@ -1,0 +1,58 @@
+spring:
+  application:
+    name: commerce-api
+  datasource:
+    url: jdbc:postgresql://localhost:5432/commerce
+    username: postgres
+    password: postgres
+  jpa:
+    hibernate:
+      ddl-auto: create
+    properties:
+      hibernate:
+        hbm2ddl.auto: create
+        format_sql: true
+        jdbc.lob.non_contextual_creation: true
+        enable_lazy_load_no_trans: true
+        filter.tenantFilter.enabled: false
+  servlet:
+    multipart:
+      max-file-size: 25MB
+      max-request-size: 25MB
+  flyway:
+    enabled: false
+    locations: classpath:db/migration
+
+storage:
+  s3:
+    endpoint: http://localhost:9000
+    accessKey: minio
+    secretKey: minio123
+    bucket: assets
+    region: us-east-1
+    pathStyle: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+---
+spring:
+  config:
+    activate:
+      on-profile: test
+  datasource:
+    url: jdbc:postgresql://localhost:5433/commerce_test
+    username: postgres
+    password: postgres
+  flyway:
+    enabled: false
+  jpa:
+    hibernate:
+      ddl-auto: create
+    properties:
+      hibernate:
+        hbm2ddl.auto: create
+        filter.tenantFilter.enabled: false

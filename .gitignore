@@ -1,0 +1,6 @@
+
+# Hassas Bilgiler
+.env
+.env.local
+infra/docker/data/
+*.log
