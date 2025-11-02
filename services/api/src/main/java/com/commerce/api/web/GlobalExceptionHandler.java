@@ -14,6 +14,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -60,8 +61,8 @@ public class GlobalExceptionHandler {
         }
 
         Map<String, Object> body = new HashMap<>();
-        body.put("error", "duplicate");
-        body.put("message", errorCode);
+        body.put("error", errorCode);
+        body.put("message", "Duplicate entry detected");
 
         return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
     }
@@ -108,6 +109,30 @@ public class GlobalExceptionHandler {
         body.put("message", "You don't have permission to access this resource");
 
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(body);
+    }
+
+    /**
+     * Resource bulunamadı (Service'lerde NoSuchElementException atılıyor)
+     */
+    @ExceptionHandler(NoSuchElementException.class)
+    public ResponseEntity<Map<String, Object>> handleNotFound(NoSuchElementException ex) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("error", "not_found");
+        body.put("message", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+    }
+
+    /**
+     * Geçersiz argüman (SKU duplicate, validation vs)
+     */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, Object>> handleIllegalArgument(IllegalArgumentException ex) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("error", "bad_request");
+        body.put("message", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
 
     /**

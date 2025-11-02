@@ -3,7 +3,10 @@ package com.commerce.api.service;
 import com.commerce.api.domain.Product;
 import com.commerce.api.dto.*;
 import com.commerce.api.repo.ProductRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -47,17 +50,37 @@ public class ProductService {
         if (!repo.existsById(id)) throw new NoSuchElementException("Product not found");
         repo.deleteById(id);
     }
+    
+    @Transactional(readOnly = true)
+    public Page<ProductDto> getProductsByCategory(Long categoryId, Pageable pageable) {
+        return repo.findByCategoryIdAndIsActiveTrue(categoryId, pageable)
+                .map(this::toDto);
+    }
+    
+    @Transactional(readOnly = true)
+    public List<ProductDto> getLowStockProducts() {
+        return repo.findLowStockProducts()
+                .stream()
+                .map(this::toDto)
+                .toList();
+    }
 
     private ProductDto toDto(Product p) {
-        // p.getCreatedAt() artık LocalDateTime döner (BaseEntity'den)
-        // ProductDto de LocalDateTime kabul eder
         return new ProductDto(
                 p.getId(),
                 p.getName(),
+                p.getSlug(),
                 p.getDescription(),
                 p.getPrice(),
                 p.getStock(),
-                p.getCreatedAt()
+                p.getCreatedAt(),
+                p.getSku(),
+                p.getIsActive(),
+                p.getIsFeatured(),
+                p.getCategory() != null ? p.getCategory().getId() : null,
+                p.getCategory() != null ? p.getCategory().getName() : null,
+                p.getAverageRating(),
+                p.getTotalReviews()
         );
     }
 }

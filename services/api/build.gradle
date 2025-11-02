@@ -52,6 +52,9 @@ dependencies {
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.3'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.3'
 
+    // --- JSONB SUPPORT ---
+    implementation 'io.hypersistence:hypersistence-utils-hibernate-63:3.7.0'
+
     // --- CACHE & REDIS (Future-proof for session/cache) ---
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 
