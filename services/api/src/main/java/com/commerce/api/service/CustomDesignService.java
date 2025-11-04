@@ -142,10 +142,13 @@ public class CustomDesignService {
         return mapToDto(design);
     }
     
+<<<<<<< HEAD
     public List<CustomDesign> findByUserId(Long userId) {
         return customDesignRepository.findByUserIdOrderByCreatedAtDesc(userId);
     }
     
+=======
+>>>>>>> 0e6e09fafc50d1dcaa282979bf7ce0bbe4ee35ea
     @Transactional(readOnly = true)
     public List<CustomDesignDto> getUserDesigns(String userEmail) {
         User user = userRepository.findByEmail(userEmail)
@@ -176,7 +179,11 @@ public class CustomDesignService {
     private CustomDesignDto mapToDto(CustomDesign design) {
         return new CustomDesignDto(
                 design.getId(),
+<<<<<<< HEAD
                 design.getUser() != null ? design.getUser().getId() : null,
+=======
+                design.getUser().getId(),
+>>>>>>> 0e6e09fafc50d1dcaa282979bf7ce0bbe4ee35ea
                 design.getDesignName(),
                 design.getProductType(),
                 design.getBaseProduct() != null ? design.getBaseProduct().getId() : null,

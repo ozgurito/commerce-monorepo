@@ -1,11 +1,17 @@
 package com.commerce.api.domain;
 
+<<<<<<< HEAD
 import com.fasterxml.jackson.annotation.JsonIgnore;
+=======
+>>>>>>> 0e6e09fafc50d1dcaa282979bf7ce0bbe4ee35ea
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+<<<<<<< HEAD
 import lombok.ToString;
+=======
+>>>>>>> 0e6e09fafc50d1dcaa282979bf7ce0bbe4ee35ea
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -17,8 +23,12 @@ import java.util.List;
         @Index(name = "idx_product_slug", columnList = "slug")
 })
 @Data
+<<<<<<< HEAD
 @EqualsAndHashCode(callSuper = true, exclude = "reviews")
 @ToString(exclude = "reviews")
+=======
+@EqualsAndHashCode(callSuper = true)
+>>>>>>> 0e6e09fafc50d1dcaa282979bf7ce0bbe4ee35ea
 @NoArgsConstructor
 public class Product extends BaseEntity {
 
@@ -89,8 +99,12 @@ public class Product extends BaseEntity {
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ProductVariant> variants = new ArrayList<>();
     
+<<<<<<< HEAD
     @OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
     @JsonIgnore
+=======
+    @OneToMany(mappedBy = "product")
+>>>>>>> 0e6e09fafc50d1dcaa282979bf7ce0bbe4ee35ea
     private List<Review> reviews = new ArrayList<>();
     
     // Helper methods
@@ -112,4 +126,24 @@ public class Product extends BaseEntity {
         return stock != null && stock <= 0;
     }
     
+<<<<<<< HEAD
+=======
+    @Transient
+    public Double getAverageRating() {
+        if (reviews == null || reviews.isEmpty()) return 0.0;
+        return reviews.stream()
+                .filter(r -> r.getIsApproved() != null && r.getIsApproved())
+                .mapToInt(Review::getRating)
+                .average()
+                .orElse(0.0);
+    }
+    
+    @Transient
+    public Integer getTotalReviews() {
+        if (reviews == null) return 0;
+        return (int) reviews.stream()
+                .filter(r -> r.getIsApproved() != null && r.getIsApproved())
+                .count();
+    }
+>>>>>>> 0e6e09fafc50d1dcaa282979bf7ce0bbe4ee35ea
 }

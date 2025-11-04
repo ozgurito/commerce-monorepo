@@ -53,9 +53,13 @@ dependencies {
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.3'
 
     // --- JSONB SUPPORT ---
+<<<<<<< HEAD
     //implementation 'io.hypersistence:hypersistence-utils-hibernate-63:3.7.0'
     //implementation 'org.eclipse:yasson:3.0.3'
     //implementation 'jakarta.json:jakarta.json-api:2.1.3'
+=======
+    implementation 'io.hypersistence:hypersistence-utils-hibernate-63:3.7.0'
+>>>>>>> 0e6e09fafc50d1dcaa282979bf7ce0bbe4ee35ea
 
     // --- CACHE & REDIS (Future-proof for session/cache) ---
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'

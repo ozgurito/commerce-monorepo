@@ -1,10 +1,20 @@
 package com.commerce.api.domain;
+<<<<<<< HEAD
+=======
+
+import io.hypersistence.utils.hibernate.type.json.JsonBinaryType;
+>>>>>>> 0e6e09fafc50d1dcaa282979bf7ce0bbe4ee35ea
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+<<<<<<< HEAD
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
+=======
+import org.hibernate.annotations.Type;
+
+>>>>>>> 0e6e09fafc50d1dcaa282979bf7ce0bbe4ee35ea
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -30,7 +40,11 @@ public class CustomDesign extends BaseEntity {
     private Product baseProduct;
     
     @Column(name = "design_data", nullable = false, columnDefinition = "jsonb")
+<<<<<<< HEAD
     @JdbcTypeCode(SqlTypes.JSON)
+=======
+    @Type(JsonBinaryType.class)
+>>>>>>> 0e6e09fafc50d1dcaa282979bf7ce0bbe4ee35ea
     private String designData;
     
     @Column(name = "thumbnail_url", length = 500)

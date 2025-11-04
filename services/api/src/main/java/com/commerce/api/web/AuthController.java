@@ -2,6 +2,7 @@ package com.commerce.api.web;
 
 import com.commerce.api.dto.AuthRequest;
 import com.commerce.api.dto.AuthResponse;
+<<<<<<< HEAD
 import com.commerce.api.security.JwtTokenProvider;
 import com.commerce.api.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -11,11 +12,19 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
+=======
+import com.commerce.api.service.AuthService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+>>>>>>> 0e6e09fafc50d1dcaa282979bf7ce0bbe4ee35ea
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+<<<<<<< HEAD
 import org.springframework.web.server.ResponseStatusException;
+=======
+>>>>>>> 0e6e09fafc50d1dcaa282979bf7ce0bbe4ee35ea
 
 import java.util.Map;
 
@@ -25,7 +34,10 @@ import java.util.Map;
 public class AuthController {
 
     private final AuthService authService;
+<<<<<<< HEAD
     private final JwtTokenProvider jwtTokenProvider;
+=======
+>>>>>>> 0e6e09fafc50d1dcaa282979bf7ce0bbe4ee35ea
 
     /**
      * Kullanıcı kaydı
@@ -63,6 +75,7 @@ public class AuthController {
 
         return ResponseEntity.ok(user);
     }
+<<<<<<< HEAD
 
     /**
      * Refresh token yenileme
@@ -86,4 +99,6 @@ public class AuthController {
         return ResponseEntity.ok(res);
     }
 
+=======
+>>>>>>> 0e6e09fafc50d1dcaa282979bf7ce0bbe4ee35ea
 }

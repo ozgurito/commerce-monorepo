@@ -61,6 +61,7 @@ public class ReviewService {
         return mapToDto(saved);
     }
     
+<<<<<<< HEAD
     @Transactional
     public ReviewDto approveReview(Long reviewId) {
         Review review = reviewRepository.findById(reviewId)
@@ -95,6 +96,16 @@ public class ReviewService {
     }
     
     @Transactional
+=======
+    public ReviewDto approveReview(Long id) {
+        Review review = reviewRepository.findById(id)
+                .orElseThrow(() -> new java.util.NoSuchElementException("Review not found"));
+        review.setIsApproved(true);
+        Review updated = reviewRepository.save(review);
+        return mapToDto(updated);
+    }
+    
+>>>>>>> 0e6e09fafc50d1dcaa282979bf7ce0bbe4ee35ea
     public ReviewDto addAdminResponse(Long id, String response) {
         Review review = reviewRepository.findById(id)
                 .orElseThrow(() -> new java.util.NoSuchElementException("Review not found"));
@@ -104,18 +115,24 @@ public class ReviewService {
         return mapToDto(updated);
     }
     
+<<<<<<< HEAD
     @Transactional
+=======
+>>>>>>> 0e6e09fafc50d1dcaa282979bf7ce0bbe4ee35ea
     public void markHelpful(Long reviewId, String userEmail, boolean isHelpful) {
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new java.util.NoSuchElementException("Review not found"));
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new java.util.NoSuchElementException("User not found"));
         
+<<<<<<< HEAD
         // Kullanıcı kendi review'ına helpful/unhelpful işaretleyemez
         if (review.getUser() != null && review.getUser().getId().equals(user.getId())) {
             throw new IllegalArgumentException("You cannot mark your own review as helpful/unhelpful");
         }
         
+=======
+>>>>>>> 0e6e09fafc50d1dcaa282979bf7ce0bbe4ee35ea
         reviewHelpfulRepository.findByReviewIdAndUserId(reviewId, user.getId())
                 .ifPresentOrElse(
                     existing -> {
@@ -177,6 +194,7 @@ public class ReviewService {
     }
     
     private ReviewDto mapToDto(Review review) {
+<<<<<<< HEAD
         Product product = review.getProduct();
         User user = review.getUser();
         
@@ -185,6 +203,13 @@ public class ReviewService {
                 product != null ? product.getId() : null,
                 user != null ? user.getId() : null,
                 user != null && user.getFullName() != null ? user.getFullName() : "Anonymous",
+=======
+        return new ReviewDto(
+                review.getId(),
+                review.getProduct().getId(),
+                review.getUser().getId(),
+                review.getUser().getFullName(),
+>>>>>>> 0e6e09fafc50d1dcaa282979bf7ce0bbe4ee35ea
                 review.getRating(),
                 review.getTitle(),
                 review.getComment(),

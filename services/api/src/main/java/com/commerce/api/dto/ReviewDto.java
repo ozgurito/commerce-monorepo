@@ -2,6 +2,7 @@ package com.commerce.api.dto;
 
 import java.time.LocalDateTime;
 
+<<<<<<< HEAD
 public class ReviewDto {
     private Long id;
     private Long productId;
@@ -81,3 +82,24 @@ public class ReviewDto {
     public void setAdminResponseAt(LocalDateTime adminResponseAt) { this.adminResponseAt = adminResponseAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }
+=======
+public record ReviewDto(
+    Long id,
+    Long productId,
+    Long userId,
+    String userName,
+    Integer rating,
+    String title,
+    String comment,
+    String[] images,
+    Boolean isVerifiedPurchase,
+    Boolean isApproved,
+    Boolean isFeatured,
+    Integer helpfulCount,
+    Integer unhelpfulCount,
+    String adminResponse,
+    LocalDateTime adminResponseAt,
+    LocalDateTime createdAt
+) {}
+
+>>>>>>> 0e6e09fafc50d1dcaa282979bf7ce0bbe4ee35ea

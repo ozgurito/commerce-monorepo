@@ -13,22 +13,33 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+<<<<<<< HEAD
 import com.commerce.api.domain.User;
 import com.commerce.api.repo.UserRepository;
 
 import java.util.List;
 import java.util.stream.Collectors;
+=======
+
+import java.util.List;
+>>>>>>> 0e6e09fafc50d1dcaa282979bf7ce0bbe4ee35ea
 
 @RestController
 @RequestMapping("/api/custom-designs")
 public class CustomDesignController {
     
     private final CustomDesignService customDesignService;
+<<<<<<< HEAD
     private final UserRepository userRepository;
     
     public CustomDesignController(CustomDesignService customDesignService, UserRepository userRepository) {
         this.customDesignService = customDesignService;
         this.userRepository = userRepository;
+=======
+    
+    public CustomDesignController(CustomDesignService customDesignService) {
+        this.customDesignService = customDesignService;
+>>>>>>> 0e6e09fafc50d1dcaa282979bf7ce0bbe4ee35ea
     }
     
     @PostMapping
@@ -59,6 +70,7 @@ public class CustomDesignController {
         return customDesignService.getDesign(id);
     }
     
+<<<<<<< HEAD
     @GetMapping("/my")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<CustomDesignDto>> getMyDesigns() {
@@ -95,6 +107,11 @@ public class CustomDesignController {
     @GetMapping("/my-designs")
     @PreAuthorize("isAuthenticated()")
     public List<CustomDesignDto> getMyDesignsOld() {
+=======
+    @GetMapping("/my-designs")
+    @PreAuthorize("isAuthenticated()")
+    public List<CustomDesignDto> getMyDesigns() {
+>>>>>>> 0e6e09fafc50d1dcaa282979bf7ce0bbe4ee35ea
         String userEmail = SecurityContextHolder.getContext().getAuthentication().getName();
         return customDesignService.getUserDesigns(userEmail);
     }

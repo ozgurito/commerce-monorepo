@@ -1,10 +1,19 @@
 package com.commerce.api.domain;
+<<<<<<< HEAD
+=======
+
+import io.hypersistence.utils.hibernate.type.json.JsonBinaryType;
+>>>>>>> 0e6e09fafc50d1dcaa282979bf7ce0bbe4ee35ea
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+<<<<<<< HEAD
 
 import java.util.List;
+=======
+import org.hibernate.annotations.Type;
+>>>>>>> 0e6e09fafc50d1dcaa282979bf7ce0bbe4ee35ea
 
 @Entity
 @Table(name = "design_templates")
@@ -23,16 +32,27 @@ public class DesignTemplate extends BaseEntity {
     private String category;
     
     @Column(name = "template_data", nullable = false, columnDefinition = "jsonb")
+<<<<<<< HEAD
+=======
+    @Type(JsonBinaryType.class)
+>>>>>>> 0e6e09fafc50d1dcaa282979bf7ce0bbe4ee35ea
     private String templateData;
     
     @Column(name = "thumbnail_url", length = 500)
     private String thumbnailUrl;
     
     @Column(name = "preview_images")
+<<<<<<< HEAD
     private List<String> previewImages;
     
     @Column(name = "compatible_products")
     private List<String> compatibleProducts;
+=======
+    private String[] previewImages;
+    
+    @Column(name = "compatible_products")
+    private String[] compatibleProducts;
+>>>>>>> 0e6e09fafc50d1dcaa282979bf7ce0bbe4ee35ea
     
     @Column(name = "is_free", nullable = false)
     private Boolean isFree = true;

@@ -12,7 +12,10 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
+<<<<<<< HEAD
 import org.springframework.util.AntPathMatcher;
+=======
+>>>>>>> 0e6e09fafc50d1dcaa282979bf7ce0bbe4ee35ea
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -25,6 +28,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtTokenProvider jwtTokenProvider;
     private final UserRepository userRepository;
 
+<<<<<<< HEAD
     private static final AntPathMatcher PATH_MATCHER = new AntPathMatcher();
 
 
@@ -64,11 +68,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         return isWhitelisted(request);
     }
 
+=======
+>>>>>>> 0e6e09fafc50d1dcaa282979bf7ce0bbe4ee35ea
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
 
+<<<<<<< HEAD
         String token = null;
 
         try {
@@ -77,11 +84,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             // Token yoksa cookie'den almayı dene.
             if (token == null) {token = jwtTokenProvider.getCookieValue(request);}
+=======
+        try {
+            // 1️⃣ Authorization header'dan token'ı al
+            String token = getTokenFromRequest(request);
+>>>>>>> 0e6e09fafc50d1dcaa282979bf7ce0bbe4ee35ea
 
             // 2️⃣ Token varsa ve geçerliyse
             if (token != null && jwtTokenProvider.validateToken(token)) {
                 // 3️⃣ Token'dan email çıkar
+<<<<<<< HEAD
                 String email = jwtTokenProvider.getEmail(token);
+=======
+                String email = jwtTokenProvider.getEmailFromToken(token);
+>>>>>>> 0e6e09fafc50d1dcaa282979bf7ce0bbe4ee35ea
 
                 // 4️⃣ Kullanıcıyı DB'den bul
                 UserDetails userDetails = userRepository.findByEmail(email)

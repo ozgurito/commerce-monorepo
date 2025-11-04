@@ -10,6 +10,10 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+<<<<<<< HEAD
+=======
+import org.springframework.security.core.Authentication;
+>>>>>>> 0e6e09fafc50d1dcaa282979bf7ce0bbe4ee35ea
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
@@ -49,6 +53,7 @@ public class ReviewController {
         return reviewService.approveReview(id);
     }
     
+<<<<<<< HEAD
     @PutMapping("/{id}/admin-response")
     @PreAuthorize("hasRole('ADMIN')")
     public ReviewDto addAdminResponse(@PathVariable Long id, @RequestBody java.util.Map<String, String> request) {
@@ -56,13 +61,22 @@ public class ReviewController {
         if (response == null) {
             throw new IllegalArgumentException("Response field is required");
         }
+=======
+    @PutMapping("/{id}/response")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ReviewDto addAdminResponse(@PathVariable Long id, @RequestParam String response) {
+>>>>>>> 0e6e09fafc50d1dcaa282979bf7ce0bbe4ee35ea
         return reviewService.addAdminResponse(id, response);
     }
     
     @PostMapping("/{id}/helpful")
     @PreAuthorize("isAuthenticated()")
+<<<<<<< HEAD
     public ResponseEntity<Void> markHelpful(@PathVariable Long id, 
                                            @RequestParam(required = false, defaultValue = "true") boolean helpful) {
+=======
+    public ResponseEntity<Void> markHelpful(@PathVariable Long id, @RequestParam boolean helpful) {
+>>>>>>> 0e6e09fafc50d1dcaa282979bf7ce0bbe4ee35ea
         String userEmail = SecurityContextHolder.getContext().getAuthentication().getName();
         reviewService.markHelpful(id, userEmail, helpful);
         return ResponseEntity.ok().build();

@@ -1,10 +1,17 @@
 // src/main/java/com/commerce/api/service/AuthService.java
 package com.commerce.api.service;
+<<<<<<< HEAD
 import com.commerce.api.domain.RefreshToken;
 import com.commerce.api.domain.User;
 import com.commerce.api.dto.AuthRequest;
 import com.commerce.api.dto.AuthResponse;
 import com.commerce.api.repo.RefreshTokenRepository;
+=======
+
+import com.commerce.api.domain.User;
+import com.commerce.api.dto.AuthRequest;
+import com.commerce.api.dto.AuthResponse;
+>>>>>>> 0e6e09fafc50d1dcaa282979bf7ce0bbe4ee35ea
 import com.commerce.api.repo.UserRepository;
 import com.commerce.api.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +30,10 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+<<<<<<< HEAD
     private final RefreshTokenService refreshTokenService;
+=======
+>>>>>>> 0e6e09fafc50d1dcaa282979bf7ce0bbe4ee35ea
 
     /** Kullanıcı kaydı */
     @Transactional
@@ -48,7 +58,11 @@ public class AuthService {
         User saved = userRepository.save(user);
         String token = jwtTokenProvider.generateToken(saved.getEmail());
 
+<<<<<<< HEAD
         return new AuthResponse(token,null, saved.getId(), saved.getEmail(), saved.getFullName());
+=======
+        return new AuthResponse(token, saved.getId(), saved.getEmail(), saved.getFullName());
+>>>>>>> 0e6e09fafc50d1dcaa282979bf7ce0bbe4ee35ea
     }
 
     /** Kullanıcı girişi */
@@ -65,6 +79,7 @@ public class AuthService {
         }
 
         String token = jwtTokenProvider.generateToken(user.getEmail());
+<<<<<<< HEAD
         return new AuthResponse(token,null, user.getId(), user.getEmail(), user.getFullName());
     }
 
@@ -84,4 +99,8 @@ public class AuthService {
         return new AuthResponse(newAccess,newRefresh, userId, validToken.getUserId().toString(), null);
     }
 
+=======
+        return new AuthResponse(token, user.getId(), user.getEmail(), user.getFullName());
+    }
+>>>>>>> 0e6e09fafc50d1dcaa282979bf7ce0bbe4ee35ea
 }

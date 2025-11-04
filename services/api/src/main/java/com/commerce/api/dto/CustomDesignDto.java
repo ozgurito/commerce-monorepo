@@ -21,3 +21,7 @@ public record CustomDesignDto(
     Integer creditsUsed,
     LocalDateTime createdAt
 ) {}
+<<<<<<< HEAD
+=======
+
+>>>>>>> 0e6e09fafc50d1dcaa282979bf7ce0bbe4ee35ea

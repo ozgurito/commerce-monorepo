@@ -10,7 +10,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.NoSuchElementException;
+<<<<<<< HEAD
 import java.util.stream.Collectors;
+=======
+>>>>>>> 0e6e09fafc50d1dcaa282979bf7ce0bbe4ee35ea
 
 @Service
 public class ProductService {
@@ -24,6 +27,7 @@ public class ProductService {
         return repo.findAll().stream().map(this::toDto).toList();
     }
 
+<<<<<<< HEAD
     public List<ProductDto> findAll() {
         List<Product> products = repo.findAll();
 
@@ -58,6 +62,8 @@ public class ProductService {
         return dto;
     }
 
+=======
+>>>>>>> 0e6e09fafc50d1dcaa282979bf7ce0bbe4ee35ea
     public ProductDto get(Long id) {
         var p = repo.findById(id).orElseThrow(() -> new NoSuchElementException("Product not found"));
         return toDto(p);
@@ -69,9 +75,13 @@ public class ProductService {
         p.setDescription(r.description());
         p.setPrice(r.price());
         p.setStock(r.stock());
+<<<<<<< HEAD
         Product savedProduct = repo.save(p);
         
         return convertToDto(savedProduct);
+=======
+        return toDto(repo.save(p));
+>>>>>>> 0e6e09fafc50d1dcaa282979bf7ce0bbe4ee35ea
     }
 
     public ProductDto update(Long id, ProductUpdateRequest r) {
@@ -103,6 +113,7 @@ public class ProductService {
     }
 
     private ProductDto toDto(Product p) {
+<<<<<<< HEAD
         ProductDto dto = new ProductDto();
         dto.setId(p.getId());
         dto.setName(p.getName());
@@ -125,5 +136,23 @@ public class ProductService {
         dto.setTotalReviews(0);
         
         return dto;
+=======
+        return new ProductDto(
+                p.getId(),
+                p.getName(),
+                p.getSlug(),
+                p.getDescription(),
+                p.getPrice(),
+                p.getStock(),
+                p.getCreatedAt(),
+                p.getSku(),
+                p.getIsActive(),
+                p.getIsFeatured(),
+                p.getCategory() != null ? p.getCategory().getId() : null,
+                p.getCategory() != null ? p.getCategory().getName() : null,
+                p.getAverageRating(),
+                p.getTotalReviews()
+        );
+>>>>>>> 0e6e09fafc50d1dcaa282979bf7ce0bbe4ee35ea
     }
 }

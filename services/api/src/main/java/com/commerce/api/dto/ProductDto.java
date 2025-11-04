@@ -3,6 +3,7 @@ package com.commerce.api.dto;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+<<<<<<< HEAD
 public class ProductDto {
     private Long id;
     private String name;
@@ -72,4 +73,22 @@ public class ProductDto {
     public void setCategoryName(String categoryName) { this.categoryName = categoryName; }
     public void setAverageRating(Double averageRating) { this.averageRating = averageRating; }
     public void setTotalReviews(Integer totalReviews) { this.totalReviews = totalReviews; }
+=======
+public record ProductDto(
+        Long id,
+        String name,
+        String slug,
+        String description,
+        BigDecimal price,
+        Integer stock,
+        LocalDateTime createdAt,
+        String sku,
+        Boolean isActive,
+        Boolean isFeatured,
+        Long categoryId,
+        String categoryName,
+        Double averageRating,
+        Integer totalReviews
+) {
+>>>>>>> 0e6e09fafc50d1dcaa282979bf7ce0bbe4ee35ea
 }
