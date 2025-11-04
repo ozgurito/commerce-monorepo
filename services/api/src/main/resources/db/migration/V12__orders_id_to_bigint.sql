@@ -1,0 +1,4 @@
+ALTER TABLE orders ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE orders ALTER COLUMN id TYPE BIGINT USING id::bigint;
+ALTER SEQUENCE IF EXISTS orders_id_seq OWNED BY orders.id;
+ALTER TABLE orders ALTER COLUMN id SET DEFAULT nextval('orders_id_seq');
