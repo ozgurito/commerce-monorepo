@@ -4,27 +4,30 @@ import com.commerce.monorepo.entity.Category;
 import com.commerce.monorepo.dto.CategoryDto;
 import com.commerce.monorepo.dto.CategoryCreateRequest;
 import com.commerce.monorepo.dto.CategoryUpdateRequest;
+import com.commerce.monorepo.exception.BaseException;
+import com.commerce.monorepo.exception.ErrorCode;
 import com.commerce.monorepo.repository.CategoryRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.NoSuchElementException;
 
 @Service
 public class CategoryService {
-    
+
     private final CategoryRepository categoryRepository;
-    
+
     public CategoryService(CategoryRepository categoryRepository) {
         this.categoryRepository = categoryRepository;
     }
-    
+
     public CategoryDto createCategory(CategoryCreateRequest dto) {
+
+        // slug çakışması
         if (categoryRepository.findBySlug(dto.slug()).isPresent()) {
-            throw new IllegalArgumentException("Category slug already exists: " + dto.slug());
+            throw new BaseException(ErrorCode.CATEGORY_SLUG_TAKEN);
         }
-        
+
         Category category = new Category();
         category.setName(dto.name());
         category.setSlug(dto.slug());
@@ -32,53 +35,58 @@ public class CategoryService {
         category.setImageUrl(dto.imageUrl());
         category.setDisplayOrder(dto.displayOrder() != null ? dto.displayOrder() : 0);
         category.setIsActive(true);
-        
+
+        // parent category
         if (dto.parentId() != null) {
             Category parent = categoryRepository.findById(dto.parentId())
-                    .orElseThrow(() -> new NoSuchElementException("Parent category not found"));
+                    .orElseThrow(() -> new BaseException(ErrorCode.PARENT_CATEGORY_NOT_FOUND));
             category.setParent(parent);
         }
-        
+
         Category saved = categoryRepository.save(category);
         return mapToDto(saved);
     }
-    
+
     public CategoryDto updateCategory(Long id, CategoryUpdateRequest dto) {
+
         Category category = categoryRepository.findById(id)
-                .orElseThrow(() -> new NoSuchElementException("Category not found: " + id));
-        
-        if (dto.name() != null) category.setName(dto.name());
+                .orElseThrow(() -> new BaseException(ErrorCode.CATEGORY_NOT_FOUND));
+
+        if (dto.name() != null)
+            category.setName(dto.name());
+
         if (dto.slug() != null) {
             categoryRepository.findBySlug(dto.slug())
                     .filter(c -> !c.getId().equals(id))
                     .ifPresent(c -> {
-                        throw new IllegalArgumentException("Slug already exists");
+                        throw new BaseException(ErrorCode.CATEGORY_SLUG_TAKEN);
                     });
             category.setSlug(dto.slug());
         }
+
         if (dto.description() != null) category.setDescription(dto.description());
         if (dto.imageUrl() != null) category.setImageUrl(dto.imageUrl());
         if (dto.displayOrder() != null) category.setDisplayOrder(dto.displayOrder());
         if (dto.isActive() != null) category.setIsActive(dto.isActive());
-        
+
         Category updated = categoryRepository.save(category);
         return mapToDto(updated);
     }
-    
+
     @Transactional(readOnly = true)
     public CategoryDto getCategory(Long id) {
         Category category = categoryRepository.findById(id)
-                .orElseThrow(() -> new NoSuchElementException("Category not found: " + id));
+                .orElseThrow(() -> new BaseException(ErrorCode.CATEGORY_NOT_FOUND));
         return mapToDto(category);
     }
-    
+
     @Transactional(readOnly = true)
     public CategoryDto getCategoryBySlug(String slug) {
         Category category = categoryRepository.findBySlug(slug)
-                .orElseThrow(() -> new NoSuchElementException("Category not found: " + slug));
+                .orElseThrow(() -> new BaseException(ErrorCode.CATEGORY_NOT_FOUND));
         return mapToDto(category);
     }
-    
+
     @Transactional(readOnly = true)
     public List<CategoryDto> getAllCategories() {
         return categoryRepository.findByIsActiveTrueOrderByDisplayOrder()
@@ -86,23 +94,23 @@ public class CategoryService {
                 .map(this::mapToDto)
                 .toList();
     }
-    
+
     @Transactional(readOnly = true)
     public List<CategoryDto> getRootCategories() {
         return categoryRepository.findByParentIdIsNull()
                 .stream()
-                .filter(c -> c.getIsActive() != null && c.getIsActive())
+                .filter(c -> Boolean.TRUE.equals(c.getIsActive()))
                 .map(this::mapToDto)
                 .toList();
     }
-    
+
     public void deleteCategory(Long id) {
         Category category = categoryRepository.findById(id)
-                .orElseThrow(() -> new NoSuchElementException("Category not found: " + id));
+                .orElseThrow(() -> new BaseException(ErrorCode.CATEGORY_NOT_FOUND));
         category.setIsActive(false);
         categoryRepository.save(category);
     }
-    
+
     private CategoryDto mapToDto(Category category) {
         return new CategoryDto(
                 category.getId(),
@@ -117,4 +125,3 @@ public class CategoryService {
         );
     }
 }
-

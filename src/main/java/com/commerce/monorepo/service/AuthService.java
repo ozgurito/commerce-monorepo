@@ -1,18 +1,22 @@
 // src/main/java/com/commerce/monorepo/service/AuthService.java
 package com.commerce.monorepo.service;
-import com.commerce.monorepo.entity.User;
+
 import com.commerce.monorepo.dto.AuthRequest;
 import com.commerce.monorepo.dto.AuthResponse;
+import com.commerce.monorepo.entity.User;
+import com.commerce.monorepo.exception.BaseException;
+import com.commerce.monorepo.exception.ErrorCode;
 import com.commerce.monorepo.repository.UserRepository;
 import com.commerce.monorepo.security.JwtTokenProvider;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 
@@ -32,11 +36,13 @@ public class AuthService {
         String email = request.email().trim().toLowerCase();
 
         if (userRepository.existsByEmail(email)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "email_taken");
+            throw new BaseException(ErrorCode.EMAIL_TAKEN);
         }
-        if (request.fullName() != null && !request.fullName().isBlank()
-                && userRepository.existsByFullName(request.fullName())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "full_name_taken");
+
+        if (request.fullName() != null &&
+                !request.fullName().isBlank() &&
+                userRepository.existsByFullName(request.fullName())) {
+            throw new BaseException(ErrorCode.FULL_NAME_TAKEN);
         }
 
         User user = new User();
@@ -45,34 +51,61 @@ public class AuthService {
         user.setFullName(request.fullName());
         user.setCreatedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());
+
         User saved = userRepository.save(user);
 
-        return new AuthResponse(null,null,saved.getId(), saved.getEmail(), saved.getFullName());
+        return new AuthResponse(
+                null,
+                null,
+                saved.getId(),
+                saved.getEmail(),
+                saved.getFullName()
+        );
     }
 
     /** Kullanıcı girişi */
-    @Transactional()
-    public AuthResponse login(AuthRequest request) {
-        String email = request.email().trim().toLowerCase(); //Frontendde bu kontrolleri yapacağımız icin backendde bunlara gerek kalmayacak.
+    @Transactional
+    public AuthResponse login(AuthRequest request, String ip) {
+        String email = request.email().trim().toLowerCase();
 
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.UNAUTHORIZED, "invalid_credentials"));
+                .orElseThrow(() -> new BaseException(ErrorCode.INVALID_CREDENTIALS));
 
-        try{
-            var a=  authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(email, request.password()));
-            System.out.println(a);
-            String accessToken = jwtTokenProvider.generateToken(user.getEmail());
-            String refreshRaw=refreshTokenService.create(user.getId());
-            return new AuthResponse(accessToken,refreshRaw,user.getId(), user.getEmail(), user.getFullName());
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(email, request.password())
+            );
+
+            String accessToken = jwtTokenProvider.generateToken(
+                    user.getEmail(),
+                    user.getId(),
+                    user.getRole()
+            );
+
+            String refreshRaw = refreshTokenService.create(user.getId(), ip);
+
+            return new AuthResponse(
+                    accessToken,
+                    refreshRaw,
+                    user.getId(),
+                    user.getEmail(),
+                    user.getFullName()
+            );
+
+        } catch (Exception e) {
+            throw new BaseException(ErrorCode.INVALID_CREDENTIALS);
         }
-        catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Giriş bilgileri yanlış.");
+    }
+    public ResponseCookie logout(HttpServletRequest request) {
+
+        String refreshToken = jwtTokenProvider
+                .getRefreshTokenFromCookie(request)
+                .orElse(null);
+
+        if (refreshToken != null) {
+            refreshTokenService.revoke(refreshToken);
         }
-
-
+       return jwtTokenProvider.clearCookie();
 
     }
-
-
 }

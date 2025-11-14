@@ -5,6 +5,8 @@ import com.commerce.monorepo.dto.ProductDto;
 import com.commerce.monorepo.dto.ProductUpdateRequest;
 import com.commerce.monorepo.entity.Product;
 import com.commerce.monorepo.entity.Review;
+import com.commerce.monorepo.exception.BaseException;
+import com.commerce.monorepo.exception.ErrorCode;
 import com.commerce.monorepo.repository.ProductRepository;
 import com.commerce.monorepo.repository.CategoryRepository;
 import org.springframework.data.domain.Page;
@@ -13,7 +15,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -21,6 +22,7 @@ import org.hibernate.Hibernate;
 
 @Service
 public class ProductService {
+
     private final ProductRepository repo;
     private final CategoryRepository categoryRepository;
 
@@ -39,25 +41,27 @@ public class ProductService {
 
     @Transactional(readOnly = true)
     public List<ProductDto> findAll() {
-        List<Product> products = repo.findAll();
-
-        return products.stream()
-            .map(this::mapToDto)
-            .collect(Collectors.toList());
+        return repo.findAll()
+                .stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
     public ProductDto get(Long id) {
-        var p = repo.findById(id).orElseThrow(() -> new NoSuchElementException("Product not found"));
+        var p = repo.findById(id)
+                .orElseThrow(() -> new BaseException(ErrorCode.PRODUCT_NOT_FOUND));
+
         return mapToDto(p);
     }
 
     public ProductDto create(ProductCreateRequest r) {
+
         // SKU kontrolü
         if (r.sku() != null && repo.existsBySku(r.sku())) {
-            throw new IllegalArgumentException("SKU already exists: " + r.sku());
+            throw new BaseException(ErrorCode.SKU_ALREADY_EXISTS);
         }
-        
+
         var p = new Product();
         p.setName(r.name());
         p.setSlug(generateSlug(r.name()));
@@ -66,21 +70,21 @@ public class ProductService {
         p.setStock(r.stock());
         p.setSku(r.sku());
         p.setIsActive(true);
-        
-        // Category ata
+
+        // Category kontrolü
         if (r.categoryId() != null) {
             var category = categoryRepository.findById(r.categoryId())
-                .orElseThrow(() -> new NoSuchElementException("Category not found"));
+                    .orElseThrow(() -> new BaseException(ErrorCode.CATEGORY_NOT_FOUND));
             p.setCategory(category);
         }
-        
-        Product savedProduct = repo.save(p);
-        return mapToDto(savedProduct);
+
+        return mapToDto(repo.save(p));
     }
 
     public ProductDto update(Long id, ProductUpdateRequest r) {
-        var p = repo.findById(id).orElseThrow(() -> new NoSuchElementException("Product not found"));
-        
+        var p = repo.findById(id)
+                .orElseThrow(() -> new BaseException(ErrorCode.PRODUCT_NOT_FOUND));
+
         if (r.name() != null) {
             p.setName(r.name());
             p.setSlug(generateSlug(r.name()));
@@ -88,27 +92,37 @@ public class ProductService {
         if (r.description() != null) p.setDescription(r.description());
         if (r.price() != null) p.setPrice(r.price());
         if (r.stock() != null) p.setStock(r.stock());
-        if (r.sku() != null) p.setSku(r.sku());
+
+        if (r.sku() != null) {
+            // SKU başka bir üründe var mı?
+            if (repo.existsBySkuAndIdNot(r.sku(), id)) {
+                throw new BaseException(ErrorCode.SKU_ALREADY_EXISTS);
+            }
+            p.setSku(r.sku());
+        }
+
         if (r.categoryId() != null) {
             var category = categoryRepository.findById(r.categoryId())
-                .orElseThrow(() -> new NoSuchElementException("Category not found"));
+                    .orElseThrow(() -> new BaseException(ErrorCode.CATEGORY_NOT_FOUND));
             p.setCategory(category);
         }
-        
+
         return mapToDto(repo.save(p));
     }
 
     public void delete(Long id) {
-        if (!repo.existsById(id)) throw new NoSuchElementException("Product not found");
+        if (!repo.existsById(id)) {
+            throw new BaseException(ErrorCode.PRODUCT_NOT_FOUND);
+        }
         repo.deleteById(id);
     }
-    
+
     @Transactional(readOnly = true)
     public Page<ProductDto> getProductsByCategory(Long categoryId, Pageable pageable) {
         return repo.findByCategoryIdAndIsActiveTrue(categoryId, pageable)
                 .map(this::mapToDto);
     }
-    
+
     @Transactional(readOnly = true)
     public List<ProductDto> getLowStockProducts() {
         return repo.findLowStockProducts()
@@ -121,11 +135,16 @@ public class ProductService {
         double averageRating = 0.0;
         int totalReviews = 0;
 
-        if (Hibernate.isInitialized(product.getReviews()) && product.getReviews() != null && !product.getReviews().isEmpty()) {
-            List<Review> reviews = product.getReviews().stream()
-                    .filter(review -> review != null && review.getRating() != null)
+        if (Hibernate.isInitialized(product.getReviews())
+                && product.getReviews() != null
+                && !product.getReviews().isEmpty()) {
+
+            var reviews = product.getReviews().stream()
+                    .filter(r -> r != null && r.getRating() != null)
                     .toList();
+
             totalReviews = reviews.size();
+
             if (totalReviews > 0) {
                 averageRating = reviews.stream()
                         .map(Review::getRating)
@@ -172,11 +191,11 @@ public class ProductService {
                         .findFirst()
                         .orElse(null));
     }
-    
+
     private String generateSlug(String name) {
         return name.toLowerCase()
-            .replaceAll("[^a-z0-9\\s-]", "")
-            .replaceAll("\\s+", "-")
-            .replaceAll("-+", "-");
+                .replaceAll("[^a-z0-9\\s-]", "")
+                .replaceAll("\\s+", "-")
+                .replaceAll("-+", "-");
     }
 }

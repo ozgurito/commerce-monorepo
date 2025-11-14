@@ -1,21 +1,20 @@
-// src/main/java/com/commerce/api/web/AssetController.java
 package com.commerce.monorepo.controller;
+
+import com.commerce.monorepo.ratelimit.RateLimit;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.*;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
+import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
 
 import java.net.URL;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.*;
-
-import software.amazon.awssdk.services.s3.model.GetObjectRequest;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
-import software.amazon.awssdk.services.s3.presigner.S3Presigner;
-import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
-import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
 
 @RestController
 @RequestMapping("/api/assets")
@@ -33,6 +32,8 @@ public class AssetController {
     public record UploadReq(String key, String contentType) {}
     public record UploadRes(String url, String method, Map<String, List<String>> headers, String key) {}
 
+    // 🔥 Upload URL — userId bazlı rate limit (20/dk)
+    @RateLimit(key = "asset:upload", limit = 20, windowSeconds = 60, perUser = true)
     @PostMapping(
             path = "/upload-url",
             consumes = MediaType.APPLICATION_JSON_VALUE,
@@ -64,12 +65,15 @@ public class AssetController {
     public record DownloadReq(String key) {}
     public record DownloadRes(String url, String key) {}
 
+    // 🔥 Download URL — userId bazlı rate limit (30/dk)
+    @RateLimit(key = "asset:download", limit = 30, windowSeconds = 60, perUser = true)
     @PostMapping(
             path = "/download-url",
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE
     )
     public DownloadRes createDownloadUrl(@RequestBody DownloadReq req) {
+
         GetObjectRequest get = GetObjectRequest.builder()
                 .bucket(bucket)
                 .key(req.key())

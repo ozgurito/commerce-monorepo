@@ -1,5 +1,6 @@
 package com.commerce.monorepo.security;
 
+import com.commerce.monorepo.entity.UserRole;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
@@ -34,14 +35,14 @@ public class JwtTokenProvider {
         this.expiration = expiration;
     }
 
-    public String generateToken(String email) {
+    public String generateToken(String email,long userId, UserRole role) {
         Date now = new Date();
         Date expiry = new Date(now.getTime() + expiration);
 
         return Jwts.builder()
                 .subject(email)
-                //.claim("userId", userId)
-                //.claim("role", role)
+                .claim("userId", userId)
+                .claim("role", role)
                 .issuedAt(now)
                 .expiration(expiry)
                 .signWith(secretKey)
@@ -113,7 +114,6 @@ public class JwtTokenProvider {
         }
         return Optional.empty();
     }
-
 
 
 }

@@ -15,17 +15,13 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private final com.commerce.monorepo.security.JwtTokenProvider jwtTokenProvider;
-    private final UserRepository userRepository;
+    private final JwtTokenProvider jwtTokenProvider;
     private final CustomUserDetailsService customUserDetailsService;
 
     private static final AntPathMatcher PATH_MATCHER = new AntPathMatcher();
@@ -48,7 +44,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
         String method = request.getMethod();
 
-        // OPTIONS always allowed
         if ("OPTIONS".equals(method)) {
             return true;
         }
@@ -74,8 +69,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String token = getTokenFromRequest(request);
 
         try {
-            if (token != null && jwtTokenProvider.validateToken(token)
-                    && SecurityContextHolder.getContext().getAuthentication() == null) {
+            if (token != null &&
+                    jwtTokenProvider.validateToken(token) &&
+                    SecurityContextHolder.getContext().getAuthentication() == null) {
 
                 String email = jwtTokenProvider.getEmail(token);
 
@@ -95,31 +91,34 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
 
-        } catch (Exception ex) {
-            logger.error("JWT authentication failed: " + ex.getMessage());
+        }  catch (io.jsonwebtoken.ExpiredJwtException e) {
+            logger.warn("JWT expired: " + e.getMessage());
+
+        } catch (io.jsonwebtoken.MalformedJwtException e) {
+            logger.error("Malformed JWT: " + e.getMessage());
+
+        } catch (io.jsonwebtoken.SignatureException e) {
+            logger.error("Invalid JWT signature: " + e.getMessage());
+
+        } catch (io.jsonwebtoken.JwtException e) {
+            logger.error("JWT error: " + e.getMessage());
+
+        } catch (IllegalArgumentException e) {
+            logger.error("JWT extraction failed: " + e.getMessage());
+
+        } catch (Exception e) {
+            logger.error("Unexpected JWT filter error: " + e.getMessage());
         }
 
         filterChain.doFilter(request, response);
     }
 
-
-    /**
-     *  Varsa Header'dan yoksa Cookie'den Refresh token'ı çıkar
-     */
     private String getTokenFromRequest(HttpServletRequest request) {
 
         String bearerToken = request.getHeader("Authorization");
         if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
             return bearerToken.substring(7);
         }
-
-        Optional<String> refreshOpt = jwtTokenProvider.getRefreshTokenFromCookie(request);
-        if (refreshOpt.isPresent()) {
-            return refreshOpt.get();
-        }
-
         return null;
     }
-
-
 }

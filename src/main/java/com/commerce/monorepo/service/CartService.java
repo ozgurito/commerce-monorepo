@@ -2,17 +2,17 @@ package com.commerce.monorepo.service;
 
 import com.commerce.monorepo.entity.*;
 import com.commerce.monorepo.dto.*;
+import com.commerce.monorepo.exception.BaseException;
+import com.commerce.monorepo.exception.ErrorCode;
 import com.commerce.monorepo.repository.CartItemRepository;
 import com.commerce.monorepo.repository.CartRepository;
 import com.commerce.monorepo.repository.ProductRepository;
 import com.commerce.monorepo.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.stream.Collectors;
 
@@ -36,41 +36,32 @@ public class CartService {
         User currentUser = getCurrentUser();
         Cart cart = getOrCreateActiveCart(currentUser);
 
-        // Check product
+        // Product kontrolü
         Product product = productRepository.findById(request.getProductId())
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "Product not found"
-                ));
+                .orElseThrow(() -> new BaseException(ErrorCode.PRODUCT_NOT_FOUND));
 
-        // Check stock
+        // Stok kontrolü
         if (product.getStock() < request.getQuantity()) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Insufficient stock (Available: " + product.getStock() + ")"
-            );
+            throw new BaseException(ErrorCode.INSUFFICIENT_STOCK);
         }
 
-        // Check if product already in cart
+        // Sepette var mı?
         CartItem existingItem = cart.getItems().stream()
                 .filter(item -> item.getProduct().getId().equals(product.getId()))
                 .findFirst()
                 .orElse(null);
 
         if (existingItem != null) {
-            // Update quantity
-            int newQuantity = existingItem.getQuantity() + request.getQuantity();
 
+            int newQuantity = existingItem.getQuantity() + request.getQuantity();
             if (product.getStock() < newQuantity) {
-                throw new ResponseStatusException(
-                        HttpStatus.BAD_REQUEST,
-                        "Insufficient stock (Available: " + product.getStock() + ")"
-                );
+                throw new BaseException(ErrorCode.INSUFFICIENT_STOCK);
             }
 
             existingItem.setQuantity(newQuantity);
             existingItem.calculateTotalPrice();
+
         } else {
-            // Add new item
             CartItem newItem = new CartItem();
             newItem.setCart(cart);
             newItem.setProduct(product);
@@ -92,17 +83,12 @@ public class CartService {
         CartItem cartItem = cart.getItems().stream()
                 .filter(item -> item.getId().equals(cartItemId))
                 .findFirst()
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "Cart item not found"
-                ));
+                .orElseThrow(() -> new BaseException(ErrorCode.CART_ITEM_NOT_FOUND));
 
-        // Check stock
+        // Stok kontrolü
         Product product = cartItem.getProduct();
         if (product.getStock() < request.getQuantity()) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Insufficient stock (Available: " + product.getStock() + ")"
-            );
+            throw new BaseException(ErrorCode.INSUFFICIENT_STOCK);
         }
 
         cartItem.setQuantity(request.getQuantity());
@@ -120,9 +106,7 @@ public class CartService {
         CartItem cartItem = cart.getItems().stream()
                 .filter(item -> item.getId().equals(cartItemId))
                 .findFirst()
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "Cart item not found"
-                ));
+                .orElseThrow(() -> new BaseException(ErrorCode.CART_ITEM_NOT_FOUND));
 
         cart.removeItem(cartItem);
         cartItemRepository.delete(cartItem);
@@ -155,10 +139,9 @@ public class CartService {
     private User getCurrentUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String email = auth.getName();
+
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.UNAUTHORIZED, "User not found"
-                ));
+                .orElseThrow(() -> new BaseException(ErrorCode.USER_NOT_FOUND));
     }
 
     private CartDto mapToDto(Cart cart) {

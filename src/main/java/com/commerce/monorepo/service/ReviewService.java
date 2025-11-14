@@ -1,15 +1,12 @@
 package com.commerce.monorepo.service;
 
-import com.commerce.monorepo.entity.Review;
-import com.commerce.monorepo.entity.Product;
-import com.commerce.monorepo.entity.User;
-import com.commerce.monorepo.entity.ReviewHelpful;
-import com.commerce.monorepo.dto.ReviewDto;
 import com.commerce.monorepo.dto.ReviewCreateRequest;
-import com.commerce.monorepo.repository.ReviewRepository;
-import com.commerce.monorepo.repository.ReviewHelpfulRepository;
-import com.commerce.monorepo.repository.ProductRepository;
-import com.commerce.monorepo.repository.UserRepository;
+import com.commerce.monorepo.dto.ReviewDto;
+import com.commerce.monorepo.entity.*;
+import com.commerce.monorepo.exception.BaseException;
+import com.commerce.monorepo.exception.ErrorCode;
+import com.commerce.monorepo.repository.*;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -17,35 +14,28 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
-import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class ReviewService {
-    
+
     private final ReviewRepository reviewRepository;
     private final ReviewHelpfulRepository reviewHelpfulRepository;
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
-    
-    public ReviewService(ReviewRepository reviewRepository, ReviewHelpfulRepository reviewHelpfulRepository,
-                         ProductRepository productRepository, UserRepository userRepository) {
-        this.reviewRepository = reviewRepository;
-        this.reviewHelpfulRepository = reviewHelpfulRepository;
-        this.productRepository = productRepository;
-        this.userRepository = userRepository;
-    }
-    
+
     public ReviewDto createReview(ReviewCreateRequest dto, String userEmail) {
+
         Product product = productRepository.findById(dto.productId())
-                .orElseThrow(() -> new java.util.NoSuchElementException("Product not found"));
-        
+                .orElseThrow(() -> new BaseException(ErrorCode.PRODUCT_NOT_FOUND));
+
         User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new java.util.NoSuchElementException("User not found"));
-        
-        if (!product.getAllowReviews()) {
-            throw new IllegalArgumentException("Reviews not allowed for this product");
+                .orElseThrow(() -> new BaseException(ErrorCode.USER_NOT_FOUND));
+
+        if (!Boolean.TRUE.equals(product.getAllowReviews())) {
+            throw new BaseException(ErrorCode.PRODUCT_REVIEWS_DISABLED);
         }
-        
+
         Review review = new Review();
         review.setProduct(product);
         review.setUser(user);
@@ -55,98 +45,117 @@ public class ReviewService {
         review.setImages(dto.images());
         review.setIsVerifiedPurchase(false);
         review.setIsApproved(false);
-        
-        Review saved = reviewRepository.save(review);
-        return mapToDto(saved);
+
+        return mapToDto(reviewRepository.save(review));
     }
-    
+
     @Transactional
     public ReviewDto approveReview(Long reviewId) {
         Review review = reviewRepository.findById(reviewId)
-            .orElseThrow(() -> new RuntimeException("Review not found"));
-        
+                .orElseThrow(() -> new BaseException(ErrorCode.REVIEW_NOT_FOUND));
+
         review.setIsApproved(true);
         reviewRepository.save(review);
-        
+
         return mapToDto(review);
     }
-    
+
     @Transactional
     public ReviewDto addAdminResponse(Long id, String response) {
         Review review = reviewRepository.findById(id)
-                .orElseThrow(() -> new java.util.NoSuchElementException("Review not found"));
+                .orElseThrow(() -> new BaseException(ErrorCode.REVIEW_NOT_FOUND));
+
         review.setAdminResponse(response);
         review.setAdminResponseAt(LocalDateTime.now());
-        Review updated = reviewRepository.save(review);
-        return mapToDto(updated);
+
+        return mapToDto(reviewRepository.save(review));
     }
-    
+
     @Transactional
     public void markHelpful(Long reviewId, String userEmail, boolean isHelpful) {
+
         Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new java.util.NoSuchElementException("Review not found"));
+                .orElseThrow(() -> new BaseException(ErrorCode.REVIEW_NOT_FOUND));
+
         User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new java.util.NoSuchElementException("User not found"));
-        
-        // Kullanıcı kendi review'ına helpful/unhelpful işaretleyemez
+                .orElseThrow(() -> new BaseException(ErrorCode.USER_NOT_FOUND));
+
+        // Kullanıcı kendi yorumuna oy veremez
         if (review.getUser() != null && review.getUser().getId().equals(user.getId())) {
-            throw new IllegalArgumentException("You cannot mark your own review as helpful/unhelpful");
+            throw new BaseException(ErrorCode.REVIEW_SELF_VOTE_FORBIDDEN);
         }
-        
+
         reviewHelpfulRepository.findByReviewIdAndUserId(reviewId, user.getId())
                 .ifPresentOrElse(
-                    existing -> {
-                        if (existing.getIsHelpful() != isHelpful) {
-                            if (isHelpful) {
-                                review.setHelpfulCount((review.getHelpfulCount() != null ? review.getHelpfulCount() : 0) + 1);
-                                review.setUnhelpfulCount((review.getUnhelpfulCount() != null ? review.getUnhelpfulCount() : 0) - 1);
-                            } else {
-                                review.setHelpfulCount((review.getHelpfulCount() != null ? review.getHelpfulCount() : 0) - 1);
-                                review.setUnhelpfulCount((review.getUnhelpfulCount() != null ? review.getUnhelpfulCount() : 0) + 1);
+                        existing -> {
+                            // Oy farkı varsa güncelle
+                            if (existing.getIsHelpful() != isHelpful) {
+                                adjustHelpfulCounters(review, isHelpful, existing.getIsHelpful());
+                                existing.setIsHelpful(isHelpful);
+                                reviewHelpfulRepository.save(existing);
                             }
-                            existing.setIsHelpful(isHelpful);
-                            reviewHelpfulRepository.save(existing);
+                        },
+                        () -> {
+                            // Yeni entry
+                            ReviewHelpful helpful = new ReviewHelpful();
+                            helpful.setReview(review);
+                            helpful.setUser(user);
+                            helpful.setIsHelpful(isHelpful);
+                            reviewHelpfulRepository.save(helpful);
+
+                            adjustHelpfulCounters(review, isHelpful, null);
                         }
-                    },
-                    () -> {
-                        ReviewHelpful helpful = new ReviewHelpful();
-                        helpful.setReview(review);
-                        helpful.setUser(user);
-                        helpful.setIsHelpful(isHelpful);
-                        reviewHelpfulRepository.save(helpful);
-                        
-                        if (isHelpful) {
-                            review.setHelpfulCount((review.getHelpfulCount() != null ? review.getHelpfulCount() : 0) + 1);
-                        } else {
-                            review.setUnhelpfulCount((review.getUnhelpfulCount() != null ? review.getUnhelpfulCount() : 0) + 1);
-                        }
-                    }
                 );
-        
+
         reviewRepository.save(review);
     }
-    
+
+    private void adjustHelpfulCounters(Review review, boolean newVote, Boolean oldVote) {
+        int helpful = review.getHelpfulCount() != null ? review.getHelpfulCount() : 0;
+        int unhelpful = review.getUnhelpfulCount() != null ? review.getUnhelpfulCount() : 0;
+
+        if (oldVote == null) {
+            // yeni oy
+            if (newVote) helpful++;
+            else unhelpful++;
+        } else {
+            // güncelleme
+            if (newVote) {
+                helpful++;
+                unhelpful--;
+            } else {
+                unhelpful++;
+                helpful--;
+            }
+        }
+
+        review.setHelpfulCount(Math.max(helpful, 0));
+        review.setUnhelpfulCount(Math.max(unhelpful, 0));
+    }
+
     @Transactional(readOnly = true)
     public Page<ReviewDto> getProductReviews(Long productId, Pageable pageable) {
         return reviewRepository.findByProductIdAndIsApprovedTrue(productId, pageable)
                 .map(this::mapToDto);
     }
-    
+
     @Transactional(readOnly = true)
     public Page<ReviewDto> getPendingReviews(Pageable pageable) {
-        // Direkt database query ile pagination
         return reviewRepository.findByIsApprovedFalseOrIsApprovedIsNull(pageable)
                 .map(this::mapToDto);
     }
-    
+
     public void deleteReview(Long id) {
+        if (!reviewRepository.existsById(id)) {
+            throw new BaseException(ErrorCode.REVIEW_NOT_FOUND);
+        }
         reviewRepository.deleteById(id);
     }
-    
+
     private ReviewDto mapToDto(Review review) {
         Product product = review.getProduct();
         User user = review.getUser();
-        
+
         return ReviewDto.builder()
                 .id(review.getId())
                 .productId(product != null ? product.getId() : null)

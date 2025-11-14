@@ -6,6 +6,8 @@ import com.commerce.monorepo.entity.Product;
 import com.commerce.monorepo.dto.CustomDesignDto;
 import com.commerce.monorepo.dto.CustomDesignCreateRequest;
 import com.commerce.monorepo.dto.CustomDesignUpdateRequest;
+import com.commerce.monorepo.exception.BaseException;
+import com.commerce.monorepo.exception.ErrorCode;
 import com.commerce.monorepo.repository.CustomDesignRepository;
 import com.commerce.monorepo.repository.UserRepository;
 import com.commerce.monorepo.repository.ProductRepository;
@@ -22,28 +24,29 @@ import java.util.List;
 
 @Service
 public class CustomDesignService {
-    
+
     private final CustomDesignRepository customDesignRepository;
     private final UserRepository userRepository;
     private final ProductRepository productRepository;
-    
-    public CustomDesignService(CustomDesignRepository customDesignRepository, UserRepository userRepository,
+
+    public CustomDesignService(CustomDesignRepository customDesignRepository,
+                               UserRepository userRepository,
                                ProductRepository productRepository) {
         this.customDesignRepository = customDesignRepository;
         this.userRepository = userRepository;
         this.productRepository = productRepository;
     }
-    
+
     public CustomDesignDto createDesign(CustomDesignCreateRequest dto, String userEmail) {
         User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new java.util.NoSuchElementException("User not found"));
-        
+                .orElseThrow(() -> new BaseException(ErrorCode.USER_NOT_FOUND));
+
         Product baseProduct = null;
         if (dto.baseProductId() != null) {
             baseProduct = productRepository.findById(dto.baseProductId())
-                    .orElseThrow(() -> new java.util.NoSuchElementException("Base product not found"));
+                    .orElseThrow(() -> new BaseException(ErrorCode.BASE_PRODUCT_NOT_FOUND));
         }
-        
+
         CustomDesign design = new CustomDesign();
         design.setUser(user);
         design.setDesignName(dto.designName());
@@ -58,22 +61,22 @@ public class CustomDesignService {
         design.setSize(dto.size());
         design.setColor(dto.color());
         design.setStatus("draft");
-        
+
         CustomDesign saved = customDesignRepository.save(design);
         return mapToDto(saved);
     }
-    
+
     public CustomDesignDto updateDesign(Long id, CustomDesignUpdateRequest dto, String userEmail) {
         CustomDesign design = customDesignRepository.findById(id)
-                .orElseThrow(() -> new java.util.NoSuchElementException("Design not found"));
-        
+                .orElseThrow(() -> new BaseException(ErrorCode.CUSTOM_DESIGN_NOT_FOUND));
+
         User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new java.util.NoSuchElementException("User not found"));
-        
+                .orElseThrow(() -> new BaseException(ErrorCode.USER_NOT_FOUND));
+
         if (!design.getUser().getId().equals(user.getId())) {
-            throw new IllegalArgumentException("Unauthorized to update this design");
+            throw new BaseException(ErrorCode.DESIGN_ACCESS_DENIED);
         }
-        
+
         if (dto.designName() != null) design.setDesignName(dto.designName());
         if (dto.designData() != null) design.setDesignData(dto.designData());
         if (dto.thumbnailUrl() != null) design.setThumbnailUrl(dto.thumbnailUrl());
@@ -84,90 +87,90 @@ public class CustomDesignService {
         }
         if (dto.size() != null) design.setSize(dto.size());
         if (dto.color() != null) design.setColor(dto.color());
-        
+
         CustomDesign updated = customDesignRepository.save(design);
         return mapToDto(updated);
     }
-    
+
     public CustomDesignDto submitDesign(Long id, String userEmail) {
         CustomDesign design = customDesignRepository.findById(id)
-                .orElseThrow(() -> new java.util.NoSuchElementException("Design not found"));
-        
+                .orElseThrow(() -> new BaseException(ErrorCode.CUSTOM_DESIGN_NOT_FOUND));
+
         User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new java.util.NoSuchElementException("User not found"));
-        
+                .orElseThrow(() -> new BaseException(ErrorCode.USER_NOT_FOUND));
+
         if (!design.getUser().getId().equals(user.getId())) {
-            throw new IllegalArgumentException("Unauthorized");
+            throw new BaseException(ErrorCode.DESIGN_ACCESS_DENIED);
         }
-        
+
         if (!"draft".equals(design.getStatus())) {
-            throw new IllegalArgumentException("Design already submitted");
+            throw new BaseException(ErrorCode.DESIGN_ALREADY_SUBMITTED);
         }
-        
+
         design.setStatus("submitted");
         CustomDesign updated = customDesignRepository.save(design);
         return mapToDto(updated);
     }
-    
+
     public CustomDesignDto approveDesign(Long id) {
         CustomDesign design = customDesignRepository.findById(id)
-                .orElseThrow(() -> new java.util.NoSuchElementException("Design not found"));
+                .orElseThrow(() -> new BaseException(ErrorCode.CUSTOM_DESIGN_NOT_FOUND));
+
         design.setStatus("approved");
         CustomDesign updated = customDesignRepository.save(design);
         return mapToDto(updated);
     }
-    
+
     public CustomDesignDto rejectDesign(Long id, String reason) {
         CustomDesign design = customDesignRepository.findById(id)
-                .orElseThrow(() -> new java.util.NoSuchElementException("Design not found"));
-        
-        // Business Rule: Üretime geçmiş tasarımlar reddedilemez
+                .orElseThrow(() -> new BaseException(ErrorCode.CUSTOM_DESIGN_NOT_FOUND));
+
+        // Business Rule: Üretime geçmiş tasarım reddedilemez
         String status = design.getStatus();
-        if ("in_production".equals(status) || 
-            "completed".equals(status) || 
-            "shipped".equals(status)) {
-            throw new IllegalStateException(
-                "Cannot reject design in " + status + " status. " +
-                "Only draft, submitted, and approved designs can be rejected."
-            );
+        if ("in_production".equals(status) ||
+                "completed".equals(status) ||
+                "shipped".equals(status)) {
+            throw new BaseException(ErrorCode.DESIGN_INVALID_STATE);
         }
-        
+
         design.setStatus("rejected");
         design.setRejectionReason(reason);
         CustomDesign updated = customDesignRepository.save(design);
         return mapToDto(updated);
     }
-    
+
     public CustomDesignDto startProduction(Long id) {
         CustomDesign design = customDesignRepository.findById(id)
-                .orElseThrow(() -> new java.util.NoSuchElementException("Design not found"));
+                .orElseThrow(() -> new BaseException(ErrorCode.CUSTOM_DESIGN_NOT_FOUND));
+
         design.setStatus("in_production");
         design.setProductionStartedAt(LocalDateTime.now());
         CustomDesign updated = customDesignRepository.save(design);
         return mapToDto(updated);
     }
-    
+
     @Transactional(readOnly = true)
     public CustomDesignDto getDesign(Long id) {
         CustomDesign design = customDesignRepository.findById(id)
-                .orElseThrow(() -> new java.util.NoSuchElementException("Design not found"));
+                .orElseThrow(() -> new BaseException(ErrorCode.CUSTOM_DESIGN_NOT_FOUND));
         return mapToDto(design);
     }
-    
+
     public List<CustomDesign> findByUserId(Long userId) {
         return customDesignRepository.findByUserIdOrderByCreatedAtDesc(userId);
     }
-    
+
     @Transactional(readOnly = true)
     public List<CustomDesignDto> getUserDesigns(String userEmail) {
         User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new java.util.NoSuchElementException("User not found"));
+                .orElseThrow(() -> new BaseException(ErrorCode.USER_NOT_FOUND));
+
         return customDesignRepository.findByUserIdOrderByCreatedAtDesc(user.getId())
                 .stream()
                 .map(this::mapToDto)
                 .toList();
     }
-    
+
     @Transactional(readOnly = true)
     public Page<CustomDesignDto> getDesignsByStatus(String status, Pageable pageable) {
         List<CustomDesign> allDesigns = customDesignRepository.findAll();
@@ -184,7 +187,7 @@ public class CustomDesignService {
         return new PageImpl<>(filtered.subList(start, end), pageable, filtered.size())
                 .map(this::mapToDto);
     }
-    
+
     private CustomDesignDto mapToDto(CustomDesign design) {
         return new CustomDesignDto(
                 design.getId(),

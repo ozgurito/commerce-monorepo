@@ -1,7 +1,13 @@
 package com.commerce.monorepo.controller;
 
 import com.commerce.monorepo.dto.*;
+import com.commerce.monorepo.exception.BaseException;
+import com.commerce.monorepo.exception.ErrorCode;
+import com.commerce.monorepo.security.CustomUserPrincipal;
+import com.commerce.monorepo.ratelimit.IpExtract;
 import com.commerce.monorepo.security.JwtTokenProvider;
+import com.commerce.monorepo.ratelimit.RateLimitService;
+import com.commerce.monorepo.ratelimit.RateLimit;
 import com.commerce.monorepo.service.AuthService;
 import com.commerce.monorepo.service.RefreshTokenService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -11,8 +17,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -22,71 +28,83 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AuthController {
 
+
     private final AuthService authService;
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenService refreshTokenService;
+    private final IpExtract ipExtract;
+    private final RateLimitService rateLimitService;
 
-    /**
-     * Kullanıcı kaydı
-     */
+    @RateLimit(key = "register", limit = 5, windowSeconds = 60)
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@Valid @RequestBody AuthRequest request) {
-        AuthResponse response = authService.register(request);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<?> register(
+            @Valid @RequestBody AuthRequest authRequest,
+            HttpServletRequest request
+    ) {
+
+        AuthResponse res = authService.register(authRequest);
+        return ResponseEntity.ok(res);
     }
 
-    /**
-     * Kullanıcı girişi
-     */
+    @RateLimit(key = "login", limit = 5, windowSeconds = 60)
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(
-            @Valid @RequestBody AuthRequest request,
-            HttpServletResponse response // buraya ekle
-    ) {
-        AuthResponse res = authService.login(request);
+    public ResponseEntity<?> login(@Valid @RequestBody AuthRequest authRequest,
+                                   HttpServletRequest request,
+                                   HttpServletResponse httpResponse) {
 
-        // Refresh token üret
+        String ip = ipExtract.getClientIp(request);
+        AuthResponse res = authService.login(authRequest, ip);
+
         ResponseCookie cookie = jwtTokenProvider.createHttpOnlyCookie(res.refreshToken());
-        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+        httpResponse.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
         return ResponseEntity.ok(res);
     }
 
+    @PostMapping("/logout")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Void> logout(HttpServletResponse response,
+                                       HttpServletRequest request) {
 
-    /**
-     * Mevcut kullanıcı bilgisi (JWT token ile)
-     */
+        ResponseCookie cleared = authService.logout(request);
+        response.addHeader(HttpHeaders.SET_COOKIE, cleared.toString());
+
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/me")
-    public ResponseEntity<Map<String, Object>> getCurrentUser(
-            @AuthenticationPrincipal UserDetails userDetails
-    ) {
-        if (userDetails == null) {
-            return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
+    public ResponseEntity<?> getCurrentUser(@AuthenticationPrincipal CustomUserPrincipal principal) {
+
+        if (principal == null) {
+            throw new BaseException(ErrorCode.UNAUTHORIZED);
         }
 
-        Map<String, Object> user = Map.of(
-                "email", userDetails.getUsername(),
-                "authenticated", true
+        return ResponseEntity.ok(
+                Map.of(
+                        "email", principal.getUsername(),
+                        "authenticated", true
+                )
         );
-
-        return ResponseEntity.ok(user);
     }
 
-    /**
-     * Refresh token yenileme
-     */
     @PostMapping("/refresh")
-    public ResponseEntity<RefreshTokenResponse> refresh(HttpServletRequest request, HttpServletResponse response) {
+    public ResponseEntity<?> refresh(HttpServletRequest request,
+                                     HttpServletResponse response) {
+
         var refreshOpt = jwtTokenProvider.getRefreshTokenFromCookie(request);
+
         if (refreshOpt.isEmpty()) {
-            return ResponseEntity.status(401).body(null);
+            throw new BaseException(ErrorCode.MISSING_REFRESH_TOKEN);
         }
 
-        RefreshTokenResponse res = refreshTokenService.refresh(refreshOpt.get());
+        String ip = ipExtract.getClientIp(request);
+
+        RefreshTokenResponse res = refreshTokenService.refresh(refreshOpt.get(), ip);
 
         ResponseCookie cookie = jwtTokenProvider.createHttpOnlyCookie(res.refreshToken());
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
         return ResponseEntity.ok(res);
     }
+
 }

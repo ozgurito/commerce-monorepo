@@ -1,16 +1,18 @@
 package com.commerce.monorepo.service;
 
-import com.commerce.monorepo.entity.RefreshToken;
 import com.commerce.monorepo.dto.RefreshTokenResponse;
+import com.commerce.monorepo.entity.RefreshToken;
+import com.commerce.monorepo.entity.User;
+import com.commerce.monorepo.exception.BaseException;
+import com.commerce.monorepo.exception.ErrorCode;
 import com.commerce.monorepo.repository.RefreshTokenRepository;
 import com.commerce.monorepo.repository.UserRepository;
+import com.commerce.monorepo.ratelimit.IpExtract;
 import com.commerce.monorepo.security.JwtTokenProvider;
 import com.commerce.monorepo.security.TokenHasher;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
@@ -21,14 +23,14 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class RefreshTokenService {
 
-//    Reuse detection (token tekrar kullanımı) mantığını eklenecek.
-
     private final RefreshTokenRepository refreshTokenRepository;
     private final TokenHasher tokenHasher;
     private final JwtTokenProvider jwtTokenProvider;
-    private static final SecureRandom RANDOM = new SecureRandom();
-    private static final long EXPIRE_DAYS = 14; // app.ymla alınacak bu ve diğerleri
     private final UserRepository userRepository;
+    private final IpExtract ipExtract;
+
+    private static final SecureRandom RANDOM = new SecureRandom();
+    private static final long EXPIRE_DAYS = 14;
 
     private String generatePrefix() {
         byte[] bytes = new byte[8];
@@ -43,10 +45,12 @@ public class RefreshTokenService {
     }
 
     @Transactional
-    public String create(Long userId) {
+    public String create(Long userId, String ip) {
+
         String prefix = generatePrefix();
         String randomPart = generateRandomPart();
         String rawToken = prefix + "." + randomPart;
+
         String hashed = tokenHasher.hmacSHA256Hex(rawToken);
 
         RefreshToken token = new RefreshToken();
@@ -56,83 +60,88 @@ public class RefreshTokenService {
         token.setExpiresAt(LocalDateTime.now().plusDays(EXPIRE_DAYS));
         token.setRevoked(false);
         token.setChildToken(null);
-        refreshTokenRepository.save(token);
-        System.out.println("refresh token olusturuldu"+token);
+        token.setUserIp(ip);
 
-        return rawToken; // bu client’a cookie olarak dönecek11
+        refreshTokenRepository.save(token);
+
+        return rawToken;
     }
 
     @Transactional(readOnly = true)
     public RefreshToken validate(String rawToken) {
 
         if (rawToken == null || !rawToken.contains(".")) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "invalid_refresh_format");
+            throw new BaseException(ErrorCode.INVALID_REFRESH_FORMAT);
         }
 
-        RefreshToken rt=getRefreshToken(rawToken);
-
+        RefreshToken rt = getRefreshToken(rawToken);
 
         if (!tokenHasher.matches(rawToken, rt.getTokenHash())) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "invalid_refresh_signature");
+            throw new BaseException(ErrorCode.INVALID_REFRESH_SIGNATURE);
         }
 
         if (rt.getExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "expired_refresh");
+            throw new BaseException(ErrorCode.EXPIRED_REFRESH_TOKEN);
         }
 
-        //reuse detection
+        // REUSE DETECTION
         if (rt.isRevoked()) {
+
             String childHash = rt.getChildToken();
+
             if (childHash != null) {
                 Optional<RefreshToken> childOpt = refreshTokenRepository.findByTokenHash(childHash);
+
                 if (childOpt.isPresent()) {
                     RefreshToken child = childOpt.get();
+
                     if (!child.isRevoked() && child.getExpiresAt().isAfter(LocalDateTime.now())) {
                         revokeChain(rt.getUserId());
-                        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "reuse_detected");
+                        throw new BaseException(ErrorCode.REFRESH_REUSE_DETECTED);
                     }
                 }
             }
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "revoked_refresh");
-        }
 
+            throw new BaseException(ErrorCode.REVOKED_REFRESH_TOKEN);
+        }
 
         return rt;
     }
 
     @Transactional
-    public RefreshTokenResponse refresh(String rawRefreshToken) {
+    public RefreshTokenResponse refresh(String rawRefreshToken, String ip) {
 
         RefreshToken validToken = validate(rawRefreshToken);
 
-        String newRefreshToken = rotate(rawRefreshToken);
+        String newRefreshToken = rotate(rawRefreshToken, ip);
+
+        User user = userRepository.findById(validToken.getUserId())
+                .orElseThrow(() -> new BaseException(ErrorCode.USER_NOT_FOUND));
 
         String newAccessToken = jwtTokenProvider.generateToken(
-                userRepository.findById(validToken.getUserId())
-                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "user_not_found"))
-                        .getEmail()
+                user.getEmail(), user.getId(), user.getRole()
         );
 
-        return new RefreshTokenResponse(newAccessToken,newRefreshToken);
+        return new RefreshTokenResponse(newAccessToken, newRefreshToken);
     }
 
     private RefreshToken getRefreshToken(String rawRefreshToken) {
+
         String prefix = rawRefreshToken.split("\\.")[0];
 
         return refreshTokenRepository.findByTokenPrefix(prefix)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "invalid_refresh_prefix"));
+                .orElseThrow(() -> new BaseException(ErrorCode.INVALID_REFRESH_PREFIX));
     }
 
     @Transactional
-    public String rotate(String oldRawRefreshToken) {
+    public String rotate(String oldRawRefreshToken, String ip) {
+
         RefreshToken old = validate(oldRawRefreshToken);
         old.setRevoked(true);
 
-        // Yeni token oluştur
-        String newRaw = create(old.getUserId());
+        String newRaw = create(old.getUserId(), ip);
         String newHash = tokenHasher.hmacSHA256Hex(newRaw);
 
-        // Eski token’a yeni tokenın hash’ini parent olarak yaz
         old.setChildToken(newHash);
         refreshTokenRepository.save(old);
 

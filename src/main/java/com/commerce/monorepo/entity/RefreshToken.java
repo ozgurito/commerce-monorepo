@@ -40,8 +40,9 @@ public class RefreshToken {
     @Column(name = "last_used_at")
     private LocalDateTime lastUsedAt;
 
-    //İleride eklenebilir. Kullanıcı giriş takibi ve olası hesap çalınma risklerinin tespiti için.
-    //private String ip;
+    @Column(name = "user_ip")
+    private String userIp;
+
     //private String userAgent;
 
 
