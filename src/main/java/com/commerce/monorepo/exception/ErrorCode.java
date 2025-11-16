@@ -1,0 +1,90 @@
+package com.commerce.monorepo.exception;
+
+import lombok.Getter;
+import org.springframework.http.HttpStatus;
+
+@Getter
+public enum ErrorCode {
+
+    // AUTH
+    INVALID_CREDENTIALS("1001", "Kullanıcı adı veya şifre hatalı", HttpStatus.UNAUTHORIZED),
+    UNAUTHORIZED("1002", "Yetkilendirme gerekli", HttpStatus.UNAUTHORIZED),
+    ACCESS_DENIED("1003", "Bu işlemi yapmaya yetkiniz yok", HttpStatus.FORBIDDEN),
+
+    EMAIL_TAKEN("1004", "Bu e-posta zaten kayıtlı", HttpStatus.CONFLICT),
+    FULL_NAME_TAKEN("1005", "Bu kullanıcı adı zaten kullanımda", HttpStatus.CONFLICT),
+    USER_NOT_FOUND("1006", "Kullanıcı bulunamadı", HttpStatus.NOT_FOUND),
+
+    // REFRESH TOKEN
+    INVALID_REFRESH_TOKEN("2001", "Refresh token geçersiz", HttpStatus.UNAUTHORIZED),
+    EXPIRED_REFRESH_TOKEN("2002", "Refresh token süresi dolmuş", HttpStatus.UNAUTHORIZED),
+    REVOKED_REFRESH_TOKEN("2003", "Refresh token iptal edilmiş", HttpStatus.UNAUTHORIZED),
+    REFRESH_TOKEN_COMPROMISED("2004", "Şüpheli refresh token kullanımı tespit edildi", HttpStatus.UNAUTHORIZED),
+
+    INVALID_REFRESH_FORMAT("2005", "Refresh token formatı geçersiz", HttpStatus.UNAUTHORIZED),
+    INVALID_REFRESH_PREFIX("2006", "Refresh token prefix bulunamadı", HttpStatus.UNAUTHORIZED),
+    INVALID_REFRESH_SIGNATURE("2007", "Refresh token imza doğrulaması başarısız", HttpStatus.UNAUTHORIZED),
+    REFRESH_REUSE_DETECTED("2008", "Refresh token reuse tespit edildi", HttpStatus.UNAUTHORIZED),
+    MISSING_REFRESH_TOKEN("2009", "Refresh token eksik", HttpStatus.UNAUTHORIZED),
+
+
+    // RATE LIMIT
+    TOO_MANY_REQUESTS("3001", "Çok fazla istek gönderildi", HttpStatus.TOO_MANY_REQUESTS),
+
+
+    // VALIDATION (4000)
+    VALIDATION_ERROR("4000", "Geçersiz veya eksik parametre", HttpStatus.BAD_REQUEST),
+    USER_EMAIL_TAKEN("4001", "Bu email zaten kullanımda", HttpStatus.CONFLICT),
+
+    // DOMAIN / BUSINESS ERRORS (5000)
+
+    // PRODUCT
+    PRODUCT_NOT_FOUND("5001", "Ürün bulunamadı", HttpStatus.NOT_FOUND),
+    SKU_ALREADY_EXISTS("5002", "Bu SKU zaten kullanımda", HttpStatus.CONFLICT),
+    INSUFFICIENT_STOCK("5003", "Yetersiz stok", HttpStatus.BAD_REQUEST),
+
+    // CART
+    CART_ITEM_NOT_FOUND("5004", "Sepet ürünü bulunamadı", HttpStatus.NOT_FOUND),
+
+    // CATEGORY
+    CATEGORY_NOT_FOUND("5005", "Kategori bulunamadı", HttpStatus.NOT_FOUND),
+    CATEGORY_SLUG_TAKEN("5006", "Kategori slug zaten mevcut", HttpStatus.CONFLICT),
+    PARENT_CATEGORY_NOT_FOUND("5007", "Üst kategori bulunamadı", HttpStatus.NOT_FOUND),
+
+    // CUSTOM DESIGN
+    BASE_PRODUCT_NOT_FOUND("5008", "Base ürün bulunamadı", HttpStatus.NOT_FOUND),
+    CUSTOM_DESIGN_NOT_FOUND("5009", "Tasarım bulunamadı", HttpStatus.NOT_FOUND),
+    DESIGN_ACCESS_DENIED("5010", "Bu tasarıma erişim izniniz yok", HttpStatus.FORBIDDEN),
+    DESIGN_ALREADY_SUBMITTED("5011", "Tasarım zaten gönderilmiş", HttpStatus.BAD_REQUEST),
+    DESIGN_INVALID_STATE("5012", "Bu durumdaki tasarım için işlem yapılamaz", HttpStatus.BAD_REQUEST),
+
+    // CREDITS
+    INSUFFICIENT_CREDITS("5013", "Yetersiz kredi", HttpStatus.BAD_REQUEST),
+
+    // ORDER
+    ORDER_NOT_FOUND("5014", "Sipariş bulunamadı", HttpStatus.NOT_FOUND),
+    ORDER_FORBIDDEN("5015", "Bu sipariş size ait değil", HttpStatus.FORBIDDEN),
+    ORDER_INVALID_STATUS("5016", "Geçersiz sipariş durumu", HttpStatus.BAD_REQUEST),
+    ORDER_NOT_CANCELABLE("5017", "Bu sipariş iptal edilemez", HttpStatus.BAD_REQUEST),
+    ORDER_CREATION_FAILED("5018", "Sipariş oluşturulamadı", HttpStatus.CONFLICT),
+
+    // REVIEW
+    REVIEWS_NOT_ALLOWED("5019", "Bu ürün için yorumlara izin verilmiyor", HttpStatus.BAD_REQUEST),
+    REVIEW_NOT_FOUND("5020", "Yorum bulunamadı", HttpStatus.NOT_FOUND),
+    REVIEW_SELF_HELPFUL_FORBIDDEN("5021", "Kendi yorumunu helpful olarak işaretleyemezsin", HttpStatus.BAD_REQUEST),
+    REVIEW_SELF_VOTE_FORBIDDEN("5022", "Kendi yorumunu oylayamazsın", HttpStatus.FORBIDDEN),
+    PRODUCT_REVIEWS_DISABLED("5023", "Bu ürün için yorumlar kapalı", HttpStatus.BAD_REQUEST),
+
+    // SERVER (9000)
+    INTERNAL_ERROR("9001", "Sunucu hatası oluştu", HttpStatus.INTERNAL_SERVER_ERROR);
+
+    private final String code;
+    private final String message;
+    private final HttpStatus status;
+
+    ErrorCode(String code, String message, HttpStatus status) {
+        this.code = code;
+        this.message = message;
+        this.status = status;
+    }
+}
