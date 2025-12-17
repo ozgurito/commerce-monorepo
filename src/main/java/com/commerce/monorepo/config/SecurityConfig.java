@@ -44,6 +44,7 @@ public class SecurityConfig {
                                 "/api/auth/forgot-password",
                                 "/api/auth/reset-password",
                                 "/api/auth/reset-password/validate",
+                                "/api/payments/iyzico/callback",
                                 "/api/products",
                                 "/api/products/**",
                                 "/assets/**",

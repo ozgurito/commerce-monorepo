@@ -44,6 +44,7 @@ public class OrderService {
         order.setUser(user);
         order.setOrderNumber(generateUniqueOrderNumber());
         order.setStatus(OrderStatus.PENDING);
+        order.setPaymentStatus(PaymentStatus.WAITING);
         
         // STOK KONTROLÜ VE REZERVASYON
         BigDecimal subtotal = BigDecimal.ZERO;
@@ -217,6 +218,8 @@ public class OrderService {
         dto.setShippingCost(order.getShippingCost());
         dto.setTotal(order.getTotal());
         dto.setStatus(order.getStatus());
+        dto.setPaymentStatus(order.getPaymentStatus());
+        dto.setPaymentId(order.getIyzicoPaymentId());
         dto.setShippingAddress(order.getShippingAddress());
         dto.setBillingAddress(order.getBillingAddress());
         dto.setCreatedAt(order.getCreatedAt());

@@ -79,13 +79,16 @@ public enum ErrorCode {
     ORDER_INVALID_STATUS("5016", "Geçersiz sipariş durumu", HttpStatus.BAD_REQUEST),
     ORDER_NOT_CANCELABLE("5017", "Bu sipariş iptal edilemez", HttpStatus.BAD_REQUEST),
     ORDER_CREATION_FAILED("5018", "Sipariş oluşturulamadı", HttpStatus.CONFLICT),
+    PAYMENT_INIT_FAILED("5019", "Ödeme başlatılamadı", HttpStatus.BAD_REQUEST),
+    PAYMENT_ALREADY_PROCESSED("5020", "Ödeme zaten işlendi", HttpStatus.BAD_REQUEST),
+    PAYMENT_CALLBACK_INVALID("5021", "Ödeme doğrulama hatası", HttpStatus.BAD_REQUEST),
 
     // REVIEW
-    REVIEWS_NOT_ALLOWED("5019", "Bu ürün için yorumlara izin verilmiyor", HttpStatus.BAD_REQUEST),
-    REVIEW_NOT_FOUND("5020", "Yorum bulunamadı", HttpStatus.NOT_FOUND),
-    REVIEW_SELF_HELPFUL_FORBIDDEN("5021", "Kendi yorumunu helpful olarak işaretleyemezsin", HttpStatus.BAD_REQUEST),
-    REVIEW_SELF_VOTE_FORBIDDEN("5022", "Kendi yorumunu oylayamazsın", HttpStatus.FORBIDDEN),
-    PRODUCT_REVIEWS_DISABLED("5023", "Bu ürün için yorumlar kapalı", HttpStatus.BAD_REQUEST),
+    REVIEWS_NOT_ALLOWED("5022", "Bu ürün için yorumlara izin verilmiyor", HttpStatus.BAD_REQUEST),
+    REVIEW_NOT_FOUND("5023", "Yorum bulunamadı", HttpStatus.NOT_FOUND),
+    REVIEW_SELF_HELPFUL_FORBIDDEN("5024", "Kendi yorumunu helpful olarak işaretleyemezsin", HttpStatus.BAD_REQUEST),
+    REVIEW_SELF_VOTE_FORBIDDEN("5025", "Kendi yorumunu oylayamazsın", HttpStatus.FORBIDDEN),
+    PRODUCT_REVIEWS_DISABLED("5026", "Bu ürün için yorumlar kapalı", HttpStatus.BAD_REQUEST),
 
     // SERVER (9000)
     INTERNAL_ERROR("9001", "Sunucu hatası oluştu", HttpStatus.INTERNAL_SERVER_ERROR);

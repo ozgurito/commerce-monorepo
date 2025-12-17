@@ -73,6 +73,19 @@ public class Order extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String notes;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_status", nullable = false, length = 30)
+    private PaymentStatus paymentStatus = PaymentStatus.WAITING;
+
+    @Column(name = "iyzico_token", length = 200)
+    private String iyzicoToken;
+
+    @Column(name = "iyzico_payment_id", length = 100)
+    private String iyzicoPaymentId;
+
+    @Column(name = "iyzico_conversation_id", length = 100)
+    private String iyzicoConversationId;
+
     // Helper methods to properly manage bidirectional relationship
     public void addItem(OrderItem item) {
         if (!items.contains(item)) {
@@ -80,7 +93,7 @@ public class Order extends BaseEntity {
             item.setOrder(this);
         }
     }
-    
+
     public void removeItem(OrderItem item) {
         items.remove(item);
         item.setOrder(null);

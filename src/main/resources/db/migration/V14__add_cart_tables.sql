@@ -1,5 +1,5 @@
 -- V14: Add Cart and CartItem tables
-CREATE TABLE carts (
+CREATE TABLE IF NOT EXISTS carts (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     status VARCHAR(50) NOT NULL DEFAULT 'ACTIVE',
@@ -8,10 +8,10 @@ CREATE TABLE carts (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_cart_user_id ON carts(user_id);
-CREATE INDEX idx_cart_status ON carts(status);
+CREATE INDEX IF NOT EXISTS idx_cart_user_id ON carts(user_id);
+CREATE INDEX IF NOT EXISTS idx_cart_status ON carts(status);
 
-CREATE TABLE cart_items (
+CREATE TABLE IF NOT EXISTS cart_items (
     id BIGSERIAL PRIMARY KEY,
     cart_id BIGINT NOT NULL REFERENCES carts(id) ON DELETE CASCADE,
     product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
@@ -23,5 +23,5 @@ CREATE TABLE cart_items (
     UNIQUE(cart_id, product_id)
 );
 
-CREATE INDEX idx_cart_item_cart_id ON cart_items(cart_id);
-CREATE INDEX idx_cart_item_product_id ON cart_items(product_id);
+CREATE INDEX IF NOT EXISTS idx_cart_item_cart_id ON cart_items(cart_id);
+CREATE INDEX IF NOT EXISTS idx_cart_item_product_id ON cart_items(product_id);

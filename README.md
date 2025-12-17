@@ -59,6 +59,8 @@ Modern, ölçeklenebilir e-ticaret backend sistemi.
 # Database başlat
 docker-compose -f infra/docker/compose.local.yml up -d
 
+# Not: PostgreSQL host portu 5433 olarak açılır (container içi 5432).
+
 # Uygulamayı çalıştır
 mvn spring-boot:run
 ```
