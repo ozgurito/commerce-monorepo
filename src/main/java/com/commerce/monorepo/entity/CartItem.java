@@ -10,7 +10,8 @@ import java.math.BigDecimal;
 @Entity
 @Table(name = "cart_items", indexes = {
         @Index(name = "idx_cart_item_cart_id", columnList = "cart_id"),
-        @Index(name = "idx_cart_item_product_id", columnList = "product_id")
+        @Index(name = "idx_cart_item_product_id", columnList = "product_id"),
+        @Index(name = "idx_cart_item_variant_id", columnList = "product_variant_id")
 })
 @Data
 @EqualsAndHashCode(callSuper = false)
@@ -24,6 +25,10 @@ public class CartItem extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_variant_id")
+    private ProductVariant productVariant;
 
     @Column(nullable = false)
     private Integer quantity;

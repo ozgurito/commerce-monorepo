@@ -11,4 +11,9 @@ public class BaseException extends RuntimeException {
         super(error.getMessage());
         this.error = error;
     }
+
+    public BaseException(ErrorCode error, String message) {
+        super(message);
+        this.error = error;
+    }
 }

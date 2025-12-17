@@ -47,7 +47,7 @@ public class CategoryController {
         return categoryService.getCategoryBySlug(slug);
     }
 
-    @RateLimit(key = "category:create", limit = 10, windowSeconds = 60, perUser = true)
+    @RateLimit(key = "category:create", limit = 10, windowSeconds = 60, perUser = false)
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<CategoryDto> createCategory(@Valid @RequestBody CategoryCreateRequest dto) {
@@ -55,14 +55,14 @@ public class CategoryController {
                 .body(categoryService.createCategory(dto));
     }
 
-    @RateLimit(key = "category:update", limit = 10, windowSeconds = 60, perUser = true)
+    @RateLimit(key = "category:update", limit = 10, windowSeconds = 60, perUser = false)
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public CategoryDto updateCategory(@PathVariable Long id, @Valid @RequestBody CategoryUpdateRequest dto) {
         return categoryService.updateCategory(id, dto);
     }
 
-    @RateLimit(key = "category:delete", limit = 10, windowSeconds = 60, perUser = true)
+    @RateLimit(key = "category:delete", limit = 10, windowSeconds = 60, perUser = false)
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     @ResponseStatus(HttpStatus.NO_CONTENT)

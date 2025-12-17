@@ -20,5 +20,7 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
     Double findAverageRatingByProductId(Long productId);
     
     Page<Review> findByIsApprovedFalseOrIsApprovedIsNull(Pageable pageable);
+    
+    Long countByIsApprovedFalse();
 }
 

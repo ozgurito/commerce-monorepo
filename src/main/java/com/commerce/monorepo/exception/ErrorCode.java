@@ -14,6 +14,15 @@ public enum ErrorCode {
     EMAIL_TAKEN("1004", "Bu e-posta zaten kayıtlı", HttpStatus.CONFLICT),
     FULL_NAME_TAKEN("1005", "Bu kullanıcı adı zaten kullanımda", HttpStatus.CONFLICT),
     USER_NOT_FOUND("1006", "Kullanıcı bulunamadı", HttpStatus.NOT_FOUND),
+    PASSWORD_MISMATCH("1007", "Şifreler eşleşmiyor", HttpStatus.BAD_REQUEST),
+    INVALID_CURRENT_PASSWORD("1008", "Mevcut şifre hatalı", HttpStatus.BAD_REQUEST),
+    SAME_PASSWORD("1009", "Yeni şifre mevcut şifreden farklı olmalı", HttpStatus.BAD_REQUEST),
+    PROFILE_UPDATE_EMPTY("1010", "En az bir alan güncellenmelidir", HttpStatus.BAD_REQUEST),
+
+    // PASSWORD RESET
+    RESET_TOKEN_INVALID("1011", "Geçersiz şifre sıfırlama linki", HttpStatus.BAD_REQUEST),
+    RESET_TOKEN_EXPIRED("1012", "Şifre sıfırlama linki süresi dolmuş", HttpStatus.BAD_REQUEST),
+    RESET_TOKEN_USED("1013", "Bu şifre sıfırlama linki zaten kullanılmış", HttpStatus.BAD_REQUEST),
 
     // REFRESH TOKEN
     INVALID_REFRESH_TOKEN("2001", "Refresh token geçersiz", HttpStatus.UNAUTHORIZED),
@@ -35,11 +44,14 @@ public enum ErrorCode {
     // VALIDATION (4000)
     VALIDATION_ERROR("4000", "Geçersiz veya eksik parametre", HttpStatus.BAD_REQUEST),
     USER_EMAIL_TAKEN("4001", "Bu email zaten kullanımda", HttpStatus.CONFLICT),
+    PRODUCT_OUT_OF_STOCK("4008", "Ürün stokta yok", HttpStatus.BAD_REQUEST),
+    VARIANT_NOT_FOUND("4009", "Ürün varyantı bulunamadı", HttpStatus.NOT_FOUND),
 
     // DOMAIN / BUSINESS ERRORS (5000)
 
     // PRODUCT
     PRODUCT_NOT_FOUND("5001", "Ürün bulunamadı", HttpStatus.NOT_FOUND),
+    PRODUCT_IMAGE_NOT_FOUND("5001A", "Ürün resmi bulunamadı", HttpStatus.NOT_FOUND),
     SKU_ALREADY_EXISTS("5002", "Bu SKU zaten kullanımda", HttpStatus.CONFLICT),
     INSUFFICIENT_STOCK("5003", "Yetersiz stok", HttpStatus.BAD_REQUEST),
 

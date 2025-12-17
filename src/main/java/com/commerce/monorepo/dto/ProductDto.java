@@ -67,4 +67,34 @@ public class ProductDto {
 
     @JsonProperty("updatedAt")
     private LocalDateTime updatedAt;
+
+    @JsonProperty("fitType")
+    private String fitType;
+
+    @JsonProperty("fabricComposition")
+    private String fabricComposition;
+
+    @JsonProperty("careInstructions")
+    private String careInstructions;
+
+    @JsonProperty("modelInfo")
+    private String modelInfo;
+
+    @JsonProperty("sizeGuide")
+    private String sizeGuide;
+
+    @JsonProperty("material")
+    private String material;
+
+    @JsonProperty("season")
+    private String season;
+
+    @JsonProperty("originCountry")
+    private String originCountry;
+
+    @JsonProperty("gender")
+    private String gender;
+
+    @JsonProperty("ageGroup")
+    private String ageGroup;
 }

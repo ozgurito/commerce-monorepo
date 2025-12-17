@@ -1,6 +1,8 @@
 package com.commerce.monorepo.service;
 
+import com.commerce.monorepo.dto.ChangePasswordRequest;
 import com.commerce.monorepo.dto.CreateUserRequest;
+import com.commerce.monorepo.dto.UpdateProfileRequest;
 import com.commerce.monorepo.dto.UserDto;
 import com.commerce.monorepo.entity.User;
 import com.commerce.monorepo.entity.UserRole;
@@ -57,11 +59,65 @@ public class UserService {
         return toDto(saved);
     }
 
+    @Transactional(readOnly = true)
+    public UserDto findByEmail(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BaseException(ErrorCode.USER_NOT_FOUND));
+        return toDto(user);
+    }
+
+    @Transactional
+    public UserDto updateProfile(String email, UpdateProfileRequest request) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BaseException(ErrorCode.USER_NOT_FOUND));
+
+        boolean updated = false;
+
+        if (request.fullName() != null && !request.fullName().isBlank()) {
+            user.setFullName(request.fullName().trim());
+            updated = true;
+        }
+        
+        if (request.phone() != null) {
+            user.setPhone(request.phone().trim());
+            updated = true;
+        }
+
+        if (!updated) {
+            throw new BaseException(ErrorCode.PROFILE_UPDATE_EMPTY);
+        }
+
+        User saved = userRepository.save(user);
+        return toDto(saved);
+    }
+
+    @Transactional
+    public void changePassword(String email, ChangePasswordRequest request) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BaseException(ErrorCode.USER_NOT_FOUND));
+
+        if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
+            throw new BaseException(ErrorCode.INVALID_CURRENT_PASSWORD);
+        }
+
+        if (!request.passwordsMatch()) {
+            throw new BaseException(ErrorCode.PASSWORD_MISMATCH);
+        }
+
+        if (!request.isNewPasswordDifferent()) {
+            throw new BaseException(ErrorCode.SAME_PASSWORD);
+        }
+
+        user.setPassword(passwordEncoder.encode(request.newPassword()));
+        userRepository.save(user);
+    }
+
     private UserDto toDto(User user) {
         return new UserDto(
                 user.getId(),
                 user.getEmail(),
                 user.getFullName(),
+                user.getPhone(),
                 user.getRole() != null ? user.getRole().name() : null,
                 user.getCreatedAt() != null ? user.getCreatedAt().atOffset(ZoneOffset.UTC) : null
         );

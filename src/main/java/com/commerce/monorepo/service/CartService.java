@@ -7,6 +7,7 @@ import com.commerce.monorepo.exception.ErrorCode;
 import com.commerce.monorepo.repository.CartItemRepository;
 import com.commerce.monorepo.repository.CartRepository;
 import com.commerce.monorepo.repository.ProductRepository;
+import com.commerce.monorepo.repository.ProductVariantRepository;
 import com.commerce.monorepo.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -14,6 +15,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.stream.Collectors;
 
 @Service
@@ -24,6 +26,7 @@ public class CartService {
     private final CartRepository cartRepository;
     private final CartItemRepository cartItemRepository;
     private final ProductRepository productRepository;
+    private final ProductVariantRepository productVariantRepository;
     private final UserRepository userRepository;
 
     public CartDto getMyCart() {
@@ -40,33 +43,58 @@ public class CartService {
         Product product = productRepository.findById(request.getProductId())
                 .orElseThrow(() -> new BaseException(ErrorCode.PRODUCT_NOT_FOUND));
 
-        // Stok kontrolü
-        if (product.getStock() < request.getQuantity()) {
+        // Variant kontrolü (opsiyonel - null, 0 veya negatif değerler variant olarak kabul edilmez)
+        ProductVariant variant = null;
+        if (request.getVariantId() != null && request.getVariantId() > 0) {
+            variant = productVariantRepository.findById(request.getVariantId())
+                    .orElseThrow(() -> new BaseException(ErrorCode.VARIANT_NOT_FOUND));
+            
+            // Variant bu ürüne ait mi?
+            if (!variant.getProduct().getId().equals(product.getId())) {
+                throw new BaseException(ErrorCode.VARIANT_NOT_FOUND);
+            }
+        }
+
+        // Stok kontrolü (variant varsa variant stoğu, yoksa ürün stoğu)
+        int availableStock = variant != null ? variant.getStock() : product.getStock();
+        if (availableStock < request.getQuantity()) {
             throw new BaseException(ErrorCode.INSUFFICIENT_STOCK);
         }
 
-        // Sepette var mı?
+        // Fiyat belirleme (variant varsa variant fiyatı)
+        BigDecimal unitPrice = product.getPrice();
+        if (variant != null && variant.getPriceModifier() != null) {
+            unitPrice = unitPrice.add(variant.getPriceModifier());
+        }
+
+        // Sepette aynı ürün + aynı variant var mı?
+        final ProductVariant finalVariant = variant;
         CartItem existingItem = cart.getItems().stream()
                 .filter(item -> item.getProduct().getId().equals(product.getId()))
+                .filter(item -> {
+                    if (finalVariant == null) {
+                        return item.getProductVariant() == null;
+                    }
+                    return item.getProductVariant() != null && 
+                           item.getProductVariant().getId().equals(finalVariant.getId());
+                })
                 .findFirst()
                 .orElse(null);
 
         if (existingItem != null) {
-
             int newQuantity = existingItem.getQuantity() + request.getQuantity();
-            if (product.getStock() < newQuantity) {
+            if (availableStock < newQuantity) {
                 throw new BaseException(ErrorCode.INSUFFICIENT_STOCK);
             }
-
             existingItem.setQuantity(newQuantity);
             existingItem.calculateTotalPrice();
-
         } else {
             CartItem newItem = new CartItem();
             newItem.setCart(cart);
             newItem.setProduct(product);
+            newItem.setProductVariant(variant);
             newItem.setQuantity(request.getQuantity());
-            newItem.setUnitPrice(product.getPrice());
+            newItem.setUnitPrice(unitPrice);
             newItem.calculateTotalPrice();
             cart.addItem(newItem);
         }
@@ -85,9 +113,12 @@ public class CartService {
                 .findFirst()
                 .orElseThrow(() -> new BaseException(ErrorCode.CART_ITEM_NOT_FOUND));
 
-        // Stok kontrolü
+        // Stok kontrolü (variant varsa variant stoğu, yoksa ürün stoğu)
         Product product = cartItem.getProduct();
-        if (product.getStock() < request.getQuantity()) {
+        int availableStock = cartItem.getProductVariant() != null 
+                ? cartItem.getProductVariant().getStock() 
+                : product.getStock();
+        if (availableStock < request.getQuantity()) {
             throw new BaseException(ErrorCode.INSUFFICIENT_STOCK);
         }
 
@@ -153,15 +184,28 @@ public class CartService {
         dto.setItemCount(cart.getItems().size());
 
         dto.setItems(cart.getItems().stream()
-                .map(item -> new CartItemDto(
-                        item.getId(),
-                        item.getProduct().getId(),
-                        item.getProduct().getName(),
-                        item.getQuantity(),
-                        item.getUnitPrice(),
-                        item.getTotalPrice(),
-                        item.getProduct().getStock()
-                ))
+                .map(item -> {
+                    CartItemDto itemDto = new CartItemDto();
+                    itemDto.setId(item.getId());
+                    itemDto.setProductId(item.getProduct().getId());
+                    itemDto.setProductName(item.getProduct().getName());
+                    itemDto.setQuantity(item.getQuantity());
+                    itemDto.setUnitPrice(item.getUnitPrice());
+                    itemDto.setTotalPrice(item.getTotalPrice());
+                    
+                    // Stok - variant varsa variant stoğu
+                    if (item.getProductVariant() != null) {
+                        itemDto.setAvailableStock(item.getProductVariant().getStock());
+                        itemDto.setVariantId(item.getProductVariant().getId());
+                        itemDto.setVariantName(item.getProductVariant().getName());
+                        itemDto.setSize(item.getProductVariant().getSize());
+                        itemDto.setColor(item.getProductVariant().getColor());
+                    } else {
+                        itemDto.setAvailableStock(item.getProduct().getStock());
+                    }
+                    
+                    return itemDto;
+                })
                 .collect(Collectors.toList())
         );
 

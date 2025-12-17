@@ -10,6 +10,7 @@ import com.commerce.monorepo.ratelimit.RateLimitService;
 import com.commerce.monorepo.ratelimit.RateLimit;
 import com.commerce.monorepo.service.AuthService;
 import com.commerce.monorepo.service.RefreshTokenService;
+import com.commerce.monorepo.service.PasswordResetService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -22,6 +23,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.HashMap;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -32,6 +34,7 @@ public class AuthController {
     private final AuthService authService;
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenService refreshTokenService;
+    private final PasswordResetService passwordResetService;
     private final IpExtract ipExtract;
     private final RateLimitService rateLimitService;
 
@@ -105,6 +108,60 @@ public class AuthController {
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
         return ResponseEntity.ok(res);
+    }
+
+    // ============================================
+    // PASSWORD RESET ENDPOINTS
+    // ============================================
+
+    /**
+     * Şifremi unuttum - Reset token oluştur
+     * 
+     * Örnek: POST /api/auth/forgot-password
+     * Body: {"email": "user@example.com"}
+     */
+    @PostMapping("/forgot-password")
+    @RateLimit(key = "auth:forgot", limit = 5, windowSeconds = 300) // 5 dakikada max 5 istek
+    public ResponseEntity<Map<String, String>> forgotPassword(
+            @Valid @RequestBody ForgotPasswordRequest request) {
+        String token = passwordResetService.createPasswordResetToken(request);
+        
+        // Güvenlik: Her durumda aynı mesajı dön
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Eğer bu email kayıtlıysa, şifre sıfırlama linki gönderildi.");
+        
+        // DEV ONLY: Token'ı dön (Production'da kaldır!)
+        if (token != null) {
+            response.put("token", token); // Production'da bu satırı SİL!
+        }
+        
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Token geçerli mi kontrol et
+     * 
+     * Örnek: GET /api/auth/reset-password/validate?token=xxx
+     */
+    @GetMapping("/reset-password/validate")
+    public ResponseEntity<Map<String, Boolean>> validateResetToken(
+            @RequestParam String token) {
+        boolean valid = passwordResetService.validateToken(token);
+        return ResponseEntity.ok(Map.of("valid", valid));
+    }
+
+    /**
+     * Şifreyi sıfırla
+     * 
+     * Örnek: POST /api/auth/reset-password
+     * Body: {"token": "xxx", "newPassword": "xxx", "confirmPassword": "xxx"}
+     */
+    @PostMapping("/reset-password")
+    @RateLimit(key = "auth:reset", limit = 5, windowSeconds = 300)
+    public ResponseEntity<Map<String, String>> resetPassword(
+            @Valid @RequestBody ResetPasswordRequest request) {
+        passwordResetService.resetPassword(request);
+        return ResponseEntity.ok(Map.of("message", "Şifreniz başarıyla güncellendi."));
     }
 
 }

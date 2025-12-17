@@ -24,6 +24,16 @@ public record ProductDetailDto(
     Double averageRating,
     Integer totalReviews,
     LocalDateTime createdAt,
-    LocalDateTime updatedAt
+    LocalDateTime updatedAt,
+    String fitType,
+    String fabricComposition,
+    String careInstructions,
+    String modelInfo,
+    String sizeGuide,
+    String material,
+    String season,
+    String originCountry,
+    String gender,
+    String ageGroup
 ) {}
 

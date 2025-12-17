@@ -6,8 +6,11 @@ import com.commerce.monorepo.exception.BaseException;
 import com.commerce.monorepo.exception.ErrorCode;
 import com.commerce.monorepo.repository.OrderRepository;
 import com.commerce.monorepo.repository.ProductRepository;
+import com.commerce.monorepo.repository.ProductVariantRepository;
 import com.commerce.monorepo.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -16,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -27,75 +31,77 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
+    private final ProductVariantRepository productVariantRepository;
     private final UserRepository userRepository;
 
     @Transactional
     public OrderDto createOrder(CreateOrderRequest request) {
-        User currentUser = getCurrentUser();
+        String userEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new BaseException(ErrorCode.USER_NOT_FOUND));
 
-        // Step 1: validate
-        for (OrderItemRequest itemReq : request.getItems()) {
-            Product product = productRepository.findById(itemReq.getProductId())
-                    .orElseThrow(() -> new BaseException(ErrorCode.PRODUCT_NOT_FOUND));
-
-            if (product.getStock() < itemReq.getQuantity()) {
-                throw new BaseException(ErrorCode.INSUFFICIENT_STOCK);
-            }
-        }
-
-        // Step 2: Order oluştur
         Order order = new Order();
-        order.setUser(currentUser);
+        order.setUser(user);
         order.setOrderNumber(generateUniqueOrderNumber());
         order.setStatus(OrderStatus.PENDING);
+        
+        // STOK KONTROLÜ VE REZERVASYON
+        BigDecimal subtotal = BigDecimal.ZERO;
+        List<OrderItem> orderItems = new ArrayList<>();
+        
+        for (OrderItemRequest itemReq : request.getItems()) {
+            // Variant bul (productId aslında variantId olarak kullanılıyor)
+            ProductVariant variant = productVariantRepository.findById(itemReq.getProductId())
+                    .orElseThrow(() -> new BaseException(ErrorCode.VARIANT_NOT_FOUND));
+            
+            // STOK KONTROLÜ
+            if (variant.getStock() == null || variant.getStock() < itemReq.getQuantity()) {
+                throw new BaseException(ErrorCode.INSUFFICIENT_STOCK, 
+                    String.format("Ürün: %s, Mevcut stok: %d, İstenen: %d", 
+                        variant.getProduct().getName(), 
+                        variant.getStock() != null ? variant.getStock() : 0, 
+                        itemReq.getQuantity()));
+            }
+            
+            // STOK DÜŞÜR (optimistic locking ile)
+            int updated = productVariantRepository.decreaseStock(variant.getId(), itemReq.getQuantity());
+            if (updated == 0) {
+                throw new BaseException(ErrorCode.INSUFFICIENT_STOCK, 
+                    "Stok güncellenemedi, başka bir kullanıcı ürünü satın almış olabilir");
+            }
+            
+            // OrderItem oluştur
+            OrderItem orderItem = new OrderItem();
+            orderItem.setProduct(variant.getProduct());
+            orderItem.setProductVariantId(variant.getId());
+            orderItem.setQuantity(itemReq.getQuantity());
+            
+            // Fiyat hesaplama: base price + price modifier
+            BigDecimal unitPrice = variant.getProduct().getPrice();
+            if (variant.getPriceModifier() != null) {
+                unitPrice = unitPrice.add(variant.getPriceModifier());
+            }
+            orderItem.setUnitPrice(unitPrice);
+            orderItem.setTotalPrice(unitPrice.multiply(BigDecimal.valueOf(itemReq.getQuantity())));
+            orderItem.setOrder(order);
+            orderItems.add(orderItem);
+            
+            subtotal = subtotal.add(orderItem.getTotalPrice());
+        }
+        
+        order.setItems(orderItems);
+        order.setSubtotal(subtotal);
+        order.setTax(subtotal.multiply(BigDecimal.valueOf(0.20))); // %20 KDV
+        order.setShippingCost(BigDecimal.valueOf(29.99)); // Sabit kargo
+        order.setTotal(subtotal.add(order.getTax()).add(order.getShippingCost()));
+        
+        // Adres bilgileri
         order.setShippingAddress(request.getShippingAddress());
         order.setBillingAddress(request.getBillingAddress());
         order.setNotes(request.getNotes());
-
-        // Step 3: OrderItems
-        BigDecimal subtotal = BigDecimal.ZERO;
-        for (OrderItemRequest itemReq : request.getItems()) {
-            Product product = productRepository.findById(itemReq.getProductId())
-                    .orElseThrow(() -> new BaseException(ErrorCode.PRODUCT_NOT_FOUND));
-
-            OrderItem orderItem = new OrderItem();
-            orderItem.setProduct(product);
-            orderItem.setQuantity(itemReq.getQuantity());
-            orderItem.setUnitPrice(product.getPrice());
-            orderItem.calculateTotalPrice();
-
-            order.addItem(orderItem);
-
-            subtotal = subtotal.add(orderItem.getTotalPrice());
-        }
-
-        // Step 4: totals
-        BigDecimal tax = subtotal.multiply(new BigDecimal("0.20"));
-        BigDecimal shippingCost = new BigDecimal("50.00");
-        BigDecimal total = subtotal.add(tax).add(shippingCost);
-
-        order.setSubtotal(subtotal);
-        order.setTax(tax);
-        order.setShippingCost(shippingCost);
-        order.setTotal(total);
-
-        // Step 5: save
-        Order savedOrder = orderRepository.save(order);
-
-        // Step 6: update stock
-        for (OrderItem item : savedOrder.getItems()) {
-            Product product = item.getProduct();
-            int newStock = product.getStock() - item.getQuantity();
-
-            if (newStock < 0) {
-                throw new BaseException(ErrorCode.INSUFFICIENT_STOCK);
-            }
-
-            product.setStock(newStock);
-            productRepository.save(product);
-        }
-
-        return mapToDto(savedOrder);
+        
+        order = orderRepository.save(order);
+        return mapToDto(order);
     }
 
     public OrderDto getOrder(Long orderId) {
@@ -118,6 +124,13 @@ public class OrderService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public Page<OrderDto> listMyOrders(Pageable pageable) {
+        User currentUser = getCurrentUser();
+        return orderRepository.findByUserId(currentUser.getId(), pageable)
+                .map(this::mapToDto);
+    }
+
     public OrderDto updateStatus(Long orderId, OrderStatus newStatus) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new BaseException(ErrorCode.ORDER_NOT_FOUND));
@@ -128,28 +141,38 @@ public class OrderService {
         return mapToDto(orderRepository.save(order));
     }
 
+    @Transactional
     public OrderDto cancelOrder(Long orderId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new BaseException(ErrorCode.ORDER_NOT_FOUND));
-
+        
         User currentUser = getCurrentUser();
         if (!order.getUser().getId().equals(currentUser.getId())) {
             throw new BaseException(ErrorCode.ORDER_FORBIDDEN);
         }
-
-        if (order.getStatus() != OrderStatus.PENDING) {
+        
+        // Sadece PENDING veya PAID durumunda iptal edilebilir
+        if (order.getStatus() != OrderStatus.PENDING && order.getStatus() != OrderStatus.PAID) {
             throw new BaseException(ErrorCode.ORDER_NOT_CANCELABLE);
         }
-
-        // stock return
+        
+        // STOK GERİ KOYMA
         for (OrderItem item : order.getItems()) {
-            Product product = item.getProduct();
-            product.setStock(product.getStock() + item.getQuantity());
-            productRepository.save(product);
+            if (item.getProductVariantId() != null) {
+                // Variant varsa variant stokunu artır
+                productVariantRepository.increaseStock(item.getProductVariantId(), item.getQuantity());
+            } else {
+                // Variant yoksa product stokunu artır (geriye dönük uyumluluk)
+                Product product = item.getProduct();
+                product.setStock(product.getStock() + item.getQuantity());
+                productRepository.save(product);
+            }
         }
-
+        
         order.setStatus(OrderStatus.CANCELLED);
-        return mapToDto(orderRepository.save(order));
+        order = orderRepository.save(order);
+        
+        return mapToDto(order);
     }
 
     private void validateStatusTransition(OrderStatus current, OrderStatus next) {

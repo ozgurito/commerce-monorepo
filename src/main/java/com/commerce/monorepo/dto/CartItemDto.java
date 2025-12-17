@@ -17,4 +17,8 @@ public class CartItemDto {
     private BigDecimal unitPrice;
     private BigDecimal totalPrice;
     private Integer availableStock;
+    private Long variantId;
+    private String variantName;    // "M - Mavi" gibi
+    private String size;           // "M", "L", "XL"
+    private String color;          // "Mavi", "Kırmızı"
 }

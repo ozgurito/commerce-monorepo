@@ -27,6 +27,9 @@ public class OrderItem extends BaseEntity {
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
+    @Column(name = "product_variant_id")
+    private Long productVariantId;
+
     @Column(nullable = false)
     private Integer quantity;
 

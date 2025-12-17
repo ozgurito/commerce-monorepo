@@ -89,6 +89,38 @@ public class Product extends BaseEntity {
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ProductVariant> variants = new ArrayList<>();
     
+    // ========== GİYİM SPESİFİK ALANLAR ==========
+    
+    @Column(name = "fit_type", length = 50)
+    private String fitType;
+    
+    @Column(name = "fabric_composition", length = 500)
+    private String fabricComposition;
+    
+    @Column(name = "care_instructions", columnDefinition = "TEXT")
+    private String careInstructions;
+    
+    @Column(name = "model_info", length = 500)
+    private String modelInfo;
+    
+    @Column(name = "size_guide", columnDefinition = "TEXT")
+    private String sizeGuide;
+    
+    @Column(name = "material", length = 100)
+    private String material;
+    
+    @Column(name = "season", length = 50)
+    private String season;
+    
+    @Column(name = "origin_country", length = 100)
+    private String originCountry;
+    
+    @Column(name = "gender", length = 20)
+    private String gender;
+    
+    @Column(name = "age_group", length = 50)
+    private String ageGroup;
+    
     @OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
     @JsonIgnore
     private List<Review> reviews = new ArrayList<>();

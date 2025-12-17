@@ -11,7 +11,10 @@ import java.util.Optional;
 public interface ProductRepository extends JpaRepository<Product, Long> {
 
     Page<Product> findByNameContainingIgnoreCaseOrDescriptionContainingIgnoreCase(
-            String name, String desc, Pageable pageable);
+            String name, String description, Pageable pageable);
+    
+    Page<Product> findByNameContainingIgnoreCaseOrDescriptionContainingIgnoreCaseAndIsActiveTrue(
+            String name, String description, Pageable pageable);
 
     Optional<Product> findBySlug(String slug);
     List<Product> findByIsActiveTrueOrderByCreatedAtDesc();

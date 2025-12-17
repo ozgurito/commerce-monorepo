@@ -7,6 +7,7 @@ public record UserDto(
         Long id,
         String email,
         String fullName,
+        String phone,
         String role,
         OffsetDateTime createdAt
 ) {}
