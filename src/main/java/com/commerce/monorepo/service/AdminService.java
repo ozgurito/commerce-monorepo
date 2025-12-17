@@ -5,8 +5,10 @@ import com.commerce.monorepo.dto.OrderDto;
 import com.commerce.monorepo.dto.OrderItemDto;
 import com.commerce.monorepo.entity.Order;
 import com.commerce.monorepo.entity.OrderStatus;
+import com.commerce.monorepo.entity.ProductVariant;
 import com.commerce.monorepo.repository.OrderRepository;
 import com.commerce.monorepo.repository.ProductRepository;
+import com.commerce.monorepo.repository.ProductVariantRepository;
 import com.commerce.monorepo.repository.ReviewRepository;
 import com.commerce.monorepo.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +31,7 @@ public class AdminService {
 
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
+    private final ProductVariantRepository productVariantRepository;
     private final UserRepository userRepository;
     private final ReviewRepository reviewRepository;
 
@@ -96,20 +99,38 @@ public class AdminService {
         dto.setShippingCost(order.getShippingCost());
         dto.setTotal(order.getTotal());
         dto.setStatus(order.getStatus());
+        dto.setPaymentStatus(order.getPaymentStatus());
+        dto.setPaymentId(order.getIyzicoPaymentId());
         dto.setShippingAddress(order.getShippingAddress());
         dto.setBillingAddress(order.getBillingAddress());
         dto.setCreatedAt(order.getCreatedAt());
         dto.setUpdatedAt(order.getUpdatedAt());
         if (order.getItems() != null) {
             dto.setItems(order.getItems().stream()
-                .map(item -> new OrderItemDto(
-                    item.getId(),
-                    item.getProduct() != null ? item.getProduct().getId() : null,
-                    item.getProduct() != null ? item.getProduct().getName() : "Silinmiş Ürün",
-                    item.getQuantity(),
-                    item.getUnitPrice(),
-                    item.getTotalPrice()
-                ))
+                .map(item -> {
+                    OrderItemDto itemDto = new OrderItemDto();
+                    itemDto.setId(item.getId());
+                    itemDto.setProductId(item.getProduct() != null ? item.getProduct().getId() : null);
+                    itemDto.setProductName(item.getProduct() != null ? item.getProduct().getName() : "Silinmiş Ürün");
+                    itemDto.setQuantity(item.getQuantity());
+                    itemDto.setUnitPrice(item.getUnitPrice());
+                    itemDto.setTotalPrice(item.getTotalPrice());
+                    
+                    // Variant bilgilerini ekle
+                    Long variantId = item.getProductVariantId();
+                    if (variantId != null) {
+                        ProductVariant variant = productVariantRepository.findById(variantId)
+                                .orElse(null);
+                        if (variant != null) {
+                            itemDto.setVariantId(variant.getId());
+                            itemDto.setVariantName(variant.getName());
+                            itemDto.setSize(variant.getSize());
+                            itemDto.setColor(variant.getColor());
+                        }
+                    }
+                    
+                    return itemDto;
+                })
                 .collect(Collectors.toList()));
         }
         return dto;

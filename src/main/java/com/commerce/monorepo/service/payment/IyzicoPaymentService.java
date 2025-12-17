@@ -10,6 +10,7 @@ import com.commerce.monorepo.entity.*;
 import com.commerce.monorepo.exception.BaseException;
 import com.commerce.monorepo.exception.ErrorCode;
 import com.commerce.monorepo.repository.OrderRepository;
+import com.commerce.monorepo.repository.ProductVariantRepository;
 import com.iyzipay.Options;
 import com.iyzipay.model.BasketItem;
 import com.iyzipay.model.BasketItemType;
@@ -22,21 +23,23 @@ import com.iyzipay.model.Status;
 import com.iyzipay.request.CreateCheckoutFormInitializeRequest;
 import com.iyzipay.request.RetrieveCheckoutFormRequest;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class IyzicoPaymentService {
 
     private final IyzicoProperties properties;
     private final OrderRepository orderRepository;
+    private final ProductVariantRepository productVariantRepository;
 
     @Transactional
     public IyzicoCheckoutInitResponse initCheckout(IyzicoCheckoutInitRequest req) {
@@ -93,8 +96,14 @@ public class IyzicoPaymentService {
 
         CheckoutFormInitialize response = CheckoutFormInitialize.create(request, options());
         if (response == null || !Status.SUCCESS.getValue().equalsIgnoreCase(response.getStatus())) {
-            throw new BaseException(ErrorCode.PAYMENT_INIT_FAILED,
-                    response != null ? response.getErrorMessage() : "Bilinmeyen iyzico hatası");
+            String errorMsg = response != null 
+                    ? String.format("Iyzico Error: %s (Status: %s, Error Code: %s)", 
+                        response.getErrorMessage(), 
+                        response.getStatus(), 
+                        response.getErrorCode())
+                    : "Bilinmeyen iyzico hatası (response null)";
+            log.error("Iyzico checkout init failed for order {}: {}", order.getId(), errorMsg);
+            throw new BaseException(ErrorCode.PAYMENT_INIT_FAILED, errorMsg);
         }
 
         order.setPaymentStatus(PaymentStatus.INITIATED);
@@ -155,7 +164,7 @@ public class IyzicoPaymentService {
     }
 
     private BigDecimal price(BigDecimal value) {
-        return value == null ? BigDecimal.ZERO : value.setScale(2, RoundingMode.HALF_UP);
+        return value == null ? BigDecimal.ZERO : value.setScale(2, java.math.RoundingMode.HALF_UP);
     }
 
     private com.iyzipay.model.Address buildAddress(String label, Address address) {
@@ -218,15 +227,30 @@ public class IyzicoPaymentService {
         dto.setBillingAddress(order.getBillingAddress());
         dto.setCreatedAt(order.getCreatedAt());
         dto.setUpdatedAt(order.getUpdatedAt());
-        dto.setItems(order.getItems().stream().map(it ->
-                new OrderItemDto(
-                        it.getId(),
-                        it.getProduct().getId(),
-                        it.getProduct().getName(),
-                        it.getQuantity(),
-                        it.getUnitPrice(),
-                        it.getTotalPrice()
-                )).toList());
+        dto.setItems(order.getItems().stream().map(it -> {
+                    OrderItemDto itemDto = new OrderItemDto();
+                    itemDto.setId(it.getId());
+                    itemDto.setProductId(it.getProduct().getId());
+                    itemDto.setProductName(it.getProduct().getName());
+                    itemDto.setQuantity(it.getQuantity());
+                    itemDto.setUnitPrice(it.getUnitPrice());
+                    itemDto.setTotalPrice(it.getTotalPrice());
+                    
+                    // Variant bilgilerini ekle
+                    Long variantId = it.getProductVariantId();
+                    if (variantId != null) {
+                        ProductVariant variant = productVariantRepository.findById(variantId)
+                                .orElse(null);
+                        if (variant != null) {
+                            itemDto.setVariantId(variant.getId());
+                            itemDto.setVariantName(variant.getName());
+                            itemDto.setSize(variant.getSize());
+                            itemDto.setColor(variant.getColor());
+                        }
+                    }
+                    
+                    return itemDto;
+                }).toList());
         return dto;
     }
 }

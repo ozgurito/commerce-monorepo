@@ -13,6 +13,10 @@ public class OrderItemDto {
     private Long id;
     private Long productId;
     private String productName;
+    private Long variantId;
+    private String variantName;  // "M - Mavi" gibi
+    private String size;
+    private String color;
     private Integer quantity;
     private BigDecimal unitPrice;
     private BigDecimal totalPrice;

@@ -51,9 +51,16 @@ public class OrderService {
         List<OrderItem> orderItems = new ArrayList<>();
         
         for (OrderItemRequest itemReq : request.getItems()) {
-            // Variant bul (productId aslında variantId olarak kullanılıyor)
-            ProductVariant variant = productVariantRepository.findById(itemReq.getProductId())
+            // Variant bul
+            ProductVariant variant = productVariantRepository.findById(itemReq.getVariantId())
                     .orElseThrow(() -> new BaseException(ErrorCode.VARIANT_NOT_FOUND));
+            
+            // productId verilmişse, variant'ın bu ürüne ait olduğunu doğrula
+            if (itemReq.getProductId() != null && 
+                !variant.getProduct().getId().equals(itemReq.getProductId())) {
+                throw new BaseException(ErrorCode.VARIANT_NOT_FOUND, 
+                    "Variant bu ürüne ait değil");
+            }
             
             // STOK KONTROLÜ
             if (variant.getStock() == null || variant.getStock() < itemReq.getQuantity()) {
@@ -90,6 +97,7 @@ public class OrderService {
             subtotal = subtotal.add(orderItem.getTotalPrice());
         }
         
+        // Order'ı kaydet (cascade ile items da kaydedilecek)
         order.setItems(orderItems);
         order.setSubtotal(subtotal);
         order.setTax(subtotal.multiply(BigDecimal.valueOf(0.20))); // %20 KDV
@@ -102,6 +110,11 @@ public class OrderService {
         order.setNotes(request.getNotes());
         
         order = orderRepository.save(order);
+        
+        // Order'ı items ile birlikte yeniden yükle (variant bilgileri için gerekli)
+        order = orderRepository.findByIdWithItems(order.getId())
+                .orElse(order);
+        
         return mapToDto(order);
     }
 
@@ -226,14 +239,29 @@ public class OrderService {
         dto.setUpdatedAt(order.getUpdatedAt());
 
         dto.setItems(order.getItems().stream()
-                .map(item -> new OrderItemDto(
-                        item.getId(),
-                        item.getProduct().getId(),
-                        item.getProduct().getName(),
-                        item.getQuantity(),
-                        item.getUnitPrice(),
-                        item.getTotalPrice()
-                ))
+                .map(item -> {
+                    OrderItemDto itemDto = new OrderItemDto();
+                    itemDto.setId(item.getId());
+                    itemDto.setProductId(item.getProduct().getId());
+                    itemDto.setProductName(item.getProduct().getName());
+                    itemDto.setQuantity(item.getQuantity());
+                    itemDto.setUnitPrice(item.getUnitPrice());
+                    itemDto.setTotalPrice(item.getTotalPrice());
+                    
+                    // Variant bilgilerini ekle
+                    if (item.getProductVariantId() != null) {
+                        ProductVariant variant = productVariantRepository.findById(item.getProductVariantId())
+                                .orElse(null);
+                        if (variant != null) {
+                            itemDto.setVariantId(variant.getId());
+                            itemDto.setVariantName(variant.getName());
+                            itemDto.setSize(variant.getSize());
+                            itemDto.setColor(variant.getColor());
+                        }
+                    }
+                    
+                    return itemDto;
+                })
                 .collect(Collectors.toList()));
 
         return dto;

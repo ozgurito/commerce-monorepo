@@ -5,9 +5,9 @@ import com.commerce.monorepo.ratelimit.RateLimit;
 import com.commerce.monorepo.service.WishlistService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -28,8 +28,15 @@ public class WishlistController {
     @GetMapping
     @RateLimit(key = "wishlist:list", limit = 30, windowSeconds = 60)
     public Page<WishlistItemDto> getMyWishlist(
-            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) 
-            Pageable pageable) {
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "createdAt") String sort,
+            @RequestParam(defaultValue = "DESC") String direction) {
+        
+        Sort.Direction sortDirection = direction.equalsIgnoreCase("ASC") 
+                ? Sort.Direction.ASC 
+                : Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sortDirection, sort));
         return wishlistService.getMyWishlist(pageable);
     }
 

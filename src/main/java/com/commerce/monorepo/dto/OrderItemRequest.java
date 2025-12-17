@@ -11,10 +11,14 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class OrderItemRequest {
 
-    @NotNull(message = "Product ID is required")
+    // Ürün ID - opsiyonel (variant varsa variant'tan alınır)
     private Long productId;
 
-    @NotNull(message = "Quantity is required")
-    @Min(value = 1, message = "Quantity must be at least 1")
+    // Variant ID - tekstil için zorunlu (beden/renk)
+    @NotNull(message = "Variant ID gerekli (beden/renk seçimi yapın)")
+    private Long variantId;
+
+    @NotNull(message = "Miktar gerekli")
+    @Min(value = 1, message = "Miktar en az 1 olmalı")
     private Integer quantity;
 }
