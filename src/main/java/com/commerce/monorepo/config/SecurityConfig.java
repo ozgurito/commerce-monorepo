@@ -47,6 +47,7 @@ public class SecurityConfig {
                                 "/api/payments/iyzico/callback",
                                 "/api/products",
                                 "/api/products/**",
+                                "/api/test/email/**",  // Email test endpoint'leri (DEV ONLY!)
                                 "/assets/**",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",

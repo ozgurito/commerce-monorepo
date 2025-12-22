@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sipariş Onayı</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f4;">
+    <table role="presentation" style="width: 100%; border-collapse: collapse;">
+        <tr>
+            <td align="center" style="padding: 40px 0;">
+                <table role="presentation" style="width: 600px; border-collapse: collapse; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                    <!-- Header -->
+                    <tr>
+                        <td style="padding: 40px 40px 20px; text-align: center; background-color: #10B981; border-radius: 8px 8px 0 0;">
+                            <h1 style="margin: 0; color: #ffffff; font-size: 24px;">✓ Siparişiniz Alındı!</h1>
+                        </td>
+                    </tr>
+                    <!-- Content -->
+                    <tr>
+                        <td style="padding: 40px;">
+                            <p style="margin: 0 0 20px; color: #333333; font-size: 16px; line-height: 1.6;">
+                                Merhaba <strong th:text="${userName}">Kullanıcı</strong>,
+                            </p>
+                            <p style="margin: 0 0 20px; color: #666666; font-size: 14px; line-height: 1.6;">
+                                Siparişinizi aldık! İşte sipariş detaylarınız:
+                            </p>
+                            
+                            <!-- Order Info -->
+                            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; background-color: #f8f9fa; border-radius: 6px;">
+                                <tr>
+                                    <td style="padding: 15px;">
+                                        <strong style="color: #333;">Sipariş No:</strong>
+                                        <span th:text="${orderNumber}" style="color: #4F46E5; font-weight: 600;">#ORD-XXX</span>
+                                    </td>
+                                    <td style="padding: 15px; text-align: right;">
+                                        <strong style="color: #333;">Tarih:</strong>
+                                        <span th:text="${orderDate}" style="color: #666;">01.01.2024</span>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <!-- Items -->
+                            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                                <tr style="background-color: #f8f9fa;">
+                                    <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb;">Ürün</th>
+                                    <th style="padding: 12px; text-align: center; border-bottom: 1px solid #e5e7eb;">Adet</th>
+                                    <th style="padding: 12px; text-align: right; border-bottom: 1px solid #e5e7eb;">Fiyat</th>
+                                </tr>
+                                <tr th:each="item : ${items}">
+                                    <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;" th:text="${item.product.name}">Ürün Adı</td>
+                                    <td style="padding: 12px; text-align: center; border-bottom: 1px solid #e5e7eb;" th:text="${item.quantity}">1</td>
+                                    <td style="padding: 12px; text-align: right; border-bottom: 1px solid #e5e7eb;" th:text="${#numbers.formatCurrency(item.totalPrice)}">₺100</td>
+                                </tr>
+                            </table>
+                            
+                            <!-- Totals -->
+                            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                                <tr>
+                                    <td style="padding: 8px 0; color: #666;">Ara Toplam:</td>
+                                    <td style="padding: 8px 0; text-align: right;" th:text="${subtotal}">₺0</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 8px 0; color: #666;">KDV:</td>
+                                    <td style="padding: 8px 0; text-align: right;" th:text="${tax}">₺0</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 8px 0; color: #666;">Kargo:</td>
+                                    <td style="padding: 8px 0; text-align: right;" th:text="${shippingCost}">₺0</td>
+                                </tr>
+                                <tr style="border-top: 2px solid #e5e7eb;">
+                                    <td style="padding: 12px 0; font-weight: 700; font-size: 18px;">Toplam:</td>
+                                    <td style="padding: 12px 0; text-align: right; font-weight: 700; font-size: 18px; color: #4F46E5;" th:text="${total}">₺0</td>
+                                </tr>
+                            </table>
+                            
+                            <!-- Shipping Address -->
+                            <div style="background-color: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+                                <strong style="color: #333; display: block; margin-bottom: 8px;">Teslimat Adresi:</strong>
+                                <span th:text="${shippingAddress.fullName}" style="color: #666;">Ad Soyad</span><br>
+                                <span th:text="${shippingAddress.addressLine}" style="color: #666;">Adres</span><br>
+                                <span th:text="${shippingAddress.district + ', ' + shippingAddress.city}" style="color: #666;">İlçe, Şehir</span>
+                            </div>
+                            
+                            <!-- CTA Button -->
+                            <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                                <tr>
+                                    <td align="center" style="padding: 20px 0;">
+                                        <a th:href="${orderUrl}" 
+                                           style="display: inline-block; padding: 14px 32px; background-color: #4F46E5; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px;">
+                                            Siparişimi Görüntüle
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <!-- Footer -->
+                    <tr>
+                        <td style="padding: 20px 40px; text-align: center; background-color: #f8f9fa; border-radius: 0 0 8px 8px;">
+                            <p style="margin: 0; color: #999999; font-size: 12px;">
+                                Sorularınız için bize ulaşın. Teşekkür ederiz!
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+

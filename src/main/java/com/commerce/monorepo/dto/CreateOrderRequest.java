@@ -28,4 +28,6 @@ public class CreateOrderRequest {
     private Address billingAddress;
 
     private String notes;
+
+    private String couponCode;
 }

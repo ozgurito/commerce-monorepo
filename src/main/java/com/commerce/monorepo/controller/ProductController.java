@@ -3,6 +3,7 @@ package com.commerce.monorepo.controller;
 import com.commerce.monorepo.dto.*;
 import com.commerce.monorepo.service.ProductService;
 import com.commerce.monorepo.ratelimit.RateLimit;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -132,5 +133,34 @@ public class ProductController {
             @PathVariable Long productId,
             @PathVariable Long imageId) {
         return service.setPrimaryImage(productId, imageId);
+    }
+
+    // ========== GELİŞMİŞ ARAMA ==========
+
+    @PostMapping("/search/advanced")
+    @Operation(summary = "Gelişmiş ürün arama", 
+               description = "Fiyat, renk, beden, kategori filtresi ile arama")
+    @RateLimit(key = "product:search:advanced", limit = 30, windowSeconds = 60)
+    public ResponseEntity<ProductSearchResponse> advancedSearch(
+            @RequestBody ProductSearchRequest request) {
+        return ResponseEntity.ok(service.searchProducts(request));
+    }
+
+    @GetMapping("/search/quick")
+    @Operation(summary = "Hızlı arama (Autocomplete)", 
+               description = "Ürün adına göre hızlı arama")
+    @RateLimit(key = "product:search:quick", limit = 60, windowSeconds = 60)
+    public ResponseEntity<List<ProductDto>> quickSearch(
+            @RequestParam String q,
+            @RequestParam(defaultValue = "10") int limit) {
+        return ResponseEntity.ok(service.quickSearch(q, limit));
+    }
+
+    @GetMapping("/filters")
+    @Operation(summary = "Filtre seçeneklerini getir", 
+               description = "Mevcut renk, beden, fiyat aralığı bilgilerini döner")
+    @RateLimit(key = "product:filters", limit = 60, windowSeconds = 60)
+    public ResponseEntity<ProductSearchResponse.FilterOptions> getFilterOptions() {
+        return ResponseEntity.ok(service.getFilterOptions());
     }
 }

@@ -1,0 +1,290 @@
+{
+  "description": "Swagger Test Request Body Örnekleri - Email Servisi Testleri için",
+  "baseUrl": "http://localhost:8080",
+  "swaggerUrl": "http://localhost:8080/swagger-ui.html",
+  
+  "1_welcome_email": {
+    "endpoint": "POST /api/auth/register",
+    "description": "Hoş Geldin Emaili - Yeni kullanıcı kaydı",
+    "authentication": "Gerekmez",
+    "requestBody": {
+      "email": "test.user@example.com",
+      "password": "test123456",
+      "fullName": "Test Kullanıcı"
+    },
+    "expectedResponse": {
+      "status": 200,
+      "body": {
+        "id": 1,
+        "email": "test.user@example.com",
+        "fullName": "Test Kullanıcı"
+      }
+    },
+    "emailCheck": "Hoş Geldiniz! başlıklı email gelmeli"
+  },
+
+  "2_password_reset_email": {
+    "endpoint": "POST /api/auth/forgot-password",
+    "description": "Şifre Sıfırlama Emaili",
+    "authentication": "Gerekmez",
+    "requestBody": {
+      "email": "test.user@example.com"
+    },
+    "expectedResponse": {
+      "status": 200,
+      "body": {
+        "message": "Eğer bu email kayıtlıysa, şifre sıfırlama linki gönderildi.",
+        "token": "uuid-token-here"
+      }
+    },
+    "emailCheck": "Şifre Sıfırlama Talebi başlıklı email gelmeli"
+  },
+
+  "2b_validate_reset_token": {
+    "endpoint": "GET /api/auth/reset-password/validate?token={token}",
+    "description": "Reset Token Doğrulama",
+    "authentication": "Gerekmez",
+    "pathParameters": {
+      "token": "emailden_alinan_token"
+    },
+    "expectedResponse": {
+      "status": 200,
+      "body": {
+        "valid": true
+      }
+    }
+  },
+
+  "2c_reset_password": {
+    "endpoint": "POST /api/auth/reset-password",
+    "description": "Şifre Sıfırlama",
+    "authentication": "Gerekmez",
+    "requestBody": {
+      "token": "emailden_alinan_token",
+      "newPassword": "yeniSifre123",
+      "confirmPassword": "yeniSifre123"
+    },
+    "expectedResponse": {
+      "status": 200,
+      "body": {
+        "message": "Şifreniz başarıyla güncellendi."
+      }
+    }
+  },
+
+  "3_order_confirmation_email": {
+    "endpoint": "POST /api/orders",
+    "description": "Sipariş Onay Emaili - Sipariş oluşturma",
+    "authentication": "Bearer Token (JWT) - Gerekli",
+    "requestBody": {
+      "items": [
+        {
+          "productId": 1,
+          "variantId": 1,
+          "quantity": 2
+        },
+        {
+          "productId": 2,
+          "variantId": 3,
+          "quantity": 1
+        }
+      ],
+      "shippingAddress": {
+        "fullName": "Ahmet Yılmaz",
+        "phone": "+905551234567",
+        "addressLine": "Atatürk Caddesi No:123 Daire:5",
+        "city": "İstanbul",
+        "district": "Kadıköy",
+        "postalCode": "34700",
+        "country": "Turkey"
+      },
+      "billingAddress": {
+        "fullName": "Ahmet Yılmaz",
+        "phone": "+905551234567",
+        "addressLine": "Atatürk Caddesi No:123 Daire:5",
+        "city": "İstanbul",
+        "district": "Kadıköy",
+        "postalCode": "34700",
+        "country": "Turkey"
+      },
+      "notes": "Kapıda ödeme yapabilir miyim?"
+    },
+    "expectedResponse": {
+      "status": 200,
+      "body": {
+        "id": 1,
+        "orderNumber": "ORD-20240101-120000-001-ABC12345",
+        "status": "PENDING",
+        "paymentStatus": "WAITING",
+        "total": 299.99
+      }
+    },
+    "emailCheck": "Sipariş Onayı - #ORD-XXX başlıklı email gelmeli",
+    "note": "Önce GET /api/products ile productId ve variantId'leri alın"
+  },
+
+  "4_payment_success_email": {
+    "endpoint": "POST /api/payments/iyzico/checkout",
+    "description": "Ödeme Başlatma - Checkout token al",
+    "authentication": "Bearer Token (JWT) - Gerekli",
+    "requestBody": {
+      "orderId": 1,
+      "callbackUrl": "http://localhost:8080/api/payments/iyzico/callback"
+    },
+    "expectedResponse": {
+      "status": 200,
+      "body": {
+        "token": "checkout-token-here",
+        "paymentPageUrl": "https://sandbox-api.iyzipay.com/...",
+        "orderNumber": "ORD-20240101-120000-001-ABC12345"
+      }
+    },
+    "nextStep": "Callback endpoint'ini çağır"
+  },
+
+  "4b_payment_callback_success": {
+    "endpoint": "POST /api/payments/iyzico/callback",
+    "description": "Ödeme Başarılı Emaili - Callback (Başarılı)",
+    "authentication": "Gerekmez (Iyzico'dan gelir)",
+    "requestBody": {
+      "token": "checkout_response_dan_alinan_token"
+    },
+    "expectedResponse": {
+      "status": 200,
+      "body": {
+        "id": 1,
+        "orderNumber": "ORD-20240101-120000-001-ABC12345",
+        "status": "PAID",
+        "paymentStatus": "PAID",
+        "paymentId": "iyzico-payment-id"
+      }
+    },
+    "emailCheck": "Ödeme Onayı - #ORD-XXX başlıklı email gelmeli",
+    "note": "Gerçek Iyzico token'ı gerekli. Test için sandbox kullanın."
+  },
+
+  "5_payment_failed_email": {
+    "endpoint": "POST /api/payments/iyzico/callback",
+    "description": "Ödeme Başarısız Emaili - Callback (Başarısız)",
+    "authentication": "Gerekmez",
+    "requestBody": {
+      "token": "gecersiz_veya_suresi_dolmus_token"
+    },
+    "expectedResponse": {
+      "status": 400,
+      "error": "PAYMENT_CALLBACK_INVALID"
+    },
+    "emailCheck": "Ödeme Başarısız - #ORD-XXX başlıklı email gelmeli",
+    "note": "Geçersiz token ile test edin"
+  },
+
+  "6_order_status_update_email": {
+    "endpoint": "PUT /api/orders/{id}/status?status=PROCESSING",
+    "description": "Sipariş Durumu Güncelleme Emaili",
+    "authentication": "Bearer Token (JWT) - ADMIN rolü gerekli",
+    "pathParameters": {
+      "id": 1
+    },
+    "queryParameters": {
+      "status": "PROCESSING"
+    },
+    "requestBody": "Yok",
+    "expectedResponse": {
+      "status": 200,
+      "body": {
+        "id": 1,
+        "orderNumber": "ORD-20240101-120000-001-ABC12345",
+        "status": "PROCESSING"
+      }
+    },
+    "emailCheck": "Sipariş Durumu Güncellendi - #ORD-XXX başlıklı email gelmeli",
+    "statusOptions": [
+      "PROCESSING",
+      "SHIPPED",
+      "DELIVERED",
+      "CANCELLED",
+      "REFUNDED"
+    ],
+    "note": "Her durum değişikliğinde email gönderilir"
+  },
+
+  "7_low_stock_alert_email": {
+    "endpoint": "MANUEL TEST - EmailService.sendLowStockAlertEmail()",
+    "description": "Düşük Stok Uyarısı Emaili (Admin'e)",
+    "authentication": "N/A",
+    "note": "Bu email otomatik olarak gönderilir. Manuel test için:",
+    "testMethod": [
+      "1. Bir ürünün stokunu düşük seviyeye getirin",
+      "2. Stok kontrolü yapan bir işlem tetikleyin",
+      "3. Admin email kutusunu kontrol edin"
+    ],
+    "emailCheck": "⚠️ Düşük Stok Uyarısı: {Ürün Adı} başlıklı email gelmeli"
+  },
+
+  "helper_endpoints": {
+    "get_products": {
+      "endpoint": "GET /api/products",
+      "description": "Ürün listesi - Order için productId ve variantId almak için",
+      "authentication": "Gerekmez"
+    },
+    "get_product_by_id": {
+      "endpoint": "GET /api/products/{id}",
+      "description": "Ürün detayı - Variant bilgileri için",
+      "authentication": "Gerekmez",
+      "pathParameters": {
+        "id": 1
+      }
+    },
+    "login": {
+      "endpoint": "POST /api/auth/login",
+      "description": "Login - JWT token almak için",
+      "authentication": "Gerekmez",
+      "requestBody": {
+        "email": "test.user@example.com",
+        "password": "test123456"
+      },
+      "expectedResponse": {
+        "status": 200,
+        "body": {
+          "accessToken": "jwt-token-here",
+          "refreshToken": "refresh-token-here",
+          "id": 1,
+          "email": "test.user@example.com",
+          "fullName": "Test Kullanıcı"
+        }
+      },
+      "note": "Response'daki accessToken'ı Swagger'da Authorize butonuna yapıştırın"
+    },
+    "get_my_orders": {
+      "endpoint": "GET /api/orders?page=0&size=10&sort=createdAt&direction=DESC",
+      "description": "Sipariş listesi - Order ID almak için",
+      "authentication": "Bearer Token (JWT) - Gerekli",
+      "queryParameters": {
+        "page": 0,
+        "size": 10,
+        "sort": "createdAt",
+        "direction": "DESC"
+      }
+    }
+  },
+
+  "test_sequence": {
+    "step1": "POST /api/auth/register → Welcome email",
+    "step2": "POST /api/auth/forgot-password → Reset email",
+    "step3": "POST /api/auth/login → Token al",
+    "step4": "GET /api/products → Product ve variant ID'leri al",
+    "step5": "POST /api/orders → Order confirmation email",
+    "step6": "POST /api/payments/iyzico/checkout → Checkout token al",
+    "step7": "POST /api/payments/iyzico/callback → Payment success/failed email",
+    "step8": "PUT /api/orders/{id}/status?status=PROCESSING → Status update email"
+  },
+
+  "common_errors": {
+    "401_unauthorized": "Token eksik veya geçersiz → Login olup token alın",
+    "403_forbidden": "Yetki yok → ADMIN rolü gerekli endpoint'ler için",
+    "400_bad_request": "Validation hatası → Request body'yi kontrol edin",
+    "404_not_found": "Kayıt bulunamadı → ID'leri kontrol edin",
+    "500_internal_error": "Sunucu hatası → Logları kontrol edin"
+  }
+}
+

@@ -57,6 +57,7 @@ public enum ErrorCode {
 
     // CART
     CART_ITEM_NOT_FOUND("5004", "Sepet ürünü bulunamadı", HttpStatus.NOT_FOUND),
+    CART_NOT_FOUND("5004A", "Sepet bulunamadı", HttpStatus.NOT_FOUND),
 
     // CATEGORY
     CATEGORY_NOT_FOUND("5005", "Kategori bulunamadı", HttpStatus.NOT_FOUND),
@@ -89,6 +90,17 @@ public enum ErrorCode {
     REVIEW_SELF_HELPFUL_FORBIDDEN("5024", "Kendi yorumunu helpful olarak işaretleyemezsin", HttpStatus.BAD_REQUEST),
     REVIEW_SELF_VOTE_FORBIDDEN("5025", "Kendi yorumunu oylayamazsın", HttpStatus.FORBIDDEN),
     PRODUCT_REVIEWS_DISABLED("5026", "Bu ürün için yorumlar kapalı", HttpStatus.BAD_REQUEST),
+
+    // COUPON
+    COUPON_NOT_FOUND("5027", "Kupon bulunamadı", HttpStatus.NOT_FOUND),
+    COUPON_CODE_EXISTS("5028", "Bu kupon kodu zaten mevcut", HttpStatus.CONFLICT),
+    COUPON_EXPIRED("5029", "Kuponun süresi dolmuş", HttpStatus.BAD_REQUEST),
+    COUPON_INVALID("5030", "Kupon geçersiz", HttpStatus.BAD_REQUEST),
+    COUPON_USAGE_LIMIT_REACHED("5031", "Kupon kullanım limiti dolmuş", HttpStatus.BAD_REQUEST),
+    COUPON_USER_LIMIT_REACHED("5032", "Bu kuponu daha fazla kullanamazsınız", HttpStatus.BAD_REQUEST),
+    COUPON_MINIMUM_NOT_MET("5033", "Minimum sipariş tutarına ulaşılmadı", HttpStatus.BAD_REQUEST),
+    COUPON_FIRST_ORDER_ONLY("5034", "Bu kupon sadece ilk sipariş için geçerli", HttpStatus.BAD_REQUEST),
+    COUPON_NOT_APPLICABLE("5035", "Bu kupon seçili ürünlere uygulanamaz", HttpStatus.BAD_REQUEST),
 
     // SERVER (9000)
     INTERNAL_ERROR("9001", "Sunucu hatası oluştu", HttpStatus.INTERNAL_SERVER_ERROR);

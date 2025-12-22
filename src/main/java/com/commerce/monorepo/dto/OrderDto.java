@@ -29,6 +29,8 @@ public class OrderDto {
     private String paymentId;
     private Address shippingAddress;
     private Address billingAddress;
+    private String couponCode;
+    private BigDecimal discountAmount;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

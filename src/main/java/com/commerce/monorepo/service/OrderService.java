@@ -8,6 +8,7 @@ import com.commerce.monorepo.repository.OrderRepository;
 import com.commerce.monorepo.repository.ProductRepository;
 import com.commerce.monorepo.repository.ProductVariantRepository;
 import com.commerce.monorepo.repository.UserRepository;
+import com.commerce.monorepo.service.CouponService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -33,6 +34,8 @@ public class OrderService {
     private final ProductRepository productRepository;
     private final ProductVariantRepository productVariantRepository;
     private final UserRepository userRepository;
+    private final EmailService emailService;
+    private final CouponService couponService;
 
     @Transactional
     public OrderDto createOrder(CreateOrderRequest request) {
@@ -102,7 +105,30 @@ public class OrderService {
         order.setSubtotal(subtotal);
         order.setTax(subtotal.multiply(BigDecimal.valueOf(0.20))); // %20 KDV
         order.setShippingCost(BigDecimal.valueOf(29.99)); // Sabit kargo
-        order.setTotal(subtotal.add(order.getTax()).add(order.getShippingCost()));
+        
+        // Kupon uygula (varsa)
+        BigDecimal discountAmount = BigDecimal.ZERO;
+        if (request.getCouponCode() != null && !request.getCouponCode().isBlank()) {
+            discountAmount = couponService.applyCouponToOrder(order, request.getCouponCode());
+        }
+        order.setDiscountAmount(discountAmount);
+        
+        // FREE_SHIPPING kuponu kontrolü
+        if (order.getCoupon() != null && 
+            order.getCoupon().getDiscountType() == com.commerce.monorepo.entity.DiscountType.FREE_SHIPPING) {
+            order.setShippingCost(BigDecimal.ZERO);
+        }
+        
+        // Toplam = Subtotal + Tax + Shipping - Discount
+        BigDecimal total = subtotal
+            .add(order.getTax())
+            .add(order.getShippingCost())
+            .subtract(discountAmount);
+        
+        if (total.compareTo(BigDecimal.ZERO) < 0) {
+            total = BigDecimal.ZERO;
+        }
+        order.setTotal(total);
         
         // Adres bilgileri
         order.setShippingAddress(request.getShippingAddress());
@@ -114,6 +140,9 @@ public class OrderService {
         // Order'ı items ile birlikte yeniden yükle (variant bilgileri için gerekli)
         order = orderRepository.findByIdWithItems(order.getId())
                 .orElse(order);
+        
+        // Sipariş onay emaili
+        emailService.sendOrderConfirmationEmail(order);
         
         return mapToDto(order);
     }
@@ -152,7 +181,12 @@ public class OrderService {
         validateStatusTransition(order.getStatus(), newStatus);
 
         order.setStatus(newStatus);
-        return mapToDto(orderRepository.save(order));
+        Order savedOrder = orderRepository.save(order);
+        
+        // Durum güncelleme emaili
+        emailService.sendOrderStatusUpdateEmail(savedOrder);
+        
+        return mapToDto(savedOrder);
     }
 
     @Transactional
@@ -235,6 +269,8 @@ public class OrderService {
         dto.setPaymentId(order.getIyzicoPaymentId());
         dto.setShippingAddress(order.getShippingAddress());
         dto.setBillingAddress(order.getBillingAddress());
+        dto.setCouponCode(order.getCouponCode());
+        dto.setDiscountAmount(order.getDiscountAmount());
         dto.setCreatedAt(order.getCreatedAt());
         dto.setUpdatedAt(order.getUpdatedAt());
 

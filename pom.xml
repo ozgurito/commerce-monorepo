@@ -159,6 +159,18 @@
 			<scope>provided</scope>
 		</dependency>
 
+		<!-- === EMAIL === -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-mail</artifactId>
+		</dependency>
+		
+		<!-- Thymeleaf for HTML email templates -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-thymeleaf</artifactId>
+		</dependency>
+
 		<!-- === TESTING === -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

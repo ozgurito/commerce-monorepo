@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Ödeme Onayı</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f4;">
+    <table role="presentation" style="width: 100%; border-collapse: collapse;">
+        <tr>
+            <td align="center" style="padding: 40px 0;">
+                <table role="presentation" style="width: 600px; border-collapse: collapse; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                    <tr>
+                        <td style="padding: 40px 40px 20px; text-align: center; background-color: #10B981; border-radius: 8px 8px 0 0;">
+                            <h1 style="margin: 0; color: #ffffff; font-size: 24px;">💳 Ödeme Başarılı!</h1>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 40px;">
+                            <p style="margin: 0 0 20px; color: #333333; font-size: 16px;">
+                                Merhaba <strong th:text="${userName}">Kullanıcı</strong>,
+                            </p>
+                            <p style="margin: 0 0 20px; color: #666666; font-size: 14px;">
+                                <strong th:text="${orderNumber}">#ORD-XXX</strong> numaralı siparişiniz için ödemeniz başarıyla alındı.
+                            </p>
+                            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 6px; text-align: center; margin-bottom: 20px;">
+                                <span style="color: #666; font-size: 14px;">Ödeme Tutarı</span>
+                                <div style="color: #10B981; font-size: 28px; font-weight: 700;" th:text="${total}">₺0</div>
+                                <span style="color: #999; font-size: 12px;">İşlem No: <span th:text="${paymentId}">XXX</span></span>
+                            </div>
+                            <p style="margin: 0 0 20px; color: #666666; font-size: 14px;">
+                                Siparişiniz en kısa sürede hazırlanacak ve kargoya verilecektir.
+                            </p>
+                            <table role="presentation" style="width: 100%;">
+                                <tr>
+                                    <td align="center" style="padding: 20px 0;">
+                                        <a th:href="${orderUrl}" style="display: inline-block; padding: 14px 32px; background-color: #4F46E5; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600;">
+                                            Sipariş Takibi
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+

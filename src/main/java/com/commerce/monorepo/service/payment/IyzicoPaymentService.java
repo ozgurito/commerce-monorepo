@@ -40,6 +40,7 @@ public class IyzicoPaymentService {
     private final IyzicoProperties properties;
     private final OrderRepository orderRepository;
     private final ProductVariantRepository productVariantRepository;
+    private final com.commerce.monorepo.service.EmailService emailService;
 
     @Transactional
     public IyzicoCheckoutInitResponse initCheckout(IyzicoCheckoutInitRequest req) {
@@ -143,6 +144,10 @@ public class IyzicoPaymentService {
             order.setPaymentStatus(PaymentStatus.FAILED);
             order.setStatus(OrderStatus.PENDING);
             orderRepository.save(order);
+            
+            // Ödeme başarısız emaili
+            emailService.sendPaymentFailedEmail(order, checkoutForm.getErrorMessage());
+            
             throw new BaseException(ErrorCode.PAYMENT_CALLBACK_INVALID, checkoutForm.getErrorMessage());
         }
 
@@ -151,6 +156,9 @@ public class IyzicoPaymentService {
         order.setIyzicoPaymentId(checkoutForm.getPaymentId());
         order.setIyzicoToken(req.getToken());
         orderRepository.save(order);
+
+        // Ödeme başarılı emaili
+        emailService.sendPaymentSuccessEmail(order);
 
         return mapToDto(order);
     }

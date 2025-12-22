@@ -25,7 +25,7 @@ public class PasswordResetService {
     private final PasswordResetTokenRepository tokenRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    // private final EmailService emailService; // Email service eklenince uncomment
+    private final EmailService emailService;
 
     private static final int TOKEN_EXPIRY_HOURS = 24;
 
@@ -58,9 +58,8 @@ public class PasswordResetService {
         
         tokenRepository.save(resetToken);
 
-        // Email gönder (EmailService eklenince)
-        // String resetLink = "https://yoursite.com/reset-password?token=" + token;
-        // emailService.sendPasswordResetEmail(user.getEmail(), resetLink);
+        // Email gönder
+        emailService.sendPasswordResetEmail(user, token);
 
         log.info("Password reset token created for user: {}", user.getEmail());
         

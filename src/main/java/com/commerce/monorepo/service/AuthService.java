@@ -29,6 +29,7 @@ public class AuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenService refreshTokenService;
     private final AuthenticationManager authenticationManager;
+    private final EmailService emailService;
 
     /** Kullanıcı kaydı */
     @Transactional
@@ -53,6 +54,9 @@ public class AuthService {
         user.setUpdatedAt(LocalDateTime.now());
 
         User saved = userRepository.save(user);
+
+        // Hoş geldin emaili gönder
+        emailService.sendWelcomeEmail(saved);
 
         return new AuthResponse(
                 null,

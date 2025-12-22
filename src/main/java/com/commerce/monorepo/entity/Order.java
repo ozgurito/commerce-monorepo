@@ -73,6 +73,18 @@ public class Order extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String notes;
 
+    // ========== KUPON ALANLARI ==========
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "coupon_id")
+    private Coupon coupon;
+
+    @Column(name = "coupon_code", length = 50)
+    private String couponCode;
+
+    @Column(name = "discount_amount", precision = 10, scale = 2)
+    private BigDecimal discountAmount = BigDecimal.ZERO;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_status", nullable = false, length = 30)
     private PaymentStatus paymentStatus = PaymentStatus.WAITING;

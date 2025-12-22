@@ -5,6 +5,8 @@ import com.commerce.monorepo.entity.CartStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 public interface CartRepository extends JpaRepository<Cart, Long> {
@@ -15,4 +17,7 @@ public interface CartRepository extends JpaRepository<Cart, Long> {
     Optional<Cart> findByUserIdAndStatusWithItems(Long userId, CartStatus status);
 
     boolean existsByUserIdAndStatus(Long userId, CartStatus status);
+
+    // Terk edilmiş sepetleri bul
+    List<Cart> findByStatusAndUpdatedAtBefore(CartStatus status, LocalDateTime cutoffDate);
 }

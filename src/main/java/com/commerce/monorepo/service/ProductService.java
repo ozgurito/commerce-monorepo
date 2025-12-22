@@ -4,6 +4,8 @@ import com.commerce.monorepo.dto.ProductCreateRequest;
 import com.commerce.monorepo.dto.ProductDto;
 import com.commerce.monorepo.dto.ProductImageDto;
 import com.commerce.monorepo.dto.ProductImageRequest;
+import com.commerce.monorepo.dto.ProductSearchRequest;
+import com.commerce.monorepo.dto.ProductSearchResponse;
 import com.commerce.monorepo.dto.ProductUpdateRequest;
 import com.commerce.monorepo.entity.Product;
 import com.commerce.monorepo.entity.ProductImage;
@@ -13,12 +15,19 @@ import com.commerce.monorepo.exception.ErrorCode;
 import com.commerce.monorepo.repository.ProductRepository;
 import com.commerce.monorepo.repository.CategoryRepository;
 import com.commerce.monorepo.repository.ProductImageRepository;
+import com.commerce.monorepo.repository.specification.ProductSpecification;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -358,5 +367,133 @@ public class ProductService {
                 image.getDisplayOrder(),
                 image.getIsPrimary()
         );
+    }
+
+    // ========== GELİŞMİŞ ARAMA ==========
+
+    /**
+     * Gelişmiş ürün arama ve filtreleme
+     */
+    @Transactional(readOnly = true)
+    public ProductSearchResponse searchProducts(ProductSearchRequest request) {
+        request = request.withDefaults();
+
+        // Alt kategorileri dahil et
+        if (request.getCategoryId() != null && Boolean.TRUE.equals(request.getIncludeSubcategories())) {
+            List<Long> categoryIds = categoryRepository.findCategoryAndChildIds(request.getCategoryId());
+            if (request.getCategoryIds() == null || request.getCategoryIds().isEmpty()) {
+                request.setCategoryIds(categoryIds);
+            } else {
+                // Mevcut categoryIds'e ekle
+                categoryIds.addAll(request.getCategoryIds());
+                request.setCategoryIds(categoryIds);
+            }
+        }
+
+        // Sıralama
+        Sort sort = createSort(request.getSortBy(), request.getSortDirection());
+        Pageable pageable = PageRequest.of(request.getPage(), request.getSize(), sort);
+
+        // Specification ile arama
+        Specification<Product> spec = ProductSpecification.buildSpecification(request);
+        Page<Product> productPage = repo.findAll(spec, pageable);
+
+        // DTO'ya dönüştür
+        List<ProductDto> products = productPage.getContent()
+                .stream()
+                .map(this::mapToDto)
+                .toList();
+
+        // Filtre seçeneklerini hesapla
+        ProductSearchResponse.FilterOptions filterOptions = buildFilterOptions();
+
+        return ProductSearchResponse.builder()
+                .products(products)
+                .currentPage(productPage.getNumber())
+                .totalPages(productPage.getTotalPages())
+                .totalElements(productPage.getTotalElements())
+                .pageSize(productPage.getSize())
+                .hasNext(productPage.hasNext())
+                .hasPrevious(productPage.hasPrevious())
+                .filterOptions(filterOptions)
+                .build();
+    }
+
+    /**
+     * Hızlı arama (autocomplete için)
+     */
+    @Transactional(readOnly = true)
+    public List<ProductDto> quickSearch(String keyword, int limit) {
+        if (!StringUtils.hasText(keyword) || keyword.length() < 2) {
+            return List.of();
+        }
+
+        Pageable pageable = PageRequest.of(0, limit);
+        Page<Product> products = repo.findByNameContainingIgnoreCaseOrDescriptionContainingIgnoreCaseAndIsActiveTrue(
+                keyword, keyword, pageable);
+
+        return products.getContent()
+                .stream()
+                .map(this::mapToDto)
+                .toList();
+    }
+
+    /**
+     * Filtre seçeneklerini hesapla
+     */
+    @Transactional(readOnly = true)
+    public ProductSearchResponse.FilterOptions getFilterOptions() {
+        return buildFilterOptions();
+    }
+
+    private ProductSearchResponse.FilterOptions buildFilterOptions() {
+        // Kategoriler ve ürün sayıları
+        List<Object[]> categoryCounts = repo.countByCategory();
+        List<ProductSearchResponse.CategoryCount> categories = categoryCounts.stream()
+                .filter(result -> result[0] != null)  // NULL category_id'leri filtrele
+                .map(row -> {
+                    Long categoryId = (Long) row[0];
+                    Long count = (Long) row[1];
+                    // Kategori bilgisini al
+                    return categoryRepository.findById(categoryId)
+                            .map(cat -> ProductSearchResponse.CategoryCount.builder()
+                                    .categoryId(cat.getId())
+                                    .categoryName(cat.getName())
+                                    .categorySlug(cat.getSlug())
+                                    .productCount(count)
+                                    .build())
+                            .orElse(null);
+                })
+                .filter(Objects::nonNull)
+                .toList();
+
+        // Mevcut renkler ve bedenler
+        List<String> colors = repo.findDistinctColors();
+        List<String> sizes = repo.findDistinctSizes();
+
+        // Fiyat aralığı
+        BigDecimal minPrice = repo.findMinPrice();
+        BigDecimal maxPrice = repo.findMaxPrice();
+
+        return ProductSearchResponse.FilterOptions.builder()
+                .categories(categories)
+                .availableColors(colors)
+                .availableSizes(sizes)
+                .minPrice(minPrice)
+                .maxPrice(maxPrice)
+                .build();
+    }
+
+    private Sort createSort(String sortBy, String direction) {
+        Sort.Direction dir = "ASC".equalsIgnoreCase(direction) ?
+                Sort.Direction.ASC : Sort.Direction.DESC;
+
+        return switch (sortBy.toLowerCase()) {
+            case "name" -> Sort.by(dir, "name");
+            case "price" -> Sort.by(dir, "price");
+            case "createdat", "newest" -> Sort.by(dir, "createdAt");
+            case "stock" -> Sort.by(dir, "stock");
+            default -> Sort.by(Sort.Direction.DESC, "createdAt");
+        };
     }
 }
