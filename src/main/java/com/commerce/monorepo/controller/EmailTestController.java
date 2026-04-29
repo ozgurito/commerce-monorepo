@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -17,7 +18,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/test/email")
 @RequiredArgsConstructor
-@Tag(name = "Email Test", description = "Email test endpoint'leri (Sadece development için!)")
+@PreAuthorize("hasRole('ADMIN')")
+@Tag(name = "Email Test", description = "Email test endpoint'leri (Sadece ADMIN!)")
 public class EmailTestController {
 
     private final EmailService emailService;

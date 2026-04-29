@@ -3,6 +3,7 @@ package com.commerce.monorepo.service;
 import com.commerce.monorepo.entity.Category;
 import com.commerce.monorepo.dto.CategoryDto;
 import com.commerce.monorepo.dto.CategoryCreateRequest;
+import com.commerce.monorepo.dto.CategoryPathDto;
 import com.commerce.monorepo.dto.CategoryUpdateRequest;
 import com.commerce.monorepo.exception.BaseException;
 import com.commerce.monorepo.exception.ErrorCode;
@@ -10,6 +11,7 @@ import com.commerce.monorepo.repository.CategoryRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -102,6 +104,24 @@ public class CategoryService {
                 .filter(c -> Boolean.TRUE.equals(c.getIsActive()))
                 .map(this::mapToDto)
                 .toList();
+    }
+
+    /**
+     * Kategori breadcrumb yolunu döner: kökten başlayarak verilen kategoriye kadar.
+     * Örnek: [Giyim → Erkek → T-Shirt] → [{id,name,slug}, {id,name,slug}, {id,name,slug}]
+     */
+    @Transactional(readOnly = true)
+    public List<CategoryPathDto> getCategoryPath(Long id) {
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new BaseException(ErrorCode.CATEGORY_NOT_FOUND));
+
+        List<CategoryPathDto> path = new ArrayList<>();
+        Category current = category;
+        while (current != null) {
+            path.add(0, new CategoryPathDto(current.getId(), current.getName(), current.getSlug()));
+            current = current.getParent();
+        }
+        return path;
     }
 
     public void deleteCategory(Long id) {

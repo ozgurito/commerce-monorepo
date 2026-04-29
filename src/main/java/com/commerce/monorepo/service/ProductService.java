@@ -1,20 +1,16 @@
 package com.commerce.monorepo.service;
 
-import com.commerce.monorepo.dto.ProductCreateRequest;
-import com.commerce.monorepo.dto.ProductDto;
-import com.commerce.monorepo.dto.ProductImageDto;
-import com.commerce.monorepo.dto.ProductImageRequest;
-import com.commerce.monorepo.dto.ProductSearchRequest;
-import com.commerce.monorepo.dto.ProductSearchResponse;
-import com.commerce.monorepo.dto.ProductUpdateRequest;
+import com.commerce.monorepo.dto.*;
 import com.commerce.monorepo.entity.Product;
 import com.commerce.monorepo.entity.ProductImage;
+import com.commerce.monorepo.entity.ProductVariant;
 import com.commerce.monorepo.entity.Review;
 import com.commerce.monorepo.exception.BaseException;
 import com.commerce.monorepo.exception.ErrorCode;
 import com.commerce.monorepo.repository.ProductRepository;
 import com.commerce.monorepo.repository.CategoryRepository;
 import com.commerce.monorepo.repository.ProductImageRepository;
+import com.commerce.monorepo.repository.ProductVariantRepository;
 import com.commerce.monorepo.repository.specification.ProductSpecification;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -23,6 +19,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
@@ -34,32 +31,22 @@ import java.util.stream.Collectors;
 import org.hibernate.Hibernate;
 
 @Service
+@RequiredArgsConstructor
 public class ProductService {
 
     private final ProductRepository repo;
     private final CategoryRepository categoryRepository;
     private final ProductImageRepository productImageRepository;
+    private final ProductVariantRepository variantRepository;
 
-    public ProductService(ProductRepository repo, CategoryRepository categoryRepository, ProductImageRepository productImageRepository) {
-        this.repo = repo;
-        this.categoryRepository = categoryRepository;
-        this.productImageRepository = productImageRepository;
+    @Transactional(readOnly = true)
+    public Page<ProductDto> list(Pageable pageable) {
+        return repo.findByIsActiveTrue(pageable).map(this::mapToDto);
     }
 
     @Transactional(readOnly = true)
-    public List<ProductDto> list() {
-        return repo.findByIsActiveTrueOrderByCreatedAtDesc()
-                .stream()
-                .map(this::mapToDto)
-                .toList();
-    }
-
-    @Transactional(readOnly = true)
-    public List<ProductDto> findAll() {
-        return repo.findAll()
-                .stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
+    public Page<ProductDto> findAll(Pageable pageable) {
+        return repo.findAll(pageable).map(this::mapToDto);
     }
 
     @Transactional(readOnly = true)
@@ -68,6 +55,65 @@ public class ProductService {
                 .orElseThrow(() -> new BaseException(ErrorCode.PRODUCT_NOT_FOUND));
 
         return mapToDto(p);
+    }
+
+    /** Variants + images dahil tam ürün detayı — ürün sayfası için */
+    @Transactional(readOnly = true)
+    public ProductDetailDto getDetail(Long id) {
+        Product product = repo.findById(id)
+                .orElseThrow(() -> new BaseException(ErrorCode.PRODUCT_NOT_FOUND));
+
+        List<ProductImageDto> images = product.getImages().stream()
+                .sorted((a, b) -> {
+                    if (Boolean.TRUE.equals(a.getIsPrimary())) return -1;
+                    if (Boolean.TRUE.equals(b.getIsPrimary())) return 1;
+                    return Integer.compare(
+                            a.getDisplayOrder() != null ? a.getDisplayOrder() : 0,
+                            b.getDisplayOrder() != null ? b.getDisplayOrder() : 0);
+                })
+                .map(this::mapImageToDto)
+                .toList();
+
+        List<ProductVariantDto> variants = variantRepository
+                .findByProductIdAndIsActiveTrue(product.getId())
+                .stream()
+                .map(this::mapVariantToDto)
+                .toList();
+
+        double averageRating = 0.0;
+        int totalReviews = 0;
+        if (Hibernate.isInitialized(product.getReviews()) && !product.getReviews().isEmpty()) {
+            var reviews = product.getReviews().stream()
+                    .filter(r -> r.getRating() != null).toList();
+            totalReviews = reviews.size();
+            if (totalReviews > 0) {
+                averageRating = reviews.stream().mapToInt(Review::getRating).average().orElse(0.0);
+            }
+        }
+
+        return new ProductDetailDto(
+                product.getId(), product.getName(), product.getSlug(),
+                product.getDescription(), product.getShortDescription(),
+                product.getPrice(), product.getComparePrice(),
+                product.getStock(), product.getSku(),
+                product.getIsActive(), product.getIsFeatured(), product.getAllowReviews(),
+                product.getCategory() != null ? product.getCategory().getId() : null,
+                product.getCategory() != null ? product.getCategory().getName() : null,
+                images, variants, averageRating, totalReviews,
+                product.getCreatedAt(), product.getUpdatedAt(),
+                product.getFitType(), product.getFabricComposition(), product.getCareInstructions(),
+                product.getModelInfo(), product.getSizeGuide(), product.getMaterial(),
+                product.getSeason(), product.getOriginCountry(), product.getGender(), product.getAgeGroup()
+        );
+    }
+
+    /** Ürün stoğunu manuel güncelle (admin) */
+    @Transactional
+    public ProductDto updateStock(Long id, int stock) {
+        Product product = repo.findById(id)
+                .orElseThrow(() -> new BaseException(ErrorCode.PRODUCT_NOT_FOUND));
+        product.setStock(stock);
+        return mapToDto(repo.save(product));
     }
 
     public ProductDto create(ProductCreateRequest r) {
@@ -194,6 +240,24 @@ public class ProductService {
     @Transactional(readOnly = true)
     public List<ProductDto> getLowStockProducts() {
         return repo.findLowStockProducts()
+                .stream()
+                .map(this::mapToDto)
+                .toList();
+    }
+
+    /**
+     * Aynı kategorideki ilgili ürünleri döner (mevcut ürün hariç).
+     * Öne çıkanlar önce, sonra en yeni. Varsayılan limit: 8.
+     */
+    @Transactional(readOnly = true)
+    public List<ProductDto> getRelatedProducts(Long productId, int limit) {
+        Product product = repo.findById(productId)
+                .orElseThrow(() -> new BaseException(ErrorCode.PRODUCT_NOT_FOUND));
+        if (product.getCategory() == null) {
+            return List.of();
+        }
+        Pageable pageable = PageRequest.of(0, Math.min(limit, 20));
+        return repo.findRelatedProducts(product.getCategory().getId(), productId, pageable)
                 .stream()
                 .map(this::mapToDto)
                 .toList();
@@ -366,6 +430,101 @@ public class ProductService {
                 image.getAltText(),
                 image.getDisplayOrder(),
                 image.getIsPrimary()
+        );
+    }
+
+    // ============================================
+    // PRODUCT VARIANT METHODS
+    // ============================================
+
+    @Transactional(readOnly = true)
+    public List<ProductVariantDto> getVariants(Long productId) {
+        if (!repo.existsById(productId)) throw new BaseException(ErrorCode.PRODUCT_NOT_FOUND);
+        return variantRepository.findByProductIdAndIsActiveTrue(productId)
+                .stream().map(this::mapVariantToDto).toList();
+    }
+
+    @Transactional
+    public ProductVariantDto createVariant(Long productId, ProductVariantCreateRequest req) {
+        Product product = repo.findById(productId)
+                .orElseThrow(() -> new BaseException(ErrorCode.PRODUCT_NOT_FOUND));
+
+        if (req.sku() != null && variantRepository.existsBySku(req.sku())) {
+            throw new BaseException(ErrorCode.SKU_ALREADY_EXISTS);
+        }
+
+        ProductVariant v = new ProductVariant();
+        v.setProduct(product);
+        v.setName(req.name());
+        v.setVariantType(req.variantType());
+        v.setSize(req.size());
+        v.setColor(req.color());
+        v.setColorHex(req.colorHex());
+        v.setSku(req.sku());
+        v.setPriceModifier(req.priceModifier() != null ? req.priceModifier() : BigDecimal.ZERO);
+        v.setStock(req.stock());
+        v.setIsActive(true);
+
+        return mapVariantToDto(variantRepository.save(v));
+    }
+
+    @Transactional
+    public ProductVariantDto updateVariant(Long productId, Long variantId, ProductVariantUpdateRequest req) {
+        ProductVariant v = variantRepository.findById(variantId)
+                .orElseThrow(() -> new BaseException(ErrorCode.VARIANT_NOT_FOUND));
+
+        if (!v.getProduct().getId().equals(productId)) {
+            throw new BaseException(ErrorCode.VARIANT_NOT_FOUND);
+        }
+
+        if (req.sku() != null && !req.sku().equals(v.getSku()) && variantRepository.existsBySku(req.sku())) {
+            throw new BaseException(ErrorCode.SKU_ALREADY_EXISTS);
+        }
+
+        if (req.name() != null)          v.setName(req.name());
+        if (req.size() != null)          v.setSize(req.size());
+        if (req.color() != null)         v.setColor(req.color());
+        if (req.colorHex() != null)      v.setColorHex(req.colorHex());
+        if (req.sku() != null)           v.setSku(req.sku());
+        if (req.priceModifier() != null) v.setPriceModifier(req.priceModifier());
+        if (req.stock() != null)         v.setStock(req.stock());
+        if (req.isActive() != null)      v.setIsActive(req.isActive());
+
+        return mapVariantToDto(variantRepository.save(v));
+    }
+
+    @Transactional
+    public void deleteVariant(Long productId, Long variantId) {
+        ProductVariant v = variantRepository.findById(variantId)
+                .orElseThrow(() -> new BaseException(ErrorCode.VARIANT_NOT_FOUND));
+
+        if (!v.getProduct().getId().equals(productId)) {
+            throw new BaseException(ErrorCode.VARIANT_NOT_FOUND);
+        }
+
+        // Soft delete
+        v.setIsActive(false);
+        variantRepository.save(v);
+    }
+
+    @Transactional
+    public ProductVariantDto updateVariantStock(Long productId, Long variantId, int stock) {
+        ProductVariant v = variantRepository.findById(variantId)
+                .orElseThrow(() -> new BaseException(ErrorCode.VARIANT_NOT_FOUND));
+
+        if (!v.getProduct().getId().equals(productId)) {
+            throw new BaseException(ErrorCode.VARIANT_NOT_FOUND);
+        }
+
+        v.setStock(stock);
+        return mapVariantToDto(variantRepository.save(v));
+    }
+
+    private ProductVariantDto mapVariantToDto(ProductVariant v) {
+        return new ProductVariantDto(
+                v.getId(), v.getName(), v.getVariantType(),
+                v.getSize(), v.getColor(), v.getColorHex(),
+                v.getSku(), v.getPriceModifier(), v.getStock(), v.getIsActive()
         );
     }
 

@@ -70,9 +70,15 @@ public class IyzicoPaymentService {
         buyer.setId(String.valueOf(order.getUser().getId()));
         buyer.setName(extractName(order.getShippingAddress()));
         buyer.setSurname(extractSurname(order.getShippingAddress()));
-        buyer.setEmail(order.getUser().getEmail());
+        // Guest user'larda email null olabilir
+        String buyerEmail = order.getUser().getEmail() != null
+                ? order.getUser().getEmail()
+                : order.getUser().getGuestEmail();
+        buyer.setEmail(buyerEmail);
         buyer.setGsmNumber(extractPhone(order.getShippingAddress()));
-        buyer.setIdentityNumber("11111111111");
+        // TCKN: kullanıcı profilinden al, yoksa iyzico sandbox default
+        String tckn = order.getUser().getIdentityNumber();
+        buyer.setIdentityNumber(tckn != null && !tckn.isBlank() ? tckn : "11111111111");
         buyer.setRegistrationAddress(extractAddress(order.getShippingAddress()));
         buyer.setCity(safe(order.getShippingAddress() != null ? order.getShippingAddress().getCity() : null));
         buyer.setCountry(safe(order.getShippingAddress() != null ? order.getShippingAddress().getCountry() : "Turkey"));

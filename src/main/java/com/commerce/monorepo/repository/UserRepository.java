@@ -21,4 +21,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * Full name var mı kontrol et (eğer unique constraint varsa)
      */
     boolean existsByFullName(String fullName);
+
+    /**
+     * Misafir kullanıcı e-postasına göre bul (guest checkout tekrar kullanımı)
+     */
+    Optional<User> findByGuestEmailAndIsGuestTrue(String guestEmail);
 }

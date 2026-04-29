@@ -83,6 +83,11 @@ public class UserService {
             updated = true;
         }
 
+        if (request.identityNumber() != null && !request.identityNumber().isBlank()) {
+            user.setIdentityNumber(request.identityNumber());
+            updated = true;
+        }
+
         if (!updated) {
             throw new BaseException(ErrorCode.PROFILE_UPDATE_EMPTY);
         }
@@ -118,6 +123,7 @@ public class UserService {
                 user.getEmail(),
                 user.getFullName(),
                 user.getPhone(),
+                user.getIdentityNumber(),
                 user.getRole() != null ? user.getRole().name() : null,
                 user.getCreatedAt() != null ? user.getCreatedAt().atOffset(ZoneOffset.UTC) : null
         );

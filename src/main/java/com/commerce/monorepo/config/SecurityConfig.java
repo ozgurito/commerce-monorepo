@@ -38,24 +38,30 @@ public class SecurityConfig {
                 .cors(c -> c.configurationSource(corsConfigurationSource()))
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/login",
+                        .requestMatchers(
+                                "/api/auth/login",
                                 "/api/auth/refresh",
                                 "/api/auth/register",
                                 "/api/auth/forgot-password",
                                 "/api/auth/reset-password",
                                 "/api/auth/reset-password/validate",
                                 "/api/payments/iyzico/callback",
+                                "/api/payments/bank-transfer/callback",
+                                "/api/orders/guest/**",      // Misafir sipariş takibi
                                 "/api/products",
                                 "/api/products/**",
-                                "/api/test/email/**",  // Email test endpoint'leri (DEV ONLY!)
+                                "/api/categories",
+                                "/api/categories/**",
                                 "/assets/**",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
-                                "/actuator/**",
+                                "/actuator/health",
+                                "/api/health",               // Custom health check (load balancer)
                                 "/", "/index.html", "/css/**", "/js/**", "/images/**", "/favicon.ico"
                         )
                         .permitAll()
+                        .requestMatchers("/api/admin/**", "/api/users", "/api/users/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 );
 

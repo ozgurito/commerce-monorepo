@@ -4,39 +4,39 @@ import com.commerce.monorepo.entity.Address;
 import com.commerce.monorepo.entity.PaymentMethod;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 import java.util.List;
 
+/**
+ * Misafir (login olmadan) sipariş isteği.
+ * CreateOrderRequest'e ek olarak guestEmail zorunlu.
+ */
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class CreateOrderRequest {
+public class GuestOrderRequest {
 
-    @NotEmpty(message = "Order items cannot be empty")
+    @NotBlank(message = "Misafir email adresi zorunludur")
+    @Email(message = "Geçerli bir email adresi girin")
+    private String guestEmail;
+
+    @NotEmpty(message = "Sipariş kalemleri boş olamaz")
     @Valid
     private List<OrderItemRequest> items;
 
-    @NotNull(message = "Shipping address is required")
+    @NotNull(message = "Teslimat adresi zorunludur")
     @Valid
     private Address shippingAddress;
 
-    @NotNull(message = "Billing address is required")
+    @NotNull(message = "Fatura adresi zorunludur")
     @Valid
     private Address billingAddress;
 
     private String notes;
-
     private String couponCode;
 
-    /** Ödeme yöntemi — varsayılan kredi kartı (iyzico) */
+    /** Ödeme yöntemi — varsayılan kredi kartı */
     private PaymentMethod paymentMethod = PaymentMethod.CREDIT_CARD;
-
-    /** Misafir müşteri email adresi (login olmadıysa) */
-    @Email(message = "Geçerli bir email adresi girin")
-    private String guestEmail;
 }

@@ -53,11 +53,16 @@ public class ReviewService {
     public ReviewDto approveReview(Long reviewId) {
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new BaseException(ErrorCode.REVIEW_NOT_FOUND));
-
         review.setIsApproved(true);
-        reviewRepository.save(review);
+        return mapToDto(reviewRepository.save(review));
+    }
 
-        return mapToDto(review);
+    @Transactional
+    public ReviewDto rejectReview(Long reviewId) {
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new BaseException(ErrorCode.REVIEW_NOT_FOUND));
+        review.setIsApproved(false);
+        return mapToDto(reviewRepository.save(review));
     }
 
     @Transactional

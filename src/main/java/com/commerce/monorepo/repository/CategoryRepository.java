@@ -21,5 +21,8 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
     // Alt kategorileri dahil tüm ID'leri bul (1 seviye)
     @Query("SELECT c.id FROM Category c WHERE c.id = :categoryId OR c.parent.id = :categoryId")
     List<Long> findCategoryAndChildIds(@Param("categoryId") Long categoryId);
+
+    // İsme göre arama - Excel import için
+    Optional<Category> findByNameIgnoreCase(String name);
 }
 

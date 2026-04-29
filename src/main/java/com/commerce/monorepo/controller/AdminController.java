@@ -33,12 +33,17 @@ public class AdminController {
     @RateLimit(key = "admin:orders", limit = 30, windowSeconds = 60)
     public Page<OrderDto> getAllOrders(
             @RequestParam(required = false) OrderStatus status,
-            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
-    ) {
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         if (status != null) {
             return adminService.getOrdersByStatus(status, pageable);
         }
         return adminService.getAllOrders(pageable);
+    }
+
+    @GetMapping("/orders/{id}")
+    @RateLimit(key = "admin:order:detail", limit = 30, windowSeconds = 60)
+    public OrderDto getOrderById(@PathVariable Long id) {
+        return adminService.getOrderById(id);
     }
 
     @GetMapping("/stats")

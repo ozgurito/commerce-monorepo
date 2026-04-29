@@ -2,6 +2,7 @@ package com.commerce.monorepo.dto;
 
 import com.commerce.monorepo.entity.Address;
 import com.commerce.monorepo.entity.OrderStatus;
+import com.commerce.monorepo.entity.PaymentMethod;
 import com.commerce.monorepo.entity.PaymentStatus;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -26,6 +27,7 @@ public class OrderDto {
     private BigDecimal total;
     private OrderStatus status;
     private PaymentStatus paymentStatus;
+    private PaymentMethod paymentMethod;
     private String paymentId;
     private Address shippingAddress;
     private Address billingAddress;

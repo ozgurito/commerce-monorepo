@@ -89,6 +89,10 @@ public class Order extends BaseEntity {
     @Column(name = "payment_status", nullable = false, length = 30)
     private PaymentStatus paymentStatus = PaymentStatus.WAITING;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_method", nullable = false, length = 30)
+    private PaymentMethod paymentMethod = PaymentMethod.CREDIT_CARD;
+
     @Column(name = "iyzico_token", length = 200)
     private String iyzicoToken;
 

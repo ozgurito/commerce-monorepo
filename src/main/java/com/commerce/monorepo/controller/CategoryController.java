@@ -2,6 +2,7 @@ package com.commerce.monorepo.controller;
 
 import com.commerce.monorepo.dto.CategoryDto;
 import com.commerce.monorepo.dto.CategoryCreateRequest;
+import com.commerce.monorepo.dto.CategoryPathDto;
 import com.commerce.monorepo.dto.CategoryUpdateRequest;
 import com.commerce.monorepo.ratelimit.RateLimit;
 import com.commerce.monorepo.service.CategoryService;
@@ -39,6 +40,12 @@ public class CategoryController {
     @GetMapping("/{id}")
     public CategoryDto getCategory(@PathVariable Long id) {
         return categoryService.getCategory(id);
+    }
+
+    @RateLimit(key = "category:path", limit = 60, windowSeconds = 60, perUser = false)
+    @GetMapping("/{id}/path")
+    public List<CategoryPathDto> getCategoryPath(@PathVariable Long id) {
+        return categoryService.getCategoryPath(id);
     }
 
     @RateLimit(key = "category:slug", limit = 60, windowSeconds = 60, perUser = false)

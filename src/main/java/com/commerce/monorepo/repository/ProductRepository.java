@@ -91,4 +91,11 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     // Kategori bazlı ürün sayısı
     @Query("SELECT p.category.id, COUNT(p) FROM Product p WHERE p.isActive = true AND p.category IS NOT NULL GROUP BY p.category.id")
     List<Object[]> countByCategory();
+
+    // İlgili ürünler - aynı kategori, mevcut ürün hariç, öne çıkanlar önce
+    @Query("SELECT p FROM Product p WHERE p.category.id = :categoryId AND p.id != :excludeId AND p.isActive = true ORDER BY p.isFeatured DESC, p.createdAt DESC")
+    List<Product> findRelatedProducts(
+            @Param("categoryId") Long categoryId,
+            @Param("excludeId") Long excludeId,
+            Pageable pageable);
 }

@@ -27,11 +27,11 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true, nullable = false)
+    @Column(unique = true, nullable = true)
     private String email;
 
     @JsonIgnore
-    @Column(nullable = false)
+    @Column(nullable = true)
     private String password;
 
     @Column(name = "full_name")
@@ -39,6 +39,15 @@ public class User {
 
     @Column(name = "phone", length = 20)
     private String phone;
+
+    @Column(name = "identity_number", length = 11)
+    private String identityNumber;
+
+    @Column(name = "is_guest", nullable = false)
+    private Boolean isGuest = false;
+
+    @Column(name = "guest_email", length = 255)
+    private String guestEmail;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

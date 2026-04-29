@@ -44,5 +44,9 @@ public class ProductVariant extends BaseEntity {
     
     @Column(name = "is_active")
     private Boolean isActive = true;
+
+    @Version
+    @Column(name = "version")
+    private Long version;
 }
 

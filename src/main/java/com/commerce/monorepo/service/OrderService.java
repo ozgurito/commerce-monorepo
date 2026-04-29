@@ -17,11 +17,14 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.dao.OptimisticLockingFailureException;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -36,12 +39,42 @@ public class OrderService {
     private final UserRepository userRepository;
     private final EmailService emailService;
     private final CouponService couponService;
+    private final ShippingService shippingService;
 
+    /**
+     * Authenticated kullanıcı için sipariş oluşturur.
+     * Optimistic locking hatası yakalar, kullanıcı dostu mesaj döner.
+     */
+    @Transactional
+    public OrderDto createOrderForUser(User user, CreateOrderRequest request) {
+        try {
+            return doCreateOrder(user, request);
+        } catch (OptimisticLockingFailureException e) {
+            throw new BaseException(ErrorCode.INSUFFICIENT_STOCK,
+                    "Ürün stoku başka bir kullanıcı tarafından güncellendi. Lütfen tekrar deneyin.");
+        }
+    }
+
+    /**
+     * Güvenlik context'inden kullanıcıyı alarak sipariş oluşturur.
+     */
     @Transactional
     public OrderDto createOrder(CreateOrderRequest request) {
         String userEmail = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new BaseException(ErrorCode.USER_NOT_FOUND));
+        try {
+            return doCreateOrder(user, request);
+        } catch (OptimisticLockingFailureException e) {
+            throw new BaseException(ErrorCode.INSUFFICIENT_STOCK,
+                    "Ürün stoku başka bir kullanıcı tarafından güncellendi. Lütfen tekrar deneyin.");
+        }
+    }
+
+    /**
+     * Gerçek sipariş oluşturma mantığı — her iki public metot buraya delege eder.
+     */
+    private OrderDto doCreateOrder(User user, CreateOrderRequest request) {
 
         Order order = new Order();
         order.setUser(user);
@@ -104,7 +137,15 @@ public class OrderService {
         order.setItems(orderItems);
         order.setSubtotal(subtotal);
         order.setTax(subtotal.multiply(BigDecimal.valueOf(0.20))); // %20 KDV
-        order.setShippingCost(BigDecimal.valueOf(29.99)); // Sabit kargo
+        
+        // Kargo ücreti — ShippingService hesaplar (300₺ üzeri ücretsiz)
+        BigDecimal shippingCost = shippingService.calculate(subtotal);
+        order.setShippingCost(shippingCost);
+        
+        // Ödeme yöntemi set et
+        if (request.getPaymentMethod() != null) {
+            order.setPaymentMethod(request.getPaymentMethod());
+        }
         
         // Kupon uygula (varsa)
         BigDecimal discountAmount = BigDecimal.ZERO;
@@ -147,6 +188,7 @@ public class OrderService {
         return mapToDto(order);
     }
 
+    @Transactional(readOnly = true)
     public OrderDto getOrder(Long orderId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new BaseException(ErrorCode.ORDER_NOT_FOUND));
@@ -157,14 +199,6 @@ public class OrderService {
         }
 
         return mapToDto(order);
-    }
-
-    public List<OrderDto> listMyOrders() {
-        User currentUser = getCurrentUser();
-        return orderRepository.findByUserIdOrderByCreatedAtDesc(currentUser.getId())
-                .stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
@@ -233,7 +267,7 @@ public class OrderService {
         };
 
         if (!isValid) {
-            throw new BaseException(ErrorCode.REVIEWS_NOT_ALLOWED);
+            throw new BaseException(ErrorCode.ORDER_INVALID_STATUS);
         }
     }
 
@@ -254,12 +288,26 @@ public class OrderService {
         return "ORD-" + timestamp + "-" + millis + "-" + uuid;
     }
 
+    /**
+     * Public wrapper — BankTransferPaymentService ve GuestOrderController gibi
+     * dış servisler tarafından çağrılabilir.
+     */
+    public OrderDto mapToDtoPublic(Order order) {
+        return mapToDto(order);
+    }
+
     private OrderDto mapToDto(Order order) {
         OrderDto dto = new OrderDto();
         dto.setId(order.getId());
         dto.setOrderNumber(order.getOrderNumber());
         dto.setUserId(order.getUser().getId());
-        dto.setUserEmail(order.getUser().getEmail());
+
+        // Guest user'larda email null olabilir — guestEmail fallback
+        String userEmail = order.getUser().getEmail() != null
+                ? order.getUser().getEmail()
+                : order.getUser().getGuestEmail();
+        dto.setUserEmail(userEmail);
+
         dto.setSubtotal(order.getSubtotal());
         dto.setTax(order.getTax());
         dto.setShippingCost(order.getShippingCost());
@@ -274,6 +322,15 @@ public class OrderService {
         dto.setCreatedAt(order.getCreatedAt());
         dto.setUpdatedAt(order.getUpdatedAt());
 
+        // N+1 düzeltmesi: Tüm variant ID'leri bir kerede yükle
+        List<Long> variantIds = order.getItems().stream()
+                .map(OrderItem::getProductVariantId)
+                .filter(id -> id != null)
+                .collect(Collectors.toList());
+        Map<Long, ProductVariant> variantMap = productVariantRepository.findAllById(variantIds)
+                .stream()
+                .collect(Collectors.toMap(ProductVariant::getId, v -> v));
+
         dto.setItems(order.getItems().stream()
                 .map(item -> {
                     OrderItemDto itemDto = new OrderItemDto();
@@ -283,11 +340,9 @@ public class OrderService {
                     itemDto.setQuantity(item.getQuantity());
                     itemDto.setUnitPrice(item.getUnitPrice());
                     itemDto.setTotalPrice(item.getTotalPrice());
-                    
-                    // Variant bilgilerini ekle
+
                     if (item.getProductVariantId() != null) {
-                        ProductVariant variant = productVariantRepository.findById(item.getProductVariantId())
-                                .orElse(null);
+                        ProductVariant variant = variantMap.get(item.getProductVariantId());
                         if (variant != null) {
                             itemDto.setVariantId(variant.getId());
                             itemDto.setVariantName(variant.getName());
@@ -295,7 +350,7 @@ public class OrderService {
                             itemDto.setColor(variant.getColor());
                         }
                     }
-                    
+
                     return itemDto;
                 })
                 .collect(Collectors.toList()));

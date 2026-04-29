@@ -24,12 +24,14 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     @RateLimit(key = "users:list", limit = 30, windowSeconds = 60)
     public List<UserDto> list() {
         return userService.findAll();
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     @RateLimit(key = "users:get", limit = 40, windowSeconds = 60)
     public UserDto getById(@PathVariable Long id) {
         return userService.findById(id);

@@ -124,18 +124,12 @@ public class AuthController {
     @RateLimit(key = "auth:forgot", limit = 5, windowSeconds = 300) // 5 dakikada max 5 istek
     public ResponseEntity<Map<String, String>> forgotPassword(
             @Valid @RequestBody ForgotPasswordRequest request) {
-        String token = passwordResetService.createPasswordResetToken(request);
+        passwordResetService.createPasswordResetToken(request);
         
-        // Güvenlik: Her durumda aynı mesajı dön
-        Map<String, String> response = new HashMap<>();
-        response.put("message", "Eğer bu email kayıtlıysa, şifre sıfırlama linki gönderildi.");
-        
-        // DEV ONLY: Token'ı dön (Production'da kaldır!)
-        if (token != null) {
-            response.put("token", token); // Production'da bu satırı SİL!
-        }
-        
-        return ResponseEntity.ok(response);
+        // Güvenlik: Her durumda aynı mesajı dön (email enum attack'ı önler)
+        return ResponseEntity.ok(Map.of(
+            "message", "Eğer bu email kayıtlıysa, şifre sıfırlama linki gönderildi."
+        ));
     }
 
     /**

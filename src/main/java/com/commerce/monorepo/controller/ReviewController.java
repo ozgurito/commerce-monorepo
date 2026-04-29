@@ -56,6 +56,13 @@ public class ReviewController {
         return reviewService.approveReview(id);
     }
 
+    @PutMapping("/{id}/reject")
+    @PreAuthorize("hasRole('ADMIN')")
+    @RateLimit(key = "review:admin:reject", limit = 20, windowSeconds = 60)
+    public ReviewDto rejectReview(@PathVariable Long id) {
+        return reviewService.rejectReview(id);
+    }
+
     @PutMapping("/{id}/admin-response")
     @PreAuthorize("hasRole('ADMIN')")
     @RateLimit(key = "review:admin:response", limit = 20, windowSeconds = 60)

@@ -32,8 +32,9 @@ public class AssetController {
     public record UploadReq(String key, String contentType) {}
     public record UploadRes(String url, String method, Map<String, List<String>> headers, String key) {}
 
-    // 🔥 Upload URL — userId bazlı rate limit (20/dk)
+    // 🔥 Upload URL — ADMIN only (ürün görselleri yalnızca admin yükler)
     @RateLimit(key = "asset:upload", limit = 20, windowSeconds = 60, perUser = true)
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
     @PostMapping(
             path = "/upload-url",
             consumes = MediaType.APPLICATION_JSON_VALUE,
@@ -65,8 +66,9 @@ public class AssetController {
     public record DownloadReq(String key) {}
     public record DownloadRes(String url, String key) {}
 
-    // 🔥 Download URL — userId bazlı rate limit (30/dk)
+    // 🔥 Download URL — authenticated user (okuma herkese açık)
     @RateLimit(key = "asset:download", limit = 30, windowSeconds = 60, perUser = true)
+    @org.springframework.security.access.prepost.PreAuthorize("isAuthenticated()")
     @PostMapping(
             path = "/download-url",
             consumes = MediaType.APPLICATION_JSON_VALUE,
