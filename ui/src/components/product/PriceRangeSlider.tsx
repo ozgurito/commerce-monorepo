@@ -3,14 +3,14 @@ import { useState, useEffect } from 'react'
 import { useDebounce } from '@/hooks/useDebounce'
 
 interface Props {
-  min?: number
-  max?: number
+  initialMin?: number
+  initialMax?: number
   onChange: (min: number | undefined, max: number | undefined) => void
 }
 
-export function PriceRangeSlider({ min, max, onChange }: Props) {
-  const [localMin, setLocalMin] = useState(min?.toString() ?? '')
-  const [localMax, setLocalMax] = useState(max?.toString() ?? '')
+export function PriceRangeSlider({ initialMin, initialMax, onChange }: Props) {
+  const [localMin, setLocalMin] = useState(initialMin?.toString() ?? '')
+  const [localMax, setLocalMax] = useState(initialMax?.toString() ?? '')
 
   const debouncedMin = useDebounce(localMin, 400)
   const debouncedMax = useDebounce(localMax, 400)
@@ -21,10 +21,6 @@ export function PriceRangeSlider({ min, max, onChange }: Props) {
     onChange(minVal, maxVal)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedMin, debouncedMax])
-
-  // URL'den gelen değişikliği senkronize et
-  useEffect(() => { setLocalMin(min?.toString() ?? '') }, [min])
-  useEffect(() => { setLocalMax(max?.toString() ?? '') }, [max])
 
   return (
     <div>

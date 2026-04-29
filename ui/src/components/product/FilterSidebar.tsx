@@ -110,8 +110,9 @@ export function FilterSidebar({ filters, onFilterChange, onReset, isOpen, onClos
 
           {/* Fiyat */}
           <PriceRangeSlider
-            min={filters.minPrice}
-            max={filters.maxPrice}
+            key={`${filters.minPrice ?? ''}-${filters.maxPrice ?? ''}`}
+            initialMin={filters.minPrice}
+            initialMax={filters.maxPrice}
             onChange={(min, max) => onFilterChange({ minPrice: min, maxPrice: max })}
           />
 

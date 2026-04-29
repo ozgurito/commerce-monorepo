@@ -50,6 +50,7 @@ export function ProductsView() {
     sortBy, sortDirection: sortDir as 'ASC' | 'DESC',
     size: PAGE_SIZE,
     ...(indirim && { inStockOnly: false }),
+    ...(yeni    && { featured: true }),
   }
 
   const {
