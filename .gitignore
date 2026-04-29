@@ -40,3 +40,10 @@ application-prod.properties
 # Local environment files
 .env
 *.env.local
+
+# Claude Code internal
+.claude/
+
+# Frontend
+ui/.env.local
+ui/node_modules/
