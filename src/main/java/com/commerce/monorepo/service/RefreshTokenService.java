@@ -122,7 +122,11 @@ public class RefreshTokenService {
                 user.getEmail(), user.getId(), user.getRole()
         );
 
-        return new RefreshTokenResponse(newAccessToken, newRefreshToken);
+        return new RefreshTokenResponse(
+                newAccessToken,
+                newRefreshToken,
+                user.getRole() != null ? user.getRole().name() : "USER"
+        );
     }
 
     private RefreshToken getRefreshToken(String rawRefreshToken) {

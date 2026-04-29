@@ -63,7 +63,8 @@ public class AuthService {
                 null,
                 saved.getId(),
                 saved.getEmail(),
-                saved.getFullName()
+                saved.getFullName(),
+                saved.getRole() != null ? saved.getRole().name() : "USER"
         );
     }
 
@@ -93,7 +94,8 @@ public class AuthService {
                     refreshRaw,
                     user.getId(),
                     user.getEmail(),
-                    user.getFullName()
+                    user.getFullName(),
+                    user.getRole() != null ? user.getRole().name() : "USER"
             );
 
         } catch (Exception e) {
