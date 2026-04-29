@@ -22,12 +22,25 @@
   --shadow-hover: 0 8px 32px rgba(0,0,0,.14);
 
   --animate-shake: shake 0.3s ease-in-out;
+  --animate-marquee: marquee 32s linear infinite;
 
   @keyframes shake {
     0%, 100% { transform: translateX(0); }
     25%       { transform: translateX(-4px); }
     75%       { transform: translateX(4px); }
   }
+
+  @keyframes marquee {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+}
+
+.scrollbar-none {
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
 }
 
 :root {
