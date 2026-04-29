@@ -47,7 +47,7 @@ export default async function BasariliPage({ searchParams }: Props) {
       <div className="flex flex-col sm:flex-row gap-3 justify-center">
         {orderNumber && (
           <Link
-            href={`/hesabim/siparisler`}
+            href="/hesabim/siparislerim"
             className="flex items-center justify-center gap-2 bg-orange hover:bg-orange-dark
                        text-white font-bold px-6 py-3 rounded-xl transition-colors text-sm"
           >

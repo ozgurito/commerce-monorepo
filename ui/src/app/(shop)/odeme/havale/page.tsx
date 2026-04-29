@@ -2,6 +2,7 @@
 import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Loader2, AlertCircle } from 'lucide-react'
+import Link from 'next/link'
 import { paymentsApi } from '@/domains/payments/payments.api'
 import { BankTransferInfo } from '@/components/checkout/BankTransferInfo'
 import type { BankTransferInitResponse } from '@/domains/payments/payments.types'
@@ -81,7 +82,24 @@ function HavaleContent() {
         <BankTransferInfo info={info} />
       </div>
 
-      <p className="text-center text-xs text-gray-400 mt-6">
+      <div className="flex flex-col sm:flex-row gap-3 justify-center mt-6">
+        <Link
+          href="/hesabim/siparislerim"
+          className="flex items-center justify-center gap-2 bg-orange hover:bg-orange-dark
+                     text-white font-bold px-6 py-3 rounded-xl transition-colors text-sm"
+        >
+          Siparişlerime Git
+        </Link>
+        <Link
+          href="/"
+          className="flex items-center justify-center gap-2 bg-white border border-gray-200
+                     hover:border-gray-300 text-navy-dark font-semibold px-6 py-3 rounded-xl
+                     transition-colors text-sm"
+        >
+          Ana Sayfaya Dön
+        </Link>
+      </div>
+      <p className="text-center text-xs text-gray-400 mt-4">
         Transfer sonrası siparişiniz otomatik olarak onaylanacaktır.
       </p>
     </div>
