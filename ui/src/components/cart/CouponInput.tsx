@@ -7,10 +7,12 @@ import { cartApi } from '@/domains/cart/cart.api'
 import { QUERY_KEYS } from '@/lib/query-keys'
 
 interface Props {
-  appliedCoupon?: string | null
+  appliedCoupon: string | null
+  onApplied: (code: string) => void
+  onRemoved: () => void
 }
 
-export function CouponInput({ appliedCoupon }: Props) {
+export function CouponInput({ appliedCoupon, onApplied, onRemoved }: Props) {
   const [code, setCode] = useState('')
   const queryClient = useQueryClient()
 
@@ -18,6 +20,7 @@ export function CouponInput({ appliedCoupon }: Props) {
     mutationFn: () => cartApi.applyCoupon(code.trim().toUpperCase()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.cart.all })
+      onApplied(code.trim().toUpperCase())
       setCode('')
       toast.success('Kupon uygulandı!')
     },
@@ -30,6 +33,7 @@ export function CouponInput({ appliedCoupon }: Props) {
     mutationFn: () => cartApi.removeCoupon(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.cart.all })
+      onRemoved()
       toast.success('Kupon kaldırıldı')
     },
   })
