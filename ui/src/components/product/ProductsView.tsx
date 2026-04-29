@@ -16,16 +16,22 @@ import type { ProductDto } from '@/domains/products/products.types'
 
 const PAGE_SIZE = 20
 
-export function ProductsView() {
+interface Props {
+  defaultCategoryId?: number
+}
+
+export function ProductsView({ defaultCategoryId }: Props = {}) {
   const searchParams = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
   const [filterOpen, setFilterOpen] = useState(false)
   const { ref: sentinelRef, isIntersecting: isSentinelVisible } = useIntersection()
 
-  // URL'den filtre değerlerini oku
+  // URL'den filtre değerlerini oku — kategori sayfasında default olarak sabit categoryId kullan
   const keyword     = searchParams.get('keyword') ?? undefined
-  const categoryId  = searchParams.get('categoryId') ? Number(searchParams.get('categoryId')) : undefined
+  const categoryId  = searchParams.get('categoryId')
+    ? Number(searchParams.get('categoryId'))
+    : defaultCategoryId
   const minPrice    = searchParams.get('minPrice') ? Number(searchParams.get('minPrice')) : undefined
   const maxPrice    = searchParams.get('maxPrice') ? Number(searchParams.get('maxPrice')) : undefined
   const colors      = searchParams.getAll('colors')
