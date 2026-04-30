@@ -30,7 +30,7 @@ export function AccountSidebar() {
   }
 
   return (
-    <aside className="w-64 flex-shrink-0">
+    <aside className="w-full md:w-64 flex-shrink-0">
       {/* Kullanıcı bilgisi */}
       <div className="bg-white rounded-2xl border border-gray-100 p-5 mb-4">
         <div className="flex items-center gap-3">

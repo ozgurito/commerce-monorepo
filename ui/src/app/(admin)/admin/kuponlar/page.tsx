@@ -14,7 +14,7 @@ const schema = z.object({
   code:                  z.string().min(3, 'En az 3 karakter'),
   description:           z.string().optional(),
   discountType:          z.enum(['PERCENTAGE', 'FIXED_AMOUNT', 'FREE_SHIPPING']),
-  discountValue:         z.string().min(1, 'Değer girin'),  // submit'te Number() ile çevir
+  discountValue:         z.string().min(1, 'Değer girin'),
   minimumOrderAmount:    z.string().optional(),
   maximumDiscountAmount: z.string().optional(),
   usageLimit:            z.string().optional(),
@@ -215,7 +215,7 @@ export default function AdminKuponlarPage() {
         </button>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-gray-100 overflow-x-auto">
         {isLoading ? (
           <div className="flex justify-center py-16">
             <Loader2 size={24} className="text-orange animate-spin" />

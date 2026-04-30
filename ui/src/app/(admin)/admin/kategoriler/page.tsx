@@ -13,7 +13,7 @@ import type { CategoryDto } from '@/domains/categories/categories.types'
 const schema = z.object({
   name:        z.string().min(2, 'En az 2 karakter'),
   description: z.string().optional(),
-  parentId:    z.string().optional(),   // "" veya id string — submit'te Number() ile çevir
+  parentId:    z.string().optional(),   // "" veya id string â€” submit'te Number() ile Ã§evir
   isActive:    z.boolean().optional(),
 })
 type FormValues = z.infer<typeof schema>
@@ -51,20 +51,20 @@ function CategoryModal({ categories, editTarget, onClose, onSave, isLoading }: M
           <X size={18} />
         </button>
         <h3 className="font-extrabold text-navy-dark text-lg mb-5">
-          {editTarget ? 'Kategori Düzenle' : 'Yeni Kategori'}
+          {editTarget ? 'Kategori DÃ¼zenle' : 'Yeni Kategori'}
         </h3>
         <form onSubmit={handleSubmit(onSave)} className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-gray-600 mb-1">Kategori Adı *</label>
+            <label className="block text-xs font-bold text-gray-600 mb-1">Kategori AdÄ± *</label>
             <input {...register('name')} className={inputCls()} />
             {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name.message}</p>}
           </div>
           <div>
-            <label className="block text-xs font-bold text-gray-600 mb-1">Açıklama</label>
+            <label className="block text-xs font-bold text-gray-600 mb-1">AÃ§Ä±klama</label>
             <textarea {...register('description')} rows={2} className={inputCls()} />
           </div>
           <div>
-            <label className="block text-xs font-bold text-gray-600 mb-1">Üst Kategori</label>
+            <label className="block text-xs font-bold text-gray-600 mb-1">Ãœst Kategori</label>
             <select {...register('parentId')} className={inputCls()}>
               <option value="">Ana kategori (yok)</option>
               {categories
@@ -82,7 +82,7 @@ function CategoryModal({ categories, editTarget, onClose, onSave, isLoading }: M
             <button type="button" onClick={onClose}
               className="flex-1 border border-gray-200 text-gray-600 font-semibold py-2.5
                          rounded-xl hover:bg-gray-50 text-sm">
-              İptal
+              Ä°ptal
             </button>
             <button type="submit" disabled={isLoading}
               className="flex-1 bg-orange hover:bg-orange-dark text-white font-bold py-2.5
@@ -119,9 +119,9 @@ export default function AdminKategorilerPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['categories'] })
       setShowModal(false)
-      toast.success('Kategori oluşturuldu')
+      toast.success('Kategori oluÅŸturuldu')
     },
-    onError: () => toast.error('Oluşturma başarısız'),
+    onError: () => toast.error('OluÅŸturma baÅŸarÄ±sÄ±z'),
   })
 
   const updateMutation = useMutation({
@@ -135,9 +135,9 @@ export default function AdminKategorilerPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['categories'] })
       setEditTarget(null)
-      toast.success('Kategori güncellendi')
+      toast.success('Kategori gÃ¼ncellendi')
     },
-    onError: () => toast.error('Güncelleme başarısız'),
+    onError: () => toast.error('GÃ¼ncelleme baÅŸarÄ±sÄ±z'),
   })
 
   const deleteMutation = useMutation({
@@ -146,7 +146,7 @@ export default function AdminKategorilerPage() {
       queryClient.invalidateQueries({ queryKey: ['categories'] })
       toast.success('Kategori silindi')
     },
-    onError: () => toast.error('Silinemedi — alt kategoriler veya ürünler var olabilir'),
+    onError: () => toast.error('Silinemedi â€” alt kategoriler veya Ã¼rÃ¼nler var olabilir'),
   })
 
   const parentMap = new Map(categories.map((c) => [c.id, c.name]))
@@ -164,7 +164,7 @@ export default function AdminKategorilerPage() {
         </button>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-gray-100 overflow-x-auto">
         {isLoading ? (
           <div className="flex justify-center py-16">
             <Loader2 size={24} className="text-orange animate-spin" />
@@ -179,7 +179,7 @@ export default function AdminKategorilerPage() {
             <thead className="border-b border-gray-100 bg-gray-50">
               <tr>
                 <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 uppercase">Ad</th>
-                <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase">Üst Kategori</th>
+                <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase">Ãœst Kategori</th>
                 <th className="text-center px-4 py-3 text-xs font-bold text-gray-500 uppercase">Durum</th>
                 <th className="px-4 py-3" />
               </tr>
@@ -189,7 +189,7 @@ export default function AdminKategorilerPage() {
                 <tr key={cat.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-5 py-3 font-semibold text-navy-dark">{cat.name}</td>
                   <td className="px-4 py-3 text-gray-500 text-xs">
-                    {cat.parentId ? parentMap.get(cat.parentId) ?? '—' : '—'}
+                    {cat.parentId ? parentMap.get(cat.parentId) ?? 'â€”' : 'â€”'}
                   </td>
                   <td className="px-4 py-3 text-center">
                     <span className={`text-xs font-bold px-2 py-0.5 rounded-full
@@ -239,3 +239,4 @@ export default function AdminKategorilerPage() {
     </div>
   )
 }
+

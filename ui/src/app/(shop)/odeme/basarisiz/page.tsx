@@ -1,5 +1,11 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { XCircle, RefreshCw, ArrowLeft } from 'lucide-react'
+
+export const metadata: Metadata = {
+  title: 'Ödeme Başarısız',
+  robots: { index: false },
+}
 
 interface Props {
   searchParams: Promise<{ orderNumber?: string }>

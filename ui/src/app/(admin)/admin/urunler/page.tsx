@@ -23,9 +23,9 @@ export default function AdminUrunlerPage() {
     mutationFn: (id: number) => adminApi.deleteProduct(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'products'] })
-      toast.success('Ürün silindi')
+      toast.success('ÃœrÃ¼n silindi')
     },
-    onError: () => toast.error('Ürün silinemedi'),
+    onError: () => toast.error('ÃœrÃ¼n silinemedi'),
   })
 
   const products = data?.content ?? []
@@ -34,13 +34,13 @@ export default function AdminUrunlerPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-extrabold text-navy-dark">Ürünler</h1>
+        <h1 className="text-2xl font-extrabold text-navy-dark">ÃœrÃ¼nler</h1>
         <Link
           href="/admin/urunler/yeni"
           className="flex items-center gap-2 bg-orange hover:bg-orange-dark text-white
                      font-bold px-4 py-2.5 rounded-xl transition-colors text-sm"
         >
-          <Plus size={16} /> Yeni Ürün
+          <Plus size={16} /> Yeni ÃœrÃ¼n
         </Link>
       </div>
 
@@ -50,14 +50,14 @@ export default function AdminUrunlerPage() {
         <input
           value={keyword}
           onChange={(e) => { setKeyword(e.target.value); setPage(0) }}
-          placeholder="Ürün ara…"
+          placeholder="ÃœrÃ¼n araâ€¦"
           className="w-full border border-gray-200 rounded-xl pl-9 pr-4 py-2.5 text-sm
                      focus:outline-none focus:ring-1 focus:border-orange focus:ring-orange/20"
         />
       </div>
 
       {/* Tablo */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-gray-100 overflow-x-auto">
         {isLoading ? (
           <div className="flex justify-center py-16">
             <Loader2 size={24} className="text-orange animate-spin" />
@@ -65,13 +65,13 @@ export default function AdminUrunlerPage() {
         ) : products.length === 0 ? (
           <div className="py-16 text-center">
             <Package size={32} className="text-gray-300 mx-auto mb-3" />
-            <p className="text-gray-400">Ürün bulunamadı</p>
+            <p className="text-gray-400">ÃœrÃ¼n bulunamadÄ±</p>
           </div>
         ) : (
           <table className="w-full text-sm">
             <thead className="border-b border-gray-100 bg-gray-50">
               <tr>
-                <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 uppercase">Ürün</th>
+                <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 uppercase">ÃœrÃ¼n</th>
                 <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase">SKU</th>
                 <th className="text-right px-4 py-3 text-xs font-bold text-gray-500 uppercase">Fiyat</th>
                 <th className="text-right px-4 py-3 text-xs font-bold text-gray-500 uppercase">Stok</th>
@@ -137,7 +137,7 @@ export default function AdminUrunlerPage() {
           <button disabled={page === 0} onClick={() => setPage((p) => p - 1)}
             className="px-4 py-2 text-sm font-semibold border border-gray-200 rounded-xl
                        disabled:opacity-40 hover:border-orange hover:text-orange transition-colors">
-            Önceki
+            Ã–nceki
           </button>
           <span className="text-sm text-gray-500">{page + 1} / {totalPages}</span>
           <button disabled={page >= totalPages - 1} onClick={() => setPage((p) => p + 1)}
@@ -150,3 +150,4 @@ export default function AdminUrunlerPage() {
     </div>
   )
 }
+

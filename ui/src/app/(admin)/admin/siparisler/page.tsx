@@ -9,16 +9,16 @@ import type { OrderStatus } from '@/domains/orders/orders.types'
 
 const STATUS_CONFIG: Record<OrderStatus, { label: string; color: string }> = {
   PENDING:    { label: 'Beklemede',     color: 'bg-yellow-100 text-yellow-700' },
-  PAID:       { label: 'Ödendi',        color: 'bg-blue-100 text-blue-700' },
-  PROCESSING: { label: 'Hazırlanıyor',  color: 'bg-purple-100 text-purple-700' },
+  PAID:       { label: 'Ã–dendi',        color: 'bg-blue-100 text-blue-700' },
+  PROCESSING: { label: 'HazÄ±rlanÄ±yor',  color: 'bg-purple-100 text-purple-700' },
   SHIPPED:    { label: 'Kargoda',       color: 'bg-indigo-100 text-indigo-700' },
   DELIVERED:  { label: 'Teslim Edildi', color: 'bg-green-100 text-green-700' },
-  CANCELLED:  { label: 'İptal Edildi',  color: 'bg-red-100 text-red-700' },
-  REFUNDED:   { label: 'İade Edildi',   color: 'bg-gray-100 text-gray-600' },
+  CANCELLED:  { label: 'Ä°ptal Edildi',  color: 'bg-red-100 text-red-700' },
+  REFUNDED:   { label: 'Ä°ade Edildi',   color: 'bg-gray-100 text-gray-600' },
 }
 
 const STATUS_OPTIONS: { value: string; label: string }[] = [
-  { value: '', label: 'Tüm Durumlar' },
+  { value: '', label: 'TÃ¼m Durumlar' },
   ...Object.entries(STATUS_CONFIG).map(([v, { label }]) => ({ value: v, label })),
 ]
 
@@ -37,7 +37,7 @@ export default function AdminSiparislerPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-extrabold text-navy-dark">Siparişler</h1>
+        <h1 className="text-2xl font-extrabold text-navy-dark">SipariÅŸler</h1>
         <select
           value={statusFilter}
           onChange={(e) => { setStatusFilter(e.target.value); setPage(0) }}
@@ -50,7 +50,7 @@ export default function AdminSiparislerPage() {
         </select>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-gray-100 overflow-x-auto">
         {isLoading ? (
           <div className="flex justify-center py-16">
             <Loader2 size={24} className="text-orange animate-spin" />
@@ -58,14 +58,14 @@ export default function AdminSiparislerPage() {
         ) : orders.length === 0 ? (
           <div className="py-16 text-center">
             <ShoppingBag size={32} className="text-gray-300 mx-auto mb-3" />
-            <p className="text-gray-400">Sipariş bulunamadı</p>
+            <p className="text-gray-400">SipariÅŸ bulunamadÄ±</p>
           </div>
         ) : (
           <table className="w-full text-sm">
             <thead className="border-b border-gray-100 bg-gray-50">
               <tr>
-                <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 uppercase">Sipariş No</th>
-                <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase">Müşteri</th>
+                <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 uppercase">SipariÅŸ No</th>
+                <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase">MÃ¼ÅŸteri</th>
                 <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase">Tarih</th>
                 <th className="text-right px-4 py-3 text-xs font-bold text-gray-500 uppercase">Tutar</th>
                 <th className="text-center px-4 py-3 text-xs font-bold text-gray-500 uppercase">Durum</th>
@@ -113,7 +113,7 @@ export default function AdminSiparislerPage() {
           <button disabled={page === 0} onClick={() => setPage((p) => p - 1)}
             className="px-4 py-2 text-sm font-semibold border border-gray-200 rounded-xl
                        disabled:opacity-40 hover:border-orange hover:text-orange transition-colors">
-            Önceki
+            Ã–nceki
           </button>
           <span className="text-sm text-gray-500">{page + 1} / {totalPages}</span>
           <button disabled={page >= totalPages - 1} onClick={() => setPage((p) => p + 1)}
@@ -126,3 +126,4 @@ export default function AdminSiparislerPage() {
     </div>
   )
 }
+
