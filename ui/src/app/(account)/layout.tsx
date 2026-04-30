@@ -1,9 +1,26 @@
+'use client'
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { useAuthStore } from '@/store/auth.store'
+import { AccountSidebar } from '@/components/layout/AccountSidebar'
+
 export default function AccountLayout({ children }: { children: React.ReactNode }) {
+  const router = useRouter()
+  const { isAuthenticated } = useAuthStore()
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.replace('/giris')
+    }
+  }, [isAuthenticated, router])
+
+  if (!isAuthenticated) return null
+
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex gap-8">
-        {/* Gün 9'da: <AccountSidebar /> buraya gelecek */}
-        <main className="flex-1">{children}</main>
+    <div className="max-w-[1280px] mx-auto px-5 py-8">
+      <div className="flex gap-8 items-start">
+        <AccountSidebar />
+        <main className="flex-1 min-w-0">{children}</main>
       </div>
     </div>
   )

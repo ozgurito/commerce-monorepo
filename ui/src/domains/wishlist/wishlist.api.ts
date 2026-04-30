@@ -1,7 +1,8 @@
 import apiClient from '@/lib/api-client'
+import type { WishlistItemDto } from './wishlist.types'
 
 export const wishlistApi = {
-  getAll: async () => {
+  getAll: async (): Promise<WishlistItemDto[]> => {
     const { data } = await apiClient.get('/api/wishlist')
     return data
   },
