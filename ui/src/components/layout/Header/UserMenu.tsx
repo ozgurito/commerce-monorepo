@@ -5,7 +5,7 @@ import { User, ShoppingBag, Heart, LogOut, ChevronDown, Settings } from 'lucide-
 import { useAuthStore } from '@/store/auth.store'
 import { useUIStore } from '@/store/ui.store'
 import { useClickOutside } from '@/hooks/useClickOutside'
-import apiClient from '@/lib/api-client'
+import { authApi } from '@/domains/auth/auth.api'
 
 export function UserMenu() {
   const { user, isAuthenticated, isAdmin, logout } = useAuthStore()
@@ -15,7 +15,7 @@ export function UserMenu() {
   useClickOutside(ref, () => setOpen(false))
 
   const handleLogout = async () => {
-    try { await apiClient.post('/api/auth/logout') } catch { /* ignore */ }
+    try { await authApi.logout() } catch { /* ignore */ }
     logout()
     setOpen(false)
   }
