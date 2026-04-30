@@ -1,28 +1,24 @@
-import { cookies } from 'next/headers'
-import { redirect } from 'next/navigation'
+'use client'
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { useAuthStore } from '@/store/auth.store'
+import { AdminSidebar } from '@/components/layout/AdminSidebar'
 
-export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const cookieStore = await cookies()
-  const token = cookieStore.get('access_token')?.value
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  const router = useRouter()
+  const { isAuthenticated, isAdmin } = useAuthStore()
 
-  if (!token) redirect('/giris')
+  useEffect(() => {
+    if (!isAuthenticated) router.replace('/giris')
+    else if (!isAdmin) router.replace('/')
+  }, [isAuthenticated, isAdmin, router])
 
-  try {
-    const res = await fetch(`${process.env.API_URL}/api/users/me`, {
-      headers: { Authorization: `Bearer ${token}` },
-      cache: 'no-store',
-    })
-    if (!res.ok) redirect('/giris')
-    const user: { role: string } = await res.json()
-    if (user.role !== 'ADMIN') redirect('/')
-  } catch {
-    redirect('/giris')
-  }
+  if (!isAuthenticated || !isAdmin) return null
 
   return (
-    <div className="flex min-h-screen">
-      {/* Gün 10'da: <AdminSidebar /> buraya gelecek */}
-      <main className="flex-1 p-8">{children}</main>
+    <div className="flex min-h-screen bg-gray-50">
+      <AdminSidebar />
+      <main className="flex-1 min-w-0 p-8 overflow-y-auto">{children}</main>
     </div>
   )
 }
