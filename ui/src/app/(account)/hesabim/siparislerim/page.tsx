@@ -51,14 +51,19 @@ export default function SiparislerimPage() {
   const totalPages = data?.totalPages ?? 0
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 max-w-[680px]">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="bg-white rounded-2xl border border-gray-100 p-5 flex items-center gap-4">
+        <div className="w-12 h-12 bg-orange/10 rounded-2xl flex items-center justify-center flex-shrink-0">
+          <Package size={22} className="text-orange" />
+        </div>
         <div>
-          <h1 className="text-xl font-extrabold text-navy-dark">Siparişlerim</h1>
-          {orders.length > 0 && (
-            <p className="text-xs text-gray-400 mt-0.5">{data?.totalElements ?? orders.length} sipariş</p>
-          )}
+          <h1 className="text-lg font-extrabold text-navy-dark">Siparişlerim</h1>
+          <p className="text-xs text-gray-400 mt-0.5">
+            {orders.length > 0
+              ? `${data?.totalElements ?? orders.length} sipariş kaydınız var`
+              : 'Siparişlerinizi buradan takip edin'}
+          </p>
         </div>
       </div>
 

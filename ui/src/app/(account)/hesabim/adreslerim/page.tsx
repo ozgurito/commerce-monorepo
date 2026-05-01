@@ -198,19 +198,25 @@ export default function AdreslerimPage() {
   }
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-extrabold text-navy-dark">Adreslerim</h1>
-          {addresses.length > 0 && (
-            <p className="text-xs text-gray-400 mt-0.5">{addresses.length} kayıtlı adres</p>
-          )}
+    <div className="space-y-4 max-w-[680px]">
+      {/* Header */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-5 flex items-center gap-4">
+        <div className="w-12 h-12 bg-orange/10 rounded-2xl flex items-center justify-center flex-shrink-0">
+          <MapPin size={22} className="text-orange" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h1 className="text-lg font-extrabold text-navy-dark">Adreslerim</h1>
+          <p className="text-xs text-gray-400 mt-0.5">
+            {addresses.length > 0
+              ? `${addresses.length} kayıtlı adres`
+              : 'Teslimat adreslerinizi yönetin'}
+          </p>
         </div>
         <button
           onClick={() => setShowAdd(true)}
           className="flex items-center gap-1.5 bg-orange hover:bg-orange-dark text-white
                      font-bold px-4 py-2.5 rounded-xl transition-colors text-sm
-                     shadow-md shadow-orange/20"
+                     shadow-md shadow-orange/20 flex-shrink-0"
         >
           <Plus size={15} /> Yeni Adres
         </button>

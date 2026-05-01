@@ -80,7 +80,7 @@ export default function HesabimPage() {
     : 0
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4 max-w-[680px]">
 
       {/* ── Profile hero card ── */}
       <div className="bg-gradient-to-r from-navy-dark to-navy rounded-2xl p-6 text-white

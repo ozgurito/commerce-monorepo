@@ -50,21 +50,26 @@ export default function FavorilerimPage() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-extrabold text-navy-dark">Favorilerim</h1>
-          {items.length > 0 && (
-            <p className="text-xs text-gray-400 mt-0.5">{items.length} ürün kaydedildi</p>
-          )}
+      <div className="bg-white rounded-2xl border border-gray-100 p-5 flex items-center gap-4">
+        <div className="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center flex-shrink-0">
+          <Heart size={22} className="text-red-400" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h1 className="text-lg font-extrabold text-navy-dark">Favorilerim</h1>
+          <p className="text-xs text-gray-400 mt-0.5">
+            {items.length > 0
+              ? `${items.length} ürün kaydedildi`
+              : 'Beğendiğiniz ürünleri kaydedin'}
+          </p>
         </div>
         {items.length > 0 && (
-          <div className="flex items-center gap-1.5 text-xs text-gray-400 bg-red-50
-                          border border-red-100 rounded-full px-3 py-1.5">
-            <Heart size={11} className="text-red-400 fill-red-400" />
-            <span className="font-semibold text-red-500">{items.length} Favori</span>
-          </div>
+          <span className="flex items-center gap-1 text-xs font-bold text-red-500
+                           bg-red-50 border border-red-100 rounded-full px-3 py-1.5 flex-shrink-0">
+            <Heart size={11} className="fill-red-400" />
+            {items.length} Favori
+          </span>
         )}
       </div>
 
