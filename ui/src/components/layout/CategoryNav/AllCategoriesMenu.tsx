@@ -18,9 +18,21 @@ export function AllCategoriesMenu({ rootCats, subMap, onClose }: Props) {
   const hoveredCat = rootCats.find(c => c.id === hoveredId)
   const subs = hoveredId ? (subMap[hoveredId] ?? []) : []
 
+  const COLORS = [
+    'bg-pink-100 text-pink-700',
+    'bg-blue-100 text-blue-700',
+    'bg-amber-100 text-amber-700',
+    'bg-green-100 text-green-700',
+    'bg-purple-100 text-purple-700',
+    'bg-teal-100 text-teal-700',
+    'bg-red-100 text-red-700',
+    'bg-yellow-100 text-yellow-700',
+  ]
+
   return (
-    <div className="bg-white shadow-[0_8px_40px_rgba(0,0,0,.15)] border-t border-gray-100">
-      <div className="w-full px-4 sm:px-6 lg:px-10 xl:px-14 flex" style={{ minHeight: 320 }}>
+    <div className="bg-white shadow-[0_12px_48px_rgba(0,0,0,.18)] border-t border-gray-100">
+      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10 xl:px-14 flex"
+           style={{ minHeight: 320 }}>
 
         {/* Left: root categories list */}
         <div className="w-[220px] flex-shrink-0 border-r border-gray-100 py-3">
@@ -36,27 +48,31 @@ export function AllCategoriesMenu({ rootCats, subMap, onClose }: Props) {
             className="flex items-center gap-2 px-4 py-2.5 text-[13px] font-bold text-orange
                        hover:bg-orange-50 transition-colors border-b border-gray-50 mb-1"
           >
-            Tüm Ürünleri Gör →
+            🛍️ Tüm Ürünleri Gör →
           </Link>
 
-          {rootCats.map((cat) => (
+          {rootCats.map((cat, i) => (
             <button
               key={cat.id}
               onMouseEnter={() => setHoveredId(cat.id)}
               onClick={() => onClose()}
-              className={`w-full flex items-center justify-between px-4 py-2.5 text-[13px]
-                          transition-colors text-left rounded-r-xl
+              className={`w-full flex items-center gap-2.5 justify-between px-4 py-2.5 text-[13px]
+                          transition-colors text-left
                           ${hoveredId === cat.id
                             ? 'bg-orange-50 text-orange font-semibold'
                             : 'text-gray-700 hover:bg-gray-50 hover:text-navy font-normal'}`}
             >
-              <span>{cat.name}</span>
-              {(subMap[cat.id]?.length ?? 0) > 0 && (
-                <ChevronRight
-                  size={13}
-                  className={hoveredId === cat.id ? 'text-orange' : 'text-gray-300'}
-                />
-              )}
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className={`w-6 h-6 rounded-lg text-[11px] flex items-center justify-center
+                                  font-extrabold flex-shrink-0 ${COLORS[i % COLORS.length]}`}>
+                  {cat.name.charAt(0)}
+                </span>
+                <span className="truncate">{cat.name}</span>
+              </div>
+              <ChevronRight
+                size={13}
+                className={hoveredId === cat.id ? 'text-orange' : 'text-gray-300'}
+              />
             </button>
           ))}
         </div>

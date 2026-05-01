@@ -37,14 +37,10 @@ export function CategoryNav() {
     setAllOpen(true)
   }, [])
 
-  const openCat = useCallback((slug: string, hasSubs: boolean) => {
+  const openCat = useCallback((slug: string) => {
     if (closeTimer.current) clearTimeout(closeTimer.current)
     setAllOpen(false)
-    if (hasSubs) {
-      setOpenSlug(slug)
-    } else {
-      setOpenSlug(null)
-    }
+    setOpenSlug(slug)   // always open mega menu, even with no subs
   }, [])
 
   const closeAll = useCallback(() => {
@@ -99,13 +95,12 @@ export function CategoryNav() {
         {rootCats.slice(0, 8).map((cat: CategoryDto) => {
           const isActive = pathname.startsWith(`/kategori/${cat.slug}`)
           const isOpen = openSlug === cat.slug
-          const hasSubs = (subMap[cat.id] ?? []).length > 0
 
           return (
             <div
               key={cat.id}
               className="relative flex-shrink-0 h-full flex items-center"
-              onMouseEnter={() => openCat(cat.slug, hasSubs)}
+              onMouseEnter={() => openCat(cat.slug)}
             >
               <Link
                 href={`/kategori/${cat.slug}`}
@@ -116,9 +111,11 @@ export function CategoryNav() {
                               : 'text-gray-600 border-transparent hover:text-orange hover:border-orange'}`}
               >
                 {cat.name}
-                {hasSubs && (
-                  <ChevronRight size={11} className="text-gray-400" />
-                )}
+                <ChevronDown
+                  size={10}
+                  className={`text-gray-400 transition-transform duration-150
+                              ${isOpen ? 'rotate-180 text-orange' : ''}`}
+                />
               </Link>
             </div>
           )
