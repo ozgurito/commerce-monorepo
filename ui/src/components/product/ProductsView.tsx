@@ -146,6 +146,44 @@ export function ProductsView({ defaultCategoryId }: Props = {}) {
 
       {/* Ana içerik */}
       <div className="flex-1 min-w-0">
+
+        {/* Özel sayfa bannerları */}
+        {indirim && (
+          <div className="bg-gradient-to-r from-red-500 to-orange rounded-2xl p-5 mb-5
+                          flex items-center gap-4 text-white overflow-hidden relative">
+            <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full pointer-events-none" />
+            <div className="absolute right-12 bottom-0 w-14 h-14 bg-white/5 rounded-full pointer-events-none" />
+            <span className="text-4xl select-none">⚡</span>
+            <div>
+              <h2 className="text-xl font-extrabold leading-tight">İndirimli Ürünler</h2>
+              <p className="text-white/80 text-sm mt-0.5">Sınırlı süreli kampanya fiyatları</p>
+            </div>
+            {total > 0 && (
+              <span className="ml-auto bg-white/20 rounded-full px-3 py-1 text-sm font-bold whitespace-nowrap">
+                {total} ürün
+              </span>
+            )}
+          </div>
+        )}
+
+        {yeni && !indirim && (
+          <div className="bg-gradient-to-r from-navy-dark to-navy rounded-2xl p-5 mb-5
+                          flex items-center gap-4 text-white overflow-hidden relative">
+            <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full pointer-events-none" />
+            <div className="absolute right-12 bottom-0 w-14 h-14 bg-white/5 rounded-full pointer-events-none" />
+            <span className="text-4xl select-none">🆕</span>
+            <div>
+              <h2 className="text-xl font-extrabold leading-tight">Yeni Gelenler</h2>
+              <p className="text-white/80 text-sm mt-0.5">En taze koleksiyonlar burada</p>
+            </div>
+            {total > 0 && (
+              <span className="ml-auto bg-white/20 rounded-full px-3 py-1 text-sm font-bold whitespace-nowrap">
+                {total} ürün
+              </span>
+            )}
+          </div>
+        )}
+
         <QuickFilterChips
           searchParams={searchParams}
           onChipClick={(patch) => updateParams(patch)}

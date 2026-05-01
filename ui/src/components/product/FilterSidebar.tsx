@@ -53,7 +53,7 @@ function FilterSection({
     <div className="border-b border-gray-100 last:border-0">
       <button
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between py-4 text-left group"
+        className="w-full flex items-center justify-between py-3.5 text-left group"
       >
         <span className="text-[13px] font-bold text-gray-800 flex items-center gap-2">
           {title}
@@ -154,7 +154,7 @@ export function FilterSidebar({ filters, onFilterChange, onReset, isOpen, onClos
         </div>
 
         {/* Scrollable filter content */}
-        <div className="flex-1 overflow-y-auto px-4 lg:px-0">
+        <div className="flex-1 overflow-y-auto px-4 lg:px-0 lg:pr-1">
 
           {/* Kategori */}
           <FilterSection title="Kategori" count={filters.categoryId ? 1 : 0}>
@@ -172,7 +172,7 @@ export function FilterSidebar({ filters, onFilterChange, onReset, isOpen, onClos
                 <button
                   key={cat.id}
                   onClick={() => onFilterChange({ categoryId: cat.id })}
-                  className={`w-full text-left px-3 py-2 rounded-xl text-sm transition-colors
+                  className={`w-full text-left px-3 py-2 rounded-xl text-[13px] transition-colors truncate
                               ${filters.categoryId === cat.id
                                 ? 'bg-orange-50 text-orange font-semibold'
                                 : 'text-gray-600 hover:bg-gray-50 font-normal'}`}
@@ -198,14 +198,14 @@ export function FilterSidebar({ filters, onFilterChange, onReset, isOpen, onClos
 
           {/* Beden */}
           <FilterSection title="Beden" count={filters.sizes.length}>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5">
               {SIZES.map((s) => {
                 const active = filters.sizes.includes(s)
                 return (
                   <button
                     key={s}
                     onClick={() => onFilterChange({ sizes: toggleArr(filters.sizes, s) })}
-                    className={`min-w-[42px] h-9 px-2.5 rounded-xl border text-xs font-bold
+                    className={`min-w-[40px] h-9 px-2 rounded-xl border text-xs font-bold
                                 transition-all duration-150
                                 ${active
                                   ? 'bg-navy text-white border-navy shadow-sm scale-[1.05]'
@@ -220,7 +220,7 @@ export function FilterSidebar({ filters, onFilterChange, onReset, isOpen, onClos
 
           {/* Renk */}
           <FilterSection title="Renk" count={filters.colors.length}>
-            <div className="grid grid-cols-5 gap-2">
+            <div className="grid grid-cols-5 gap-x-2 gap-y-3">
               {COLORS.map(({ label, hex }) => {
                 const active = filters.colors.includes(label)
                 return (
@@ -232,7 +232,7 @@ export function FilterSidebar({ filters, onFilterChange, onReset, isOpen, onClos
                     className="flex flex-col items-center gap-1 group"
                   >
                     <div
-                      className={`w-8 h-8 rounded-xl border-2 transition-all duration-150
+                      className={`w-9 h-9 rounded-xl border-2 transition-all duration-150 flex-shrink-0
                                   ${active
                                     ? 'border-orange scale-110 shadow-md'
                                     : 'border-gray-200 hover:border-gray-400 hover:scale-105'}`}
@@ -246,11 +246,12 @@ export function FilterSidebar({ filters, onFilterChange, onReset, isOpen, onClos
                       {active && (
                         <div className="w-full h-full flex items-center justify-center">
                           <div className={`w-2 h-2 rounded-full
-                            ${hex === '#FFFFFF' || hex === '#FFFFFF' ? 'bg-orange' : 'bg-white'}`} />
+                            ${hex === '#FFFFFF' ? 'bg-orange' : 'bg-white'}`} />
                         </div>
                       )}
                     </div>
-                    <span className={`text-[9px] font-medium leading-tight text-center
+                    <span className={`text-[10px] font-medium leading-tight text-center
+                                     truncate max-w-[44px] w-full
                                      ${active ? 'text-orange' : 'text-gray-500'}`}>
                       {label}
                     </span>

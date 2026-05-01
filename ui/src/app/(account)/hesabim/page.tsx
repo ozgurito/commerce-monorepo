@@ -1,10 +1,11 @@
 'use client'
 import { useEffect } from 'react'
+import Link from 'next/link'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Loader2, Save, Info, Mail, Phone, CreditCard, Shield, Star, Package } from 'lucide-react'
+import { Loader2, Save, Info, Mail, Phone, CreditCard, Shield, Star, Package, Heart, MapPin, ShoppingBag, ChevronRight } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { userApi } from '@/domains/user/user.api'
 import { useAuthStore } from '@/store/auth.store'
@@ -18,7 +19,7 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>
 
 const inputCls = (hasError?: boolean) =>
-  `w-full border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 transition-colors
+  `w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition-colors
    ${hasError
      ? 'border-red-300 focus:border-red-400 focus:ring-red-100'
      : 'border-gray-200 focus:border-orange focus:ring-orange/10'}`
@@ -119,15 +120,15 @@ export default function HesabimPage() {
       </div>
 
       {/* ── Form card ── */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-6">
-        <h2 className="font-extrabold text-navy-dark mb-5 flex items-center gap-2">
+      <div className="bg-white rounded-2xl border border-gray-100 p-5">
+        <h2 className="font-extrabold text-navy-dark mb-4 flex items-center gap-2">
           <div className="w-7 h-7 bg-orange/10 rounded-lg flex items-center justify-center">
             <CreditCard size={14} className="text-orange" />
           </div>
           Kişisel Bilgiler
         </h2>
 
-        <form onSubmit={handleSubmit((v) => mutation.mutate(v))} className="space-y-4">
+        <form onSubmit={handleSubmit((v) => mutation.mutate(v))} className="space-y-3">
           {/* Ad Soyad */}
           <div>
             <label className="block text-xs font-bold text-gray-600 mb-1.5">Ad Soyad *</label>
@@ -232,6 +233,36 @@ export default function HesabimPage() {
               <Shield size={13} /> SSL Korumalı
             </span>
           </div>
+        </div>
+      </div>
+
+      {/* ── Hızlı Bağlantılar ── */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-5">
+        <h2 className="font-bold text-navy-dark mb-4 text-sm">Hızlı Erişim</h2>
+        <div className="grid grid-cols-2 gap-2.5">
+          {[
+            { href: '/hesabim/siparislerim', icon: Package,     label: 'Siparişlerim',   desc: 'Geçmiş siparişler'     },
+            { href: '/hesabim/favorilerim',  icon: Heart,       label: 'Favorilerim',    desc: 'Kayıtlı ürünlerim'     },
+            { href: '/hesabim/adreslerim',   icon: MapPin,      label: 'Adreslerim',     desc: 'Teslimat adresleri'    },
+            { href: '/urunler',              icon: ShoppingBag, label: 'Alışverişe Git', desc: 'Tüm ürünleri keşfet'  },
+          ].map(({ href, icon: Icon, label, desc }) => (
+            <Link
+              key={href}
+              href={href}
+              className="flex items-center gap-3 p-3 rounded-xl border border-gray-100
+                         hover:border-orange/30 hover:bg-orange-50/60 transition-all group"
+            >
+              <div className="w-9 h-9 bg-orange/10 rounded-xl flex items-center justify-center
+                              flex-shrink-0 group-hover:bg-orange group-hover:text-white transition-colors">
+                <Icon size={15} className="text-orange group-hover:text-white transition-colors" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold text-navy-dark truncate">{label}</p>
+                <p className="text-[11px] text-gray-400 truncate">{desc}</p>
+              </div>
+              <ChevronRight size={13} className="text-gray-300 flex-shrink-0 group-hover:text-orange transition-colors" />
+            </Link>
+          ))}
         </div>
       </div>
     </div>
