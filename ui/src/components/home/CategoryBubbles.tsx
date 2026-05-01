@@ -50,44 +50,45 @@ export function CategoryBubbles() {
           </Link>
         </div>
 
-        {/* Cards — horizontal scroll on mobile */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+        {/* Cards — mobilde yatay scroll, desktopta grid */}
+        <div className="flex gap-4 overflow-x-auto pb-2 sm:pb-0 snap-x snap-mandatory
+                        sm:grid sm:grid-cols-4 lg:grid-cols-8 sm:gap-3
+                        [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {rootCats.map((cat: CategoryDto, i: number) => {
             const theme = CATEGORY_THEMES[i % CATEGORY_THEMES.length]
             return (
               <Link
                 key={cat.id}
                 href={`/kategori/${cat.slug}`}
-                className="group flex flex-col items-center"
+                className="flex flex-col items-center gap-2 group snap-start flex-shrink-0 w-[72px] sm:w-auto"
               >
-                {/* Image circle */}
-                <div className={`relative w-full aspect-square rounded-2xl overflow-hidden
+                {/* Daire */}
+                <div className={`relative w-[64px] h-[64px] sm:w-[72px] sm:h-[72px] lg:w-[80px] lg:h-[80px]
+                                 rounded-full overflow-hidden flex-shrink-0
                                  bg-gradient-to-br ${theme.gradient}
-                                 group-hover:scale-105 group-hover:shadow-lg transition-all
-                                 duration-300 mb-2 shadow-sm`}>
+                                 ring-2 ring-transparent group-hover:ring-orange group-hover:ring-offset-2
+                                 group-hover:scale-110 transition-all duration-250 shadow-sm`}>
                   {cat.imageUrl ? (
                     <Image
                       src={cat.imageUrl}
                       alt={cat.name}
                       fill
-                      className="object-cover mix-blend-overlay opacity-90
-                                 group-hover:scale-110 transition-transform duration-500"
-                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 12.5vw"
+                      className="object-cover"
+                      sizes="80px"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                      <span className="text-4xl">{theme.emoji}</span>
+                      <span className="text-2xl font-extrabold text-white/90 select-none">
+                        {cat.name.charAt(0).toUpperCase()}
+                      </span>
                     </div>
                   )}
-
-                  {/* Hover overlay */}
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10
-                                  transition-colors duration-300" />
                 </div>
 
-                {/* Label */}
-                <span className="text-xs font-bold text-navy-dark text-center leading-tight
-                                 group-hover:text-orange transition-colors px-1">
+                {/* Etiket */}
+                <span className="text-[11px] sm:text-xs font-semibold text-gray-700 text-center
+                                 group-hover:text-orange transition-colors leading-tight
+                                 line-clamp-2 max-w-[72px]">
                   {cat.name}
                 </span>
               </Link>

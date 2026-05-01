@@ -17,6 +17,19 @@ interface Props {
   priority?: boolean
 }
 
+type Stamp = { lines: [string, string]; bg: string }
+
+function getStamp(product: ProductDto, discountPct: number, isOutOfStock: boolean): Stamp | null {
+  if (isOutOfStock) return null
+  if (product.totalReviews >= 50)
+    return { lines: ['EN ÇOK', 'SATAN'], bg: 'bg-orange' }
+  if (discountPct >= 25)
+    return { lines: ['AVANTAJLI', 'ÜRÜN'], bg: 'bg-emerald-500' }
+  if (product.stock > 0 && product.stock <= 10)
+    return { lines: ['SON', 'ÜRÜNLER'], bg: 'bg-red-500' }
+  return null
+}
+
 export function ProductCard({ product, priority = false }: Props) {
   const [wishlisted, setWishlisted] = useState(false)
   const [addingCart, setAddingCart] = useState(false)
@@ -30,6 +43,7 @@ export function ProductCard({ product, priority = false }: Props) {
     ? Math.round(((product.comparePrice! - product.price) / product.comparePrice!) * 100)
     : 0
   const isOutOfStock = product.stock === 0
+  const stamp = getStamp(product, discountPct, isOutOfStock)
 
   const wishlistMutation = useMutation({
     mutationFn: () =>
@@ -149,6 +163,20 @@ export function ProductCard({ product, priority = false }: Props) {
           </button>
         </div>
 
+        {/* Dairesel damga rozeti — sol alt */}
+        {stamp && (
+          <div className={`absolute bottom-10 left-2 z-10 w-[52px] h-[52px] rounded-full
+                           ${stamp.bg} text-white
+                           flex flex-col items-center justify-center
+                           border-2 border-white/30 shadow-lg`}>
+            {stamp.lines.map((line, i) => (
+              <span key={i} className="text-[8px] font-extrabold leading-tight tracking-tight">
+                {line}
+              </span>
+            ))}
+          </div>
+        )}
+
         {/* Add to cart overlay — slides up on hover */}
         {!isOutOfStock && (
           <div className="absolute bottom-0 left-0 right-0 translate-y-full
@@ -196,7 +224,7 @@ export function ProductCard({ product, priority = false }: Props) {
 
         {/* Price */}
         <div className="flex items-center gap-2 mt-2">
-          <span className="text-[15px] font-extrabold text-navy-dark">
+          <span className="text-[15px] font-extrabold text-orange">
             {formatPrice(product.price)}
           </span>
           {hasDiscount && (
@@ -214,6 +242,10 @@ export function ProductCard({ product, priority = false }: Props) {
           </p>
         )}
       </div>
+
+      {/* Alt hover çizgisi */}
+      <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-gradient-to-r from-orange to-orange-dark
+                      scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
     </Link>
   )
 }

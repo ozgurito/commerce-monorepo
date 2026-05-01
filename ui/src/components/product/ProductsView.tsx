@@ -8,6 +8,7 @@ import { QUERY_KEYS } from '@/lib/query-keys'
 import { useIntersection } from '@/hooks/useIntersection'
 import { FilterSidebar } from './FilterSidebar'
 import { SortBar } from './SortBar'
+import { QuickFilterChips } from './QuickFilterChips'
 import { ActiveFilters } from './ActiveFilters'
 import { ProductGrid } from './ProductGrid'
 import { SkeletonGrid } from './SkeletonCard'
@@ -145,6 +146,11 @@ export function ProductsView({ defaultCategoryId }: Props = {}) {
 
       {/* Ana içerik */}
       <div className="flex-1 min-w-0">
+        <QuickFilterChips
+          searchParams={searchParams}
+          onChipClick={(patch) => updateParams(patch)}
+        />
+
         <SortBar
           total={total}
           sortBy={sortBy}

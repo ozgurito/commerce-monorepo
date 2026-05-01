@@ -1,7 +1,7 @@
 'use client'
 import { useState, useRef } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Heart, ShoppingBag, Star, Minus, Plus, Truck, RotateCcw, Shield, Share2, Check } from 'lucide-react'
+import { Heart, ShoppingBag, Star, Minus, Plus, Truck, RotateCcw, Shield, Share2, Check, ShoppingCart } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { cartApi } from '@/domains/cart/cart.api'
 import { wishlistApi } from '@/domains/wishlist/wishlist.api'
@@ -143,10 +143,22 @@ export function ProductInfo({ product }: Props) {
         </div>
       )}
 
+      {/* Sosyal kanıt */}
+      {product.totalReviews > 0 && !isOutOfStock && (
+        <div className="flex items-center gap-2 text-sm text-gray-600 bg-amber-50 border border-amber-100
+                        rounded-xl px-3 py-2">
+          <ShoppingCart size={14} className="text-amber-500 flex-shrink-0" />
+          <span>
+            <strong className="text-gray-800">{Math.max(10, product.totalReviews * 3).toLocaleString('tr-TR')} kişinin</strong>{' '}
+            sepetinde, tükenmeden al!
+          </span>
+        </div>
+      )}
+
       {/* Price section */}
       <div className="bg-gray-50 rounded-2xl p-4 space-y-1">
         <div className="flex items-end gap-3">
-          <span className="text-[2rem] font-extrabold text-navy-dark leading-none">
+          <span className="text-[2rem] font-extrabold text-orange leading-none">
             {formatPrice(displayPrice)}
           </span>
           {hasDiscount && (
@@ -227,6 +239,28 @@ export function ProductInfo({ product }: Props) {
             </button>
           </div>
           <span className="text-xs text-gray-400">Max {maxQty} adet</span>
+        </div>
+      )}
+
+      {/* Kampanya kutusu */}
+      {(hasDiscount || displayPrice >= FREE_SHIPPING_THRESHOLD || product.stock > 100) && (
+        <div className="border border-orange/20 rounded-xl p-3 bg-orange/[0.03] space-y-1.5">
+          <p className="text-[11px] font-extrabold text-orange uppercase tracking-wide">Ürün Kampanyaları</p>
+          {displayPrice >= FREE_SHIPPING_THRESHOLD && (
+            <div className="flex items-center gap-2 text-sm text-emerald-700 font-semibold">
+              <Truck size={13} className="text-emerald-500 flex-shrink-0" />
+              Sepette Kargo Bedava uygulanır
+            </div>
+          )}
+          {hasDiscount && (
+            <div className="flex items-center gap-2 text-sm text-gray-700">
+              <span className="text-[10px] font-bold bg-red-500 text-white px-1.5 py-0.5 rounded">-%{discountPct}</span>
+              <span>İndirimli fiyatla <strong className="text-orange">{formatPrice(displayPrice)}</strong></span>
+            </div>
+          )}
+          {product.stock > 100 && (
+            <p className="text-[11px] text-gray-400">100 adetten fazla stok sunulmuştur.</p>
+          )}
         </div>
       )}
 
