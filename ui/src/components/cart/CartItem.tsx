@@ -69,7 +69,7 @@ export function CartItem({ item }: Props) {
     <div className="flex gap-3 py-3.5 border-b border-gray-100 last:border-0 group">
       {/* Product avatar */}
       <Link
-        href={`/urunler/${item.productId}`}
+        href={`/urunler/${item.productSlug}`}
         className={`flex-shrink-0 w-16 h-16 rounded-xl bg-gradient-to-br ${colorClass}
                     flex items-center justify-center font-extrabold text-xl text-white/90
                     shadow-sm hover:scale-105 transition-transform select-none`}
@@ -80,7 +80,7 @@ export function CartItem({ item }: Props) {
       <div className="flex-1 min-w-0">
         {/* Name */}
         <Link
-          href={`/urunler/${item.productId}`}
+          href={`/urunler/${item.productSlug}`}
           className="text-sm font-semibold text-gray-800 line-clamp-2 leading-snug
                      hover:text-orange transition-colors"
         >

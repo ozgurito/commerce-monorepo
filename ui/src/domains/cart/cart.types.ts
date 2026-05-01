@@ -4,6 +4,7 @@ export interface CartItemDto {
   id: number
   productId: number
   productName: string
+  productSlug: string
   quantity: number
   unitPrice: number
   totalPrice: number
