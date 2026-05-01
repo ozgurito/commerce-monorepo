@@ -6,14 +6,15 @@ import { categoriesApi } from '@/domains/categories/categories.api'
 import { QUERY_KEYS } from '@/lib/query-keys'
 
 interface Props {
-  categoryId: number
+  categoryId: number | null | undefined
   productName: string
 }
 
 export function Breadcrumb({ categoryId, productName }: Props) {
   const { data: path = [] } = useQuery({
-    queryKey: QUERY_KEYS.categories.path(categoryId),
-    queryFn: () => categoriesApi.getPath(categoryId),
+    queryKey: QUERY_KEYS.categories.path(categoryId ?? 0),
+    queryFn: () => categoriesApi.getPath(categoryId!),
+    enabled: !!categoryId,            // categoryId null/undefined/0 ise istek atma
     staleTime: 10 * 60 * 1000,
   })
 
