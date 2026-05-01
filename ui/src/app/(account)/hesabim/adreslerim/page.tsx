@@ -198,29 +198,36 @@ export default function AdreslerimPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-extrabold text-navy-dark">Adreslerim</h1>
+        <div>
+          <h1 className="text-xl font-extrabold text-navy-dark">Adreslerim</h1>
+          {addresses.length > 0 && (
+            <p className="text-xs text-gray-400 mt-0.5">{addresses.length} kayıtlı adres</p>
+          )}
+        </div>
         <button
           onClick={() => setShowAdd(true)}
-          className="flex items-center gap-2 bg-orange hover:bg-orange-dark text-white
-                     font-bold px-4 py-2.5 rounded-xl transition-colors text-sm"
+          className="flex items-center gap-1.5 bg-orange hover:bg-orange-dark text-white
+                     font-bold px-4 py-2.5 rounded-xl transition-colors text-sm
+                     shadow-md shadow-orange/20"
         >
-          <Plus size={16} /> Yeni Adres
+          <Plus size={15} /> Yeni Adres
         </button>
       </div>
 
       {addresses.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
-          <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
-            <MapPin size={28} className="text-gray-300" />
+        <div className="bg-white rounded-2xl border border-gray-100 p-14 text-center">
+          <div className="w-20 h-20 bg-orange/5 rounded-full flex items-center justify-center mx-auto mb-4">
+            <MapPin size={32} className="text-orange/30" />
           </div>
-          <p className="font-bold text-gray-500 mb-1">Kayıtlı adresiniz yok</p>
-          <p className="text-sm text-gray-400 mb-6">Teslimat adresi ekleyin</p>
+          <p className="font-bold text-gray-600 mb-1">Kayıtlı adresiniz yok</p>
+          <p className="text-sm text-gray-400 mb-6">Teslimat adresinizi ekleyerek hızlı alışveriş yapın</p>
           <button
             onClick={() => setShowAdd(true)}
             className="inline-flex items-center gap-2 bg-orange hover:bg-orange-dark text-white
-                       font-bold px-6 py-2.5 rounded-xl transition-colors text-sm"
+                       font-bold px-6 py-3 rounded-xl transition-colors text-sm
+                       shadow-md shadow-orange/20"
           >
             <Plus size={16} /> Adres Ekle
           </button>

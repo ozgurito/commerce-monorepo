@@ -14,22 +14,21 @@ export function KayitClient() {
   }, [isAuthenticated, router])
 
   return (
-    <div className="w-full max-w-[420px] px-4">
-      <div className="bg-white rounded-2xl shadow-card p-8">
-        <div className="text-center mb-8">
-          <Link href="/" className="text-2xl font-extrabold text-orange">
-            Alışveriş<span className="text-navy-dark">Noktan</span>
-          </Link>
-          <h1 className="text-xl font-extrabold text-navy-dark mt-4">Üye Ol</h1>
-          <p className="text-sm text-gray-500 mt-1">Yeni hesap oluşturun</p>
-        </div>
+    <div className="bg-white rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,.08)] border border-gray-100 p-8">
+      <div className="mb-7">
+        <h1 className="text-2xl font-extrabold text-navy-dark">Üye Ol</h1>
+        <p className="text-sm text-gray-500 mt-1">
+          Hızlıca hesap oluşturun ve alışverişe başlayın
+        </p>
+      </div>
 
-        <RegisterForm
-          onSuccess={() => router.push('/hesabim')}
-          onSwitchToLogin={() => router.push('/giris')}
-        />
+      <RegisterForm
+        onSuccess={() => router.push('/hesabim')}
+        onSwitchToLogin={() => router.push('/giris')}
+      />
 
-        <p className="text-center text-sm text-gray-500 mt-6">
+      <div className="mt-6 pt-6 border-t border-gray-100 text-center">
+        <p className="text-sm text-gray-500">
           Zaten hesabınız var mı?{' '}
           <Link href="/giris" className="text-orange font-bold hover:underline">
             Giriş Yap

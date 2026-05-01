@@ -2,20 +2,31 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
-import { Package, ChevronRight, Loader2, ShoppingBag } from 'lucide-react'
+import {
+  Package, ChevronRight, Loader2, ShoppingBag,
+  Clock, CheckCircle2, Truck, XCircle, RefreshCw,
+} from 'lucide-react'
 import { ordersApi } from '@/domains/orders/orders.api'
 import { formatPrice } from '@/utils/format'
 import { QUERY_KEYS } from '@/lib/query-keys'
 import type { OrderStatus } from '@/domains/orders/orders.types'
 
-const STATUS_CONFIG: Record<OrderStatus, { label: string; color: string }> = {
-  PENDING:    { label: 'Beklemede',     color: 'bg-yellow-100 text-yellow-700' },
-  PAID:       { label: 'Ödendi',        color: 'bg-blue-100 text-blue-700' },
-  PROCESSING: { label: 'Hazırlanıyor',  color: 'bg-purple-100 text-purple-700' },
-  SHIPPED:    { label: 'Kargoda',       color: 'bg-indigo-100 text-indigo-700' },
-  DELIVERED:  { label: 'Teslim Edildi', color: 'bg-green-100 text-green-700' },
-  CANCELLED:  { label: 'İptal Edildi',  color: 'bg-red-100 text-red-700' },
-  REFUNDED:   { label: 'İade Edildi',   color: 'bg-gray-100 text-gray-600' },
+type StatusCfg = {
+  label: string
+  color: string
+  bg: string
+  icon: React.ReactNode
+  dot: string
+}
+
+const STATUS_CONFIG: Record<OrderStatus, StatusCfg> = {
+  PENDING:    { label: 'Beklemede',     color: 'text-amber-700',  bg: 'bg-amber-50  border-amber-200',  dot: 'bg-amber-400',  icon: <Clock        size={13} /> },
+  PAID:       { label: 'Ödendi',        color: 'text-blue-700',   bg: 'bg-blue-50   border-blue-200',   dot: 'bg-blue-400',   icon: <CheckCircle2 size={13} /> },
+  PROCESSING: { label: 'Hazırlanıyor',  color: 'text-purple-700', bg: 'bg-purple-50 border-purple-200', dot: 'bg-purple-400', icon: <Package      size={13} /> },
+  SHIPPED:    { label: 'Kargoda',       color: 'text-indigo-700', bg: 'bg-indigo-50 border-indigo-200', dot: 'bg-indigo-400', icon: <Truck        size={13} /> },
+  DELIVERED:  { label: 'Teslim Edildi', color: 'text-green-700',  bg: 'bg-green-50  border-green-200',  dot: 'bg-green-400',  icon: <CheckCircle2 size={13} /> },
+  CANCELLED:  { label: 'İptal Edildi',  color: 'text-red-700',    bg: 'bg-red-50    border-red-200',    dot: 'bg-red-400',    icon: <XCircle      size={13} /> },
+  REFUNDED:   { label: 'İade Edildi',   color: 'text-gray-600',   bg: 'bg-gray-50   border-gray-200',   dot: 'bg-gray-400',   icon: <RefreshCw    size={13} /> },
 }
 
 const PAGE_SIZE = 10
@@ -40,59 +51,91 @@ export default function SiparislerimPage() {
   const totalPages = data?.totalPages ?? 0
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-extrabold text-navy-dark">Siparişlerim</h1>
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-extrabold text-navy-dark">Siparişlerim</h1>
+          {orders.length > 0 && (
+            <p className="text-xs text-gray-400 mt-0.5">{data?.totalElements ?? orders.length} sipariş</p>
+          )}
+        </div>
+      </div>
 
       {orders.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
-          <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
-            <ShoppingBag size={28} className="text-gray-300" />
+        <div className="bg-white rounded-2xl border border-gray-100 p-14 text-center">
+          <div className="w-20 h-20 bg-orange/5 rounded-full flex items-center justify-center mx-auto mb-4">
+            <ShoppingBag size={32} className="text-orange/40" />
           </div>
-          <p className="font-bold text-gray-500 mb-1">Henüz siparişiniz yok</p>
-          <p className="text-sm text-gray-400 mb-6">Alışverişe başlamak ister misiniz?</p>
+          <p className="font-bold text-gray-600 mb-1">Henüz siparişiniz yok</p>
+          <p className="text-sm text-gray-400 mb-6">İlk alışverişinizi yaparak başlayın!</p>
           <Link
             href="/urunler"
-            className="inline-block bg-orange hover:bg-orange-dark text-white font-bold
-                       px-6 py-2.5 rounded-xl transition-colors text-sm"
+            className="inline-flex items-center gap-2 bg-orange hover:bg-orange-dark text-white
+                       font-bold px-6 py-3 rounded-xl transition-colors text-sm
+                       shadow-md shadow-orange/20"
           >
+            <ShoppingBag size={16} />
             Ürünleri Keşfet
           </Link>
         </div>
       ) : (
         <div className="space-y-3">
           {orders.map((order) => {
-            const status = STATUS_CONFIG[order.status]
+            const st = STATUS_CONFIG[order.status]
             return (
               <Link
                 key={order.id}
                 href={`/hesabim/siparislerim/${order.id}`}
-                className="block bg-white rounded-2xl border border-gray-100 p-5
-                           hover:border-orange/30 hover:shadow-card transition-all"
+                className="block bg-white rounded-2xl border border-gray-100 overflow-hidden
+                           hover:border-orange/30 hover:shadow-[0_4px_20px_rgba(0,0,0,.08)]
+                           transition-all group"
               >
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-orange/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <Package size={18} className="text-orange" />
+                {/* Top bar colored accent */}
+                <div className={`h-1 ${st.dot}`} />
+
+                <div className="p-5">
+                  <div className="flex items-start justify-between gap-3">
+                    {/* Left */}
+                    <div className="flex items-center gap-3">
+                      <div className="w-11 h-11 bg-orange/8 rounded-xl flex items-center
+                                      justify-center flex-shrink-0">
+                        <Package size={20} className="text-orange" />
+                      </div>
+                      <div>
+                        <p className="font-extrabold text-navy-dark text-sm">
+                          Sipariş #{order.orderNumber}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          {new Date(order.createdAt).toLocaleDateString('tr-TR', { dateStyle: 'long' })}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-bold text-navy-dark text-sm">
-                        #{order.orderNumber}
-                      </p>
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        {new Date(order.createdAt).toLocaleDateString('tr-TR', { dateStyle: 'long' })}
-                        {' · '}{order.items.length} ürün
-                      </p>
+
+                    {/* Right */}
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className={`inline-flex items-center gap-1.5 text-xs font-bold
+                                        px-2.5 py-1.5 rounded-full border ${st.bg} ${st.color}`}>
+                        {st.icon}
+                        {st.label}
+                      </span>
+                      <ChevronRight size={16} className="text-gray-300 group-hover:text-orange
+                                                          transition-colors" />
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    <div className="text-right hidden sm:block">
-                      <p className="font-extrabold text-navy-dark">{formatPrice(order.total)}</p>
+                  {/* Items preview */}
+                  <div className="mt-4 pt-3 border-t border-gray-50 flex items-center
+                                  justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-gray-500 truncate">
+                        {(order.items ?? []).slice(0, 2).map(i => i.productName).join(', ')}
+                        {(order.items?.length ?? 0) > 2 && ` +${(order.items?.length ?? 0) - 2} ürün daha`}
+                      </p>
                     </div>
-                    <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${status.color}`}>
-                      {status.label}
-                    </span>
-                    <ChevronRight size={16} className="text-gray-300 flex-shrink-0" />
+                    <p className="font-extrabold text-navy-dark text-sm flex-shrink-0">
+                      {formatPrice(order.total)}
+                    </p>
                   </div>
                 </div>
               </Link>
@@ -101,7 +144,7 @@ export default function SiparislerimPage() {
         </div>
       )}
 
-      {/* Sayfalama */}
+      {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-2 pt-2">
           <button
@@ -110,7 +153,7 @@ export default function SiparislerimPage() {
             className="px-4 py-2 text-sm font-semibold border border-gray-200 rounded-xl
                        disabled:opacity-40 hover:border-orange hover:text-orange transition-colors"
           >
-            Önceki
+            ← Önceki
           </button>
           <span className="text-sm text-gray-500 px-2">
             {page + 1} / {totalPages}
@@ -121,7 +164,7 @@ export default function SiparislerimPage() {
             className="px-4 py-2 text-sm font-semibold border border-gray-200 rounded-xl
                        disabled:opacity-40 hover:border-orange hover:text-orange transition-colors"
           >
-            Sonraki
+            Sonraki →
           </button>
         </div>
       )}

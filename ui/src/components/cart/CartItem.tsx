@@ -10,6 +10,24 @@ import { useDebounce } from '@/hooks/useDebounce'
 import { formatPrice } from '@/utils/format'
 import type { CartItemDto } from '@/domains/cart/cart.types'
 
+/* Stable color from product name — gives each item a consistent pastel */
+function nameToColor(name: string): string {
+  const COLORS = [
+    'from-pink-200 to-rose-300',
+    'from-blue-200 to-indigo-300',
+    'from-amber-200 to-orange-300',
+    'from-green-200 to-emerald-300',
+    'from-purple-200 to-violet-300',
+    'from-teal-200 to-cyan-300',
+  ]
+  let hash = 0
+  for (let i = 0; i < name.length; i++) {
+    hash = (hash << 5) - hash + name.charCodeAt(i)
+    hash |= 0
+  }
+  return COLORS[Math.abs(hash) % COLORS.length]
+}
+
 interface Props {
   item: CartItemDto
 }
@@ -37,7 +55,6 @@ export function CartItem({ item }: Props) {
     onError: () => toast.error('Ürün kaldırılamadı'),
   })
 
-  // 800ms debounce sonrası API'ya gönder
   useEffect(() => {
     if (debouncedQty !== item.quantity) {
       updateMutation.mutate(debouncedQty)
@@ -46,19 +63,22 @@ export function CartItem({ item }: Props) {
   }, [debouncedQty])
 
   const maxQty = Math.min(item.availableStock, 10)
+  const colorClass = nameToColor(item.productName)
 
   return (
-    <div className="flex gap-3 py-4 border-b border-gray-100 last:border-0">
-      {/* Görsel placeholder — CartItemDto'da imageUrl yok */}
+    <div className="flex gap-3 py-3.5 border-b border-gray-100 last:border-0 group">
+      {/* Product avatar */}
       <Link
         href={`/urunler/${item.productId}`}
-        className="flex-shrink-0 w-16 h-16 rounded-xl bg-navy-50 flex items-center justify-center
-                   text-navy-dark font-extrabold text-lg hover:opacity-80 transition-opacity"
+        className={`flex-shrink-0 w-16 h-16 rounded-xl bg-gradient-to-br ${colorClass}
+                    flex items-center justify-center font-extrabold text-xl text-white/90
+                    shadow-sm hover:scale-105 transition-transform select-none`}
       >
         {item.productName.charAt(0).toUpperCase()}
       </Link>
 
       <div className="flex-1 min-w-0">
+        {/* Name */}
         <Link
           href={`/urunler/${item.productId}`}
           className="text-sm font-semibold text-gray-800 line-clamp-2 leading-snug
@@ -67,33 +87,54 @@ export function CartItem({ item }: Props) {
           {item.productName}
         </Link>
 
-        {item.variantName && (
-          <p className="text-xs text-gray-400 mt-0.5">{item.variantName}</p>
-        )}
+        {/* Variant + color/size badges */}
+        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+          {item.variantName && (
+            <span className="inline-block text-[10px] bg-gray-100 text-gray-600 font-medium
+                             px-2 py-0.5 rounded-full">
+              {item.variantName}
+            </span>
+          )}
+          {item.color && item.color !== item.variantName && (
+            <span className="inline-block text-[10px] bg-gray-100 text-gray-600 font-medium
+                             px-2 py-0.5 rounded-full">
+              {item.color}
+            </span>
+          )}
+          {item.size && item.size !== item.variantName && (
+            <span className="inline-block text-[10px] bg-gray-100 text-gray-600 font-medium
+                             px-2 py-0.5 rounded-full">
+              Beden: {item.size}
+            </span>
+          )}
+        </div>
 
+        {/* Qty + price row */}
         <div className="flex items-center justify-between mt-2">
-          {/* Miktar */}
-          <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
+          {/* Quantity stepper */}
+          <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden bg-white">
             <button
               onClick={() => setQty((q) => Math.max(1, q - 1))}
               disabled={qty <= 1 || updateMutation.isPending}
               className="w-7 h-7 flex items-center justify-center text-gray-500
                          hover:bg-gray-50 disabled:opacity-40 transition-colors"
             >
-              <Minus size={12} />
+              <Minus size={11} />
             </button>
-            <span className="w-7 text-center text-xs font-bold">{qty}</span>
+            <span className="w-8 text-center text-xs font-extrabold text-navy-dark">
+              {qty}
+            </span>
             <button
               onClick={() => setQty((q) => Math.min(maxQty, q + 1))}
               disabled={qty >= maxQty || updateMutation.isPending}
               className="w-7 h-7 flex items-center justify-center text-gray-500
                          hover:bg-gray-50 disabled:opacity-40 transition-colors"
             >
-              <Plus size={12} />
+              <Plus size={11} />
             </button>
           </div>
 
-          {/* Fiyat + sil */}
+          {/* Price + delete */}
           <div className="flex items-center gap-2">
             <span className="text-sm font-extrabold text-navy-dark">
               {formatPrice(item.unitPrice * qty)}
@@ -102,21 +143,23 @@ export function CartItem({ item }: Props) {
               onClick={() => removeMutation.mutate()}
               disabled={removeMutation.isPending}
               aria-label="Ürünü kaldır"
-              className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400
-                         hover:bg-red-50 hover:text-red-500 transition-colors disabled:opacity-40"
+              className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-300
+                         hover:bg-red-50 hover:text-red-500 transition-colors disabled:opacity-40
+                         opacity-0 group-hover:opacity-100"
             >
               <Trash2 size={13} />
             </button>
           </div>
         </div>
 
+        {/* Stock warnings */}
         {item.availableStock <= 3 && item.availableStock > 0 && (
-          <p className="text-[10px] text-orange font-semibold mt-1">
-            Son {item.availableStock} ürün!
+          <p className="text-[10px] text-orange font-bold mt-1">
+            ⚡ Son {item.availableStock} ürün!
           </p>
         )}
         {item.availableStock === 0 && (
-          <p className="text-[10px] text-red-500 font-semibold mt-1">Stokta kalmadı</p>
+          <p className="text-[10px] text-red-500 font-bold mt-1">Stokta kalmadı</p>
         )}
       </div>
     </div>

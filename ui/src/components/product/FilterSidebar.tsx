@@ -1,6 +1,7 @@
 'use client'
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { X } from 'lucide-react'
+import { X, ChevronDown, SlidersHorizontal } from 'lucide-react'
 import { categoriesApi } from '@/domains/categories/categories.api'
 import { QUERY_KEYS } from '@/lib/query-keys'
 import { PriceRangeSlider } from './PriceRangeSlider'
@@ -8,14 +9,16 @@ import type { CategoryDto } from '@/domains/categories/categories.types'
 
 const SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '2XL', '3XL']
 const COLORS: { label: string; hex: string }[] = [
-  { label: 'Siyah',  hex: '#000000' },
-  { label: 'Beyaz',  hex: '#FFFFFF' },
+  { label: 'Siyah',    hex: '#111111' },
+  { label: 'Beyaz',    hex: '#FFFFFF' },
   { label: 'Lacivert', hex: '#1A2B5E' },
-  { label: 'Kırmızı', hex: '#EF4444' },
-  { label: 'Mavi',   hex: '#3B82F6' },
-  { label: 'Yeşil',  hex: '#22C55E' },
-  { label: 'Gri',    hex: '#9CA3AF' },
-  { label: 'Bej',    hex: '#D4B896' },
+  { label: 'Kırmızı',  hex: '#EF4444' },
+  { label: 'Mavi',     hex: '#3B82F6' },
+  { label: 'Yeşil',    hex: '#22C55E' },
+  { label: 'Gri',      hex: '#9CA3AF' },
+  { label: 'Bej',      hex: '#D4B896' },
+  { label: 'Kahve',    hex: '#92400E' },
+  { label: 'Pembe',    hex: '#EC4899' },
 ]
 
 interface Filters {
@@ -34,6 +37,44 @@ interface Props {
   onClose: () => void
 }
 
+function FilterSection({
+  title,
+  defaultOpen = true,
+  children,
+  count,
+}: {
+  title: string
+  defaultOpen?: boolean
+  children: React.ReactNode
+  count?: number
+}) {
+  const [open, setOpen] = useState(defaultOpen)
+  return (
+    <div className="border-b border-gray-100 last:border-0">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between py-4 text-left group"
+      >
+        <span className="text-[13px] font-bold text-gray-800 flex items-center gap-2">
+          {title}
+          {count !== undefined && count > 0 && (
+            <span className="text-[10px] font-extrabold bg-orange text-white
+                             rounded-full px-1.5 py-0.5 leading-none">
+              {count}
+            </span>
+          )}
+        </span>
+        <ChevronDown
+          size={15}
+          className={`text-gray-400 transition-transform duration-200
+                      group-hover:text-gray-600 ${open ? 'rotate-180' : ''}`}
+        />
+      </button>
+      {open && <div className="pb-4">{children}</div>}
+    </div>
+  )
+}
+
 export function FilterSidebar({ filters, onFilterChange, onReset, isOpen, onClose }: Props) {
   const { data: categories = [] } = useQuery({
     queryKey: QUERY_KEYS.categories.all,
@@ -45,118 +86,209 @@ export function FilterSidebar({ filters, onFilterChange, onReset, isOpen, onClos
   const toggleArr = (arr: string[], val: string) =>
     arr.includes(val) ? arr.filter((x) => x !== val) : [...arr, val]
 
-  const hasFilters =
-    filters.categoryId || filters.minPrice || filters.maxPrice ||
-    filters.colors.length || filters.sizes.length
+  const activeFilterCount =
+    (filters.categoryId ? 1 : 0) +
+    (filters.minPrice || filters.maxPrice ? 1 : 0) +
+    filters.colors.length +
+    filters.sizes.length
 
   return (
     <>
-      {/* Mobil overlay */}
+      {/* Mobile overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/40 z-[300] lg:hidden"
+          className="fixed inset-0 bg-black/50 z-[300] lg:hidden backdrop-blur-sm"
           onClick={onClose}
         />
       )}
 
       <aside
-        className={`fixed top-0 left-0 h-full w-72 bg-white z-[310] shadow-2xl
-                    transform transition-transform duration-300 lg:relative lg:shadow-none
-                    lg:w-auto lg:translate-x-0 lg:z-auto lg:h-auto
-                    ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        className={`fixed top-0 left-0 h-full w-[300px] bg-white z-[310] shadow-2xl
+                    transform transition-transform duration-300 ease-in-out
+                    lg:relative lg:shadow-none lg:w-[240px] lg:translate-x-0
+                    lg:z-auto lg:h-auto lg:top-auto lg:sticky lg:self-start
+                    ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+                    flex flex-col`}
+        style={{ top: 'calc(68px + 44px + 1rem)' }}
       >
-        <div className="flex items-center justify-between p-4 border-b lg:hidden">
-          <span className="font-bold text-navy-dark">Filtreler</span>
-          <button onClick={onClose}><X size={18} /></button>
+        {/* Mobile header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 lg:hidden">
+          <div className="flex items-center gap-2">
+            <SlidersHorizontal size={16} className="text-navy-dark" />
+            <span className="font-extrabold text-navy-dark text-sm">Filtreler</span>
+            {activeFilterCount > 0 && (
+              <span className="text-xs bg-orange text-white rounded-full px-2 py-0.5 font-bold">
+                {activeFilterCount}
+              </span>
+            )}
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center
+                       text-gray-500 transition-colors"
+          >
+            <X size={17} />
+          </button>
         </div>
 
-        <div className="p-4 space-y-6 overflow-y-auto h-full pb-24 lg:pb-0">
-          {/* Temizle butonu */}
-          {hasFilters && (
+        {/* Desktop header */}
+        <div className="hidden lg:flex items-center justify-between py-3 border-b border-gray-100 mb-1">
+          <div className="flex items-center gap-2">
+            <SlidersHorizontal size={15} className="text-navy-dark" />
+            <span className="font-extrabold text-navy-dark text-sm">Filtreler</span>
+            {activeFilterCount > 0 && (
+              <span className="text-[10px] bg-orange text-white rounded-full
+                               px-1.5 py-0.5 font-extrabold">
+                {activeFilterCount}
+              </span>
+            )}
+          </div>
+          {activeFilterCount > 0 && (
             <button
               onClick={onReset}
-              className="text-xs font-semibold text-orange hover:underline"
+              className="text-xs font-bold text-orange hover:text-orange-dark transition-colors"
             >
-              Filtreleri Temizle
+              Temizle
             </button>
           )}
+        </div>
+
+        {/* Scrollable filter content */}
+        <div className="flex-1 overflow-y-auto px-4 lg:px-0">
 
           {/* Kategori */}
-          <div>
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Kategori</p>
-            <ul className="space-y-1">
-              <li>
-                <button
-                  onClick={() => onFilterChange({ categoryId: undefined })}
-                  className={`w-full text-left px-2 py-1.5 rounded-lg text-sm transition-colors
-                              ${!filters.categoryId ? 'bg-orange-light text-orange font-semibold' : 'text-gray-700 hover:bg-gray-50'}`}
-                >
-                  Tüm Kategoriler
-                </button>
-              </li>
+          <FilterSection title="Kategori" count={filters.categoryId ? 1 : 0}>
+            <div className="space-y-0.5">
+              <button
+                onClick={() => onFilterChange({ categoryId: undefined })}
+                className={`w-full text-left px-3 py-2 rounded-xl text-sm transition-colors
+                            ${!filters.categoryId
+                              ? 'bg-orange-50 text-orange font-semibold'
+                              : 'text-gray-600 hover:bg-gray-50 font-normal'}`}
+              >
+                Tüm Kategoriler
+              </button>
               {rootCats.map((cat: CategoryDto) => (
-                <li key={cat.id}>
-                  <button
-                    onClick={() => onFilterChange({ categoryId: cat.id })}
-                    className={`w-full text-left px-2 py-1.5 rounded-lg text-sm transition-colors
-                                ${filters.categoryId === cat.id ? 'bg-orange-light text-orange font-semibold' : 'text-gray-700 hover:bg-gray-50'}`}
-                  >
-                    {cat.name}
-                  </button>
-                </li>
+                <button
+                  key={cat.id}
+                  onClick={() => onFilterChange({ categoryId: cat.id })}
+                  className={`w-full text-left px-3 py-2 rounded-xl text-sm transition-colors
+                              ${filters.categoryId === cat.id
+                                ? 'bg-orange-50 text-orange font-semibold'
+                                : 'text-gray-600 hover:bg-gray-50 font-normal'}`}
+                >
+                  {cat.name}
+                </button>
               ))}
-            </ul>
-          </div>
+            </div>
+          </FilterSection>
 
           {/* Fiyat */}
-          <PriceRangeSlider
-            key={`${filters.minPrice ?? ''}-${filters.maxPrice ?? ''}`}
-            initialMin={filters.minPrice}
-            initialMax={filters.maxPrice}
-            onChange={(min, max) => onFilterChange({ minPrice: min, maxPrice: max })}
-          />
+          <FilterSection
+            title="Fiyat Aralığı"
+            count={filters.minPrice || filters.maxPrice ? 1 : 0}
+          >
+            <PriceRangeSlider
+              key={`${filters.minPrice ?? ''}-${filters.maxPrice ?? ''}`}
+              initialMin={filters.minPrice}
+              initialMax={filters.maxPrice}
+              onChange={(min, max) => onFilterChange({ minPrice: min, maxPrice: max })}
+            />
+          </FilterSection>
 
           {/* Beden */}
-          <div>
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Beden</p>
+          <FilterSection title="Beden" count={filters.sizes.length}>
             <div className="flex flex-wrap gap-2">
-              {SIZES.map((s) => (
-                <button
-                  key={s}
-                  onClick={() => onFilterChange({ sizes: toggleArr(filters.sizes, s) })}
-                  className={`min-w-[40px] h-9 px-2.5 rounded-lg border text-xs font-bold transition-colors
-                              ${filters.sizes.includes(s)
-                                ? 'bg-navy-dark text-white border-navy-dark'
-                                : 'border-gray-200 text-gray-700 hover:border-navy-dark'}`}
-                >
-                  {s}
-                </button>
-              ))}
+              {SIZES.map((s) => {
+                const active = filters.sizes.includes(s)
+                return (
+                  <button
+                    key={s}
+                    onClick={() => onFilterChange({ sizes: toggleArr(filters.sizes, s) })}
+                    className={`min-w-[42px] h-9 px-2.5 rounded-xl border text-xs font-bold
+                                transition-all duration-150
+                                ${active
+                                  ? 'bg-navy text-white border-navy shadow-sm scale-[1.05]'
+                                  : 'border-gray-200 text-gray-600 hover:border-navy hover:text-navy bg-white'}`}
+                  >
+                    {s}
+                  </button>
+                )
+              })}
             </div>
-          </div>
+          </FilterSection>
 
           {/* Renk */}
-          <div>
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Renk</p>
-            <div className="flex flex-wrap gap-2">
-              {COLORS.map(({ label, hex }) => (
-                <button
-                  key={label}
-                  onClick={() => onFilterChange({ colors: toggleArr(filters.colors, label) })}
-                  title={label}
-                  aria-label={label}
-                  className={`w-7 h-7 rounded-full border-2 transition-all
-                              ${filters.colors.includes(label)
-                                ? 'border-orange scale-110'
-                                : 'border-gray-200 hover:border-gray-400'}`}
-                  style={{
-                    backgroundColor: hex,
-                    boxShadow: hex === '#FFFFFF' ? 'inset 0 0 0 1px #e5e7eb' : undefined,
-                  }}
-                />
-              ))}
+          <FilterSection title="Renk" count={filters.colors.length}>
+            <div className="grid grid-cols-5 gap-2">
+              {COLORS.map(({ label, hex }) => {
+                const active = filters.colors.includes(label)
+                return (
+                  <button
+                    key={label}
+                    onClick={() => onFilterChange({ colors: toggleArr(filters.colors, label) })}
+                    title={label}
+                    aria-label={label}
+                    className="flex flex-col items-center gap-1 group"
+                  >
+                    <div
+                      className={`w-8 h-8 rounded-xl border-2 transition-all duration-150
+                                  ${active
+                                    ? 'border-orange scale-110 shadow-md'
+                                    : 'border-gray-200 hover:border-gray-400 hover:scale-105'}`}
+                      style={{
+                        backgroundColor: hex,
+                        boxShadow: hex === '#FFFFFF'
+                          ? 'inset 0 0 0 1px #e5e7eb'
+                          : active ? '0 2px 8px rgba(242,122,26,0.4)' : undefined,
+                      }}
+                    >
+                      {active && (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <div className={`w-2 h-2 rounded-full
+                            ${hex === '#FFFFFF' || hex === '#FFFFFF' ? 'bg-orange' : 'bg-white'}`} />
+                        </div>
+                      )}
+                    </div>
+                    <span className={`text-[9px] font-medium leading-tight text-center
+                                     ${active ? 'text-orange' : 'text-gray-500'}`}>
+                      {label}
+                    </span>
+                  </button>
+                )
+              })}
             </div>
-          </div>
+          </FilterSection>
+        </div>
+
+        {/* Mobile: sticky apply button */}
+        <div className="lg:hidden border-t border-gray-100 px-4 py-3 bg-white">
+          {activeFilterCount > 0 && (
+            <div className="flex gap-2">
+              <button
+                onClick={() => { onReset(); onClose() }}
+                className="flex-1 border border-gray-200 text-gray-600 font-semibold
+                           py-2.5 rounded-xl text-sm hover:bg-gray-50 transition-colors"
+              >
+                Temizle
+              </button>
+              <button
+                onClick={onClose}
+                className="flex-2 bg-orange text-white font-bold py-2.5 px-6
+                           rounded-xl text-sm hover:bg-orange-dark transition-colors"
+              >
+                Uygula ({activeFilterCount})
+              </button>
+            </div>
+          )}
+          {activeFilterCount === 0 && (
+            <button
+              onClick={onClose}
+              className="w-full bg-navy text-white font-bold py-2.5 rounded-xl text-sm"
+            >
+              Kapat
+            </button>
+          )}
         </div>
       </aside>
     </>

@@ -11,41 +11,36 @@ export function HeaderActions() {
   const { isAuthenticated } = useAuthStore()
   const { openAuthModal } = useUIStore()
 
+  const iconBtn = `flex flex-col items-center gap-[3px] px-3 py-[7px] text-white/85
+                   text-[11px] font-semibold rounded-xl hover:bg-white/10
+                   transition-colors cursor-pointer flex-shrink-0`
+
   return (
-    <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+    /* ml-auto pushes this group to the far right regardless of search bar width */
+    <div className="flex items-center gap-0.5 ml-auto flex-shrink-0">
+
       {/* Favoriler */}
       {isAuthenticated ? (
-        <Link
-          href="/hesabim/favorilerim"
-          className="flex flex-col items-center gap-[3px] px-[10px] py-[7px] text-white/85
-                     text-[11px] font-semibold rounded-[10px] hover:bg-white/10 transition-colors"
-        >
-          <Heart size={22} />
-          <span>Favoriler</span>
+        <Link href="/hesabim/favorilerim" className={iconBtn}>
+          <Heart size={23} strokeWidth={1.8} />
+          <span>Favorilerim</span>
         </Link>
       ) : (
-        <button
-          onClick={() => openAuthModal('login')}
-          className="flex flex-col items-center gap-[3px] px-[10px] py-[7px] text-white/85
-                     text-[11px] font-semibold rounded-[10px] hover:bg-white/10 transition-colors"
-        >
-          <Heart size={22} />
-          <span>Favoriler</span>
+        <button onClick={() => openAuthModal('login')} className={iconBtn}>
+          <Heart size={23} strokeWidth={1.8} />
+          <span>Favorilerim</span>
         </button>
       )}
 
       {/* Sepet */}
-      <button
-        onClick={openDrawer}
-        className="flex flex-col items-center gap-[3px] px-[10px] py-[7px] text-white/85
-                   text-[11px] font-semibold rounded-[10px] hover:bg-white/10 transition-colors relative"
-      >
+      <button onClick={openDrawer} className={`${iconBtn} relative`}>
         <div className="relative">
-          <ShoppingCart size={22} />
+          <ShoppingCart size={23} strokeWidth={1.8} />
           {itemCount > 0 && (
-            <span className="absolute -top-1 -right-1.5 bg-orange text-white text-[10px] font-extrabold
-                             min-w-[18px] h-[18px] rounded-full flex items-center justify-center px-1
-                             border-2 border-navy">
+            <span className="absolute -top-1.5 -right-1.5 bg-orange text-white text-[9px]
+                             font-extrabold min-w-[17px] h-[17px] rounded-full
+                             flex items-center justify-center px-1
+                             border-[1.5px] border-navy leading-none">
               {itemCount > 99 ? '99+' : itemCount}
             </span>
           )}
@@ -53,7 +48,7 @@ export function HeaderActions() {
         <span>Sepetim</span>
       </button>
 
-      {/* Kullanıcı */}
+      {/* Kullanıcı / Giriş Yap */}
       <UserMenu />
     </div>
   )
