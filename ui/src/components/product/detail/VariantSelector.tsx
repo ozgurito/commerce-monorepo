@@ -9,8 +9,9 @@ interface Props {
   hasError: boolean
 }
 
-function groupVariants(variants: ProductVariantDto[]) {
+function groupVariants(variants: ProductVariantDto[] | null | undefined) {
   const groups: Record<string, ProductVariantDto[]> = {}
+  if (!variants) return groups
   for (const v of variants) {
     const key = v.size ? 'Beden' : v.color ? 'Renk' : (v.variantType ?? 'Seçenek')
     if (!groups[key]) groups[key] = []
@@ -21,9 +22,10 @@ function groupVariants(variants: ProductVariantDto[]) {
 
 export function VariantSelector({ variants, selected, onSelect, hasError }: Props) {
   const ref = useRef<HTMLDivElement>(null)
-  const groups = groupVariants(variants)
+  const safeVariants = variants ?? []
+  const groups = groupVariants(safeVariants)
 
-  if (variants.length === 0) return null
+  if (safeVariants.length === 0) return null
 
   return (
     <div ref={ref} className="space-y-4">

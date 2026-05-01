@@ -81,7 +81,7 @@ export function ProductInfo({ product }: Props) {
 
   const handleAddToCart = () => {
     if (!token) { openAuthModal('login'); return }
-    if (product.variants.length > 0 && !selectedVariant) {
+    if ((product.variants?.length ?? 0) > 0 && !selectedVariant) {
       setVariantError(true)
       variantRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       toast.error('Lütfen önce bir varyant seçin')
@@ -206,7 +206,7 @@ export function ProductInfo({ product }: Props) {
       {/* Variant selector */}
       <div ref={variantRef}>
         <VariantSelector
-          variants={product.variants}
+          variants={product.variants ?? []}
           selected={selectedVariant}
           onSelect={(v) => { setSelectedVariant(v); setVariantError(false) }}
           hasError={variantError}
