@@ -3,6 +3,26 @@ import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Heart, ShoppingBag, Star, Eye } from 'lucide-react'
+
+const CARD_GRADIENTS = [
+  'from-pink-300 to-rose-400',
+  'from-blue-300 to-indigo-400',
+  'from-amber-300 to-orange-400',
+  'from-green-300 to-emerald-400',
+  'from-purple-300 to-violet-400',
+  'from-teal-300 to-cyan-400',
+  'from-red-300 to-pink-400',
+  'from-sky-300 to-blue-400',
+]
+
+function nameToGradient(name: string): string {
+  let hash = 0
+  for (let i = 0; i < name.length; i++) {
+    hash = (hash << 5) - hash + name.charCodeAt(i)
+    hash |= 0
+  }
+  return CARD_GRADIENTS[Math.abs(hash) % CARD_GRADIENTS.length]
+}
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { wishlistApi } from '@/domains/wishlist/wishlist.api'
 import { useAuthStore } from '@/store/auth.store'
@@ -110,9 +130,17 @@ export function ProductCard({ product, priority = false }: Props) {
               className="object-cover group-hover:scale-[1.06] transition-transform duration-500"
             />
           ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center
-                            text-gray-200 bg-gradient-to-br from-gray-50 to-gray-100">
-              <ShoppingBag size={40} className="text-gray-200" />
+            <div className={`w-full h-full flex flex-col items-center justify-center
+                             bg-gradient-to-br ${nameToGradient(product.name)}`}>
+              <span className="text-5xl font-extrabold text-white/90 select-none drop-shadow-md
+                               leading-none tracking-tighter">
+                {product.name.charAt(0).toUpperCase()}
+              </span>
+              {product.categoryName && (
+                <span className="text-[10px] font-semibold text-white/70 mt-2 uppercase tracking-wider">
+                  {product.categoryName}
+                </span>
+              )}
             </div>
           )}
         </div>
