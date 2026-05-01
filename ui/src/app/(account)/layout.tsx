@@ -3,6 +3,12 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth.store'
 import { AccountSidebar } from '@/components/layout/AccountSidebar'
+import { TopBar } from '@/components/layout/TopBar'
+import { Header } from '@/components/layout/Header/Header'
+import { CategoryNav } from '@/components/layout/CategoryNav/CategoryNav'
+import { Footer } from '@/components/layout/Footer/Footer'
+import { CartDrawer } from '@/components/cart/CartDrawer'
+import { CartSync } from '@/components/cart/CartSync'
 
 export default function AccountLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
@@ -17,23 +23,23 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
   if (!isAuthenticated) return null
 
   return (
-    <div className="min-h-screen bg-gray-50/60">
-      {/* Account header band */}
-      <div className="bg-gradient-to-r from-navy-dark to-navy">
-        <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10 xl:px-14 py-5">
-          <p className="text-white/60 text-xs font-semibold uppercase tracking-widest mb-0.5">
-            Hesabım
-          </p>
-          <p className="text-white font-extrabold text-lg">Hoş geldiniz 👋</p>
-        </div>
-      </div>
+    <>
+      <TopBar />
+      <Header />
+      <CategoryNav />
 
-      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10 xl:px-14 py-6 sm:py-8">
-        <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-start">
-          <AccountSidebar />
-          <main className="flex-1 min-w-0">{children}</main>
+      <main className="flex-1 bg-gray-50/60 min-h-screen">
+        <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10 xl:px-14 py-6 sm:py-8">
+          <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-start">
+            <AccountSidebar />
+            <div className="flex-1 min-w-0">{children}</div>
+          </div>
         </div>
-      </div>
-    </div>
+      </main>
+
+      <Footer />
+      <CartDrawer />
+      <CartSync />
+    </>
   )
 }
