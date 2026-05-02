@@ -158,13 +158,13 @@ export default function UrunDuzenlemePage({ params }: Props) {
     let uploaded = 0
     try {
       for (const file of files) {
-        const { uploadUrl } = await adminApi.getUploadUrl(file.name, file.type)
-        await fetch(uploadUrl, {
-          method: 'PUT',
-          body: file,
-          headers: { 'Content-Type': file.type },
-        })
-        const publicUrl = uploadUrl.split('?')[0]
+        const { url, headers: signedHeaders } = await adminApi.getUploadUrl(file.type)
+        const putHeaders: Record<string, string> = { 'Content-Type': file.type }
+        for (const [h, vals] of Object.entries(signedHeaders ?? {})) {
+          putHeaders[h] = vals[0]
+        }
+        await fetch(url, { method: 'PUT', body: file, headers: putHeaders })
+        const publicUrl = url.split('?')[0]
         const isPrimary = !product?.images.length && uploaded === 0
         await adminApi.addProductImage(productId, publicUrl, isPrimary)
         uploaded++

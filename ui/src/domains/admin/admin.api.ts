@@ -144,8 +144,9 @@ export const adminApi = {
   },
 
   // --- Image upload ---
-  getUploadUrl: async (fileName: string, contentType: string): Promise<{ uploadUrl: string; fileKey: string }> => {
-    const { data } = await apiClient.post('/api/assets/upload-url', { fileName, contentType })
+  // Backend returns { url, key, method, headers } (NOT uploadUrl/fileKey)
+  getUploadUrl: async (contentType: string): Promise<{ url: string; key: string; method: string; headers: Record<string, string[]> }> => {
+    const { data } = await apiClient.post('/api/assets/upload-url', { contentType })
     return data
   },
 
