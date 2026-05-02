@@ -10,15 +10,21 @@ import { adminApi } from '@/domains/admin/admin.api'
 import { categoriesApi } from '@/domains/categories/categories.api'
 
 const schema = z.object({
-  name:         z.string().min(2, 'En az 2 karakter'),
-  description:  z.string().min(10, 'En az 10 karakter'),
-  price:        z.string().min(1, 'Pozitif olmalı'),
-  comparePrice: z.string().optional(),
-  stock:        z.string().min(1, 'Stok girin'),
-  sku:          z.string().min(1, 'SKU zorunlu'),
-  categoryId:   z.string().min(1, 'Kategori seçin'),
-  featured:     z.boolean().optional(),
-  isActive:     z.boolean().optional(),
+  name:              z.string().min(2, 'En az 2 karakter'),
+  description:       z.string().min(10, 'En az 10 karakter'),
+  price:             z.string().min(1, 'Pozitif olmalı'),
+  comparePrice:      z.string().optional(),
+  stock:             z.string().min(1, 'Stok girin'),
+  sku:               z.string().min(1, 'SKU zorunlu'),
+  categoryId:        z.string().min(1, 'Kategori seçin'),
+  featured:          z.boolean().optional(),
+  isActive:          z.boolean().optional(),
+  material:          z.string().optional(),
+  fabricComposition: z.string().optional(),
+  careInstructions:  z.string().optional(),
+  fitType:           z.string().optional(),
+  gender:            z.string().optional(),
+  season:            z.string().optional(),
 })
 type FormValues = z.infer<typeof schema>
 
@@ -42,15 +48,21 @@ export default function YeniUrunPage() {
   const mutation = useMutation({
     mutationFn: (values: FormValues) =>
       adminApi.createProduct({
-        name: values.name,
-        description: values.description,
-        price: Number(values.price),
-        comparePrice: values.comparePrice ? Number(values.comparePrice) : undefined,
-        stock: Number(values.stock),
-        sku: values.sku,
-        categoryId: Number(values.categoryId),
-        featured: values.featured,
-        isActive: values.isActive,
+        name:              values.name,
+        description:       values.description,
+        price:             Number(values.price),
+        comparePrice:      values.comparePrice ? Number(values.comparePrice) : undefined,
+        stock:             Number(values.stock),
+        sku:               values.sku,
+        categoryId:        Number(values.categoryId),
+        featured:          values.featured,
+        isActive:          values.isActive,
+        material:          values.material || undefined,
+        fabricComposition: values.fabricComposition || undefined,
+        careInstructions:  values.careInstructions || undefined,
+        fitType:           values.fitType || undefined,
+        gender:            values.gender || undefined,
+        season:            values.season || undefined,
       }),
     onSuccess: (product) => {
       toast.success('Ürün oluşturuldu')
@@ -134,6 +146,56 @@ export default function YeniUrunPage() {
               <input {...register('featured')} type="checkbox" className="w-4 h-4 accent-orange" />
               <span className="text-sm text-gray-600 font-medium">Öne Çıkan</span>
             </label>
+          </div>
+        </div>
+
+        {/* Kumaş Bilgileri */}
+        <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-4">
+          <h2 className="font-bold text-navy-dark">Kumaş Bilgileri</h2>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-gray-600 mb-1">Kumaş Türü</label>
+              <input {...register('material')} placeholder="örn. Pamuk, Polyester" className={inputCls()} />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-600 mb-1">Gramaj / İçerik</label>
+              <input {...register('fabricComposition')} placeholder="örn. %100 Pamuk, 180gsm" className={inputCls()} />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-gray-600 mb-1">Yıkama Talimatları</label>
+            <input {...register('careInstructions')} placeholder="örn. 30°C yıkama, ütülenebilir" className={inputCls()} />
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-gray-600 mb-1">Kalıp</label>
+              <select {...register('fitType')} className={inputCls()}>
+                <option value="">Seçin</option>
+                <option value="Normal">Normal</option>
+                <option value="Slim">Slim</option>
+                <option value="Oversize">Oversize</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-600 mb-1">Cinsiyet</label>
+              <select {...register('gender')} className={inputCls()}>
+                <option value="">Seçin</option>
+                <option value="Unisex">Unisex</option>
+                <option value="Erkek">Erkek</option>
+                <option value="Kadın">Kadın</option>
+                <option value="Çocuk">Çocuk</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-600 mb-1">Sezon</label>
+              <select {...register('season')} className={inputCls()}>
+                <option value="">Seçin</option>
+                <option value="4 Mevsim">4 Mevsim</option>
+                <option value="Yaz">Yaz</option>
+                <option value="Kış">Kış</option>
+                <option value="İlkbahar/Sonbahar">İlkbahar/Sonbahar</option>
+              </select>
+            </div>
           </div>
         </div>
 

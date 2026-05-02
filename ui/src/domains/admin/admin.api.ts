@@ -2,7 +2,7 @@ import apiClient from '@/lib/api-client'
 import type { DashboardStatsDto, LowStockAlertDto } from './admin.types'
 import type { OrderDto } from '@/domains/orders/orders.types'
 import type { OrderStatus } from '@/domains/orders/orders.types'
-import type { ProductDto, ProductDetailDto } from '@/domains/products/products.types'
+import type { ProductDto, ProductDetailDto, ProductVariantDto } from '@/domains/products/products.types'
 import type { CategoryDto } from '@/domains/categories/categories.types'
 import type { ReviewDto } from '@/domains/reviews/reviews.types'
 import type { CouponDto } from '@/domains/coupons/coupons.types'
@@ -42,14 +42,24 @@ export interface CreateProductRequest {
   categoryId: number
   featured?: boolean
   isActive?: boolean
+  material?: string
+  fabricComposition?: string
+  careInstructions?: string
+  fitType?: string
+  gender?: string
+  season?: string
 }
 
 export interface CreateCategoryRequest {
   name: string
+  slug?: string
   description?: string
   parentId?: number
   displayOrder?: number
   isActive?: boolean
+  imageUrl?: string
+  metaTitle?: string
+  metaDescription?: string
 }
 
 export interface CreateCouponRequest {
@@ -67,6 +77,13 @@ export interface CreateCouponRequest {
   isActive?: boolean
 }
 
+export interface CreateVariantRequest {
+  variantType: 'SIZE' | 'COLOR'
+  variantName: string
+  colorHex?: string
+  stock?: number
+}
+
 export const adminApi = {
   // --- Dashboard ---
   getStats: async (): Promise<DashboardStatsDto> => {
@@ -75,7 +92,7 @@ export const adminApi = {
   },
 
   getLowStock: async (): Promise<LowStockAlertDto[]> => {
-    const { data } = await apiClient.get('/api/admin/products/low-stock')
+    const { data } = await apiClient.get('/api/products/low-stock')
     return data
   },
 
@@ -93,35 +110,35 @@ export const adminApi = {
   },
 
   updateOrderStatus: async (id: number, status: OrderStatus): Promise<OrderDto> => {
-    const { data } = await apiClient.patch(`/api/admin/orders/${id}/status`, { status })
+    const { data } = await apiClient.put(`/api/orders/${id}/status`, { status })
     return data
   },
 
   // --- Products ---
   getProducts: async (page = 0, size = 20, keyword?: string): Promise<PagedProducts> => {
-    const { data } = await apiClient.get('/api/admin/products', {
+    const { data } = await apiClient.get('/api/products', {
       params: { page, size, ...(keyword ? { keyword } : {}) },
     })
     return data
   },
 
   getProduct: async (id: number): Promise<ProductDetailDto> => {
-    const { data } = await apiClient.get(`/api/admin/products/${id}`)
+    const { data } = await apiClient.get(`/api/products/${id}/detail`)
     return data
   },
 
   createProduct: async (req: CreateProductRequest): Promise<ProductDetailDto> => {
-    const { data } = await apiClient.post('/api/admin/products', req)
+    const { data } = await apiClient.post('/api/products', req)
     return data
   },
 
   updateProduct: async (id: number, req: Partial<CreateProductRequest>): Promise<ProductDetailDto> => {
-    const { data } = await apiClient.put(`/api/admin/products/${id}`, req)
+    const { data } = await apiClient.put(`/api/products/${id}`, req)
     return data
   },
 
   deleteProduct: async (id: number): Promise<void> => {
-    await apiClient.delete(`/api/admin/products/${id}`)
+    await apiClient.delete(`/api/products/${id}`)
   },
 
   // --- Image upload ---
@@ -142,60 +159,81 @@ export const adminApi = {
     await apiClient.put(`/api/products/${productId}/images/${imageId}/primary`)
   },
 
+  // --- Variants ---
+  getVariants: async (productId: number): Promise<ProductVariantDto[]> => {
+    const { data } = await apiClient.get(`/api/products/${productId}/variants`)
+    return data
+  },
+
+  createVariant: async (productId: number, req: CreateVariantRequest): Promise<ProductVariantDto> => {
+    const { data } = await apiClient.post(`/api/products/${productId}/variants`, req)
+    return data
+  },
+
+  updateVariant: async (productId: number, variantId: number, req: Partial<CreateVariantRequest>): Promise<ProductVariantDto> => {
+    const { data } = await apiClient.put(`/api/products/${productId}/variants/${variantId}`, req)
+    return data
+  },
+
+
+  deleteVariant: async (productId: number, variantId: number): Promise<void> => {
+    await apiClient.delete(`/api/products/${productId}/variants/${variantId}`)
+  },
+
   // --- Categories ---
   createCategory: async (req: CreateCategoryRequest): Promise<CategoryDto> => {
-    const { data } = await apiClient.post('/api/admin/categories', req)
+    const { data } = await apiClient.post('/api/categories', req)
     return data
   },
 
   updateCategory: async (id: number, req: Partial<CreateCategoryRequest>): Promise<CategoryDto> => {
-    const { data } = await apiClient.put(`/api/admin/categories/${id}`, req)
+    const { data } = await apiClient.put(`/api/categories/${id}`, req)
     return data
   },
 
   deleteCategory: async (id: number): Promise<void> => {
-    await apiClient.delete(`/api/admin/categories/${id}`)
+    await apiClient.delete(`/api/categories/${id}`)
   },
 
   // --- Reviews ---
   getReviews: async (page = 0, size = 20, approved?: boolean): Promise<PagedReviewsAdmin> => {
-    const { data } = await apiClient.get('/api/admin/reviews', {
+    const { data } = await apiClient.get('/api/reviews/pending', {
       params: { page, size, ...(approved !== undefined ? { approved } : {}) },
     })
     return data
   },
 
   approveReview: async (id: number): Promise<ReviewDto> => {
-    const { data } = await apiClient.put(`/api/admin/reviews/${id}/approve`)
+    const { data } = await apiClient.put(`/api/reviews/${id}/approve`)
     return data
   },
 
   deleteReview: async (id: number): Promise<void> => {
-    await apiClient.delete(`/api/admin/reviews/${id}`)
+    await apiClient.delete(`/api/reviews/${id}`)
   },
 
   respondToReview: async (id: number, response: string): Promise<ReviewDto> => {
-    const { data } = await apiClient.put(`/api/admin/reviews/${id}/response`, { response })
+    const { data } = await apiClient.put(`/api/reviews/${id}/admin-response`, { response })
     return data
   },
 
   // --- Coupons ---
   getCoupons: async (page = 0, size = 20): Promise<PagedCoupons> => {
-    const { data } = await apiClient.get('/api/admin/coupons', { params: { page, size } })
+    const { data } = await apiClient.get('/api/coupons', { params: { page, size } })
     return data
   },
 
   createCoupon: async (req: CreateCouponRequest): Promise<CouponDto> => {
-    const { data } = await apiClient.post('/api/admin/coupons', req)
+    const { data } = await apiClient.post('/api/coupons', req)
     return data
   },
 
   updateCoupon: async (id: number, req: Partial<CreateCouponRequest>): Promise<CouponDto> => {
-    const { data } = await apiClient.put(`/api/admin/coupons/${id}`, req)
+    const { data } = await apiClient.put(`/api/coupons/${id}`, req)
     return data
   },
 
   deleteCoupon: async (id: number): Promise<void> => {
-    await apiClient.delete(`/api/admin/coupons/${id}`)
+    await apiClient.delete(`/api/coupons/${id}`)
   },
 }

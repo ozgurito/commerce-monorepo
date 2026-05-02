@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Search, Edit2, Trash2, Loader2, Package } from 'lucide-react'
@@ -23,9 +24,18 @@ export default function AdminUrunlerPage() {
     mutationFn: (id: number) => adminApi.deleteProduct(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'products'] })
-      toast.success('ÃœrÃ¼n silindi')
+      toast.success('Ürün silindi')
     },
-    onError: () => toast.error('ÃœrÃ¼n silinemedi'),
+    onError: () => toast.error('Ürün silinemedi'),
+  })
+
+  const toggleMutation = useMutation({
+    mutationFn: ({ id, patch }: { id: number; patch: Record<string, boolean> }) =>
+      adminApi.updateProduct(id, patch),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'products'] })
+    },
+    onError: () => toast.error('Güncelleme başarısız'),
   })
 
   const products = data?.content ?? []
@@ -34,13 +44,13 @@ export default function AdminUrunlerPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-extrabold text-navy-dark">ÃœrÃ¼nler</h1>
+        <h1 className="text-2xl font-extrabold text-navy-dark">Ürünler</h1>
         <Link
           href="/admin/urunler/yeni"
           className="flex items-center gap-2 bg-orange hover:bg-orange-dark text-white
                      font-bold px-4 py-2.5 rounded-xl transition-colors text-sm"
         >
-          <Plus size={16} /> Yeni ÃœrÃ¼n
+          <Plus size={16} /> Yeni Ürün
         </Link>
       </div>
 
@@ -50,7 +60,7 @@ export default function AdminUrunlerPage() {
         <input
           value={keyword}
           onChange={(e) => { setKeyword(e.target.value); setPage(0) }}
-          placeholder="ÃœrÃ¼n araâ€¦"
+          placeholder="Ürün ara…"
           className="w-full border border-gray-200 rounded-xl pl-9 pr-4 py-2.5 text-sm
                      focus:outline-none focus:ring-1 focus:border-orange focus:ring-orange/20"
         />
@@ -65,17 +75,18 @@ export default function AdminUrunlerPage() {
         ) : products.length === 0 ? (
           <div className="py-16 text-center">
             <Package size={32} className="text-gray-300 mx-auto mb-3" />
-            <p className="text-gray-400">ÃœrÃ¼n bulunamadÄ±</p>
+            <p className="text-gray-400">Ürün bulunamadı</p>
           </div>
         ) : (
           <table className="w-full text-sm">
             <thead className="border-b border-gray-100 bg-gray-50">
               <tr>
-                <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 uppercase">ÃœrÃ¼n</th>
+                <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 uppercase">Ürün</th>
                 <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase">SKU</th>
                 <th className="text-right px-4 py-3 text-xs font-bold text-gray-500 uppercase">Fiyat</th>
                 <th className="text-right px-4 py-3 text-xs font-bold text-gray-500 uppercase">Stok</th>
-                <th className="text-center px-4 py-3 text-xs font-bold text-gray-500 uppercase">Durum</th>
+                <th className="text-center px-4 py-3 text-xs font-bold text-gray-500 uppercase">Aktif</th>
+                <th className="text-center px-4 py-3 text-xs font-bold text-gray-500 uppercase">Öne Çıkan</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -83,8 +94,28 @@ export default function AdminUrunlerPage() {
               {products.map((p) => (
                 <tr key={p.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-5 py-3">
-                    <p className="font-semibold text-navy-dark truncate max-w-[220px]">{p.name}</p>
-                    <p className="text-xs text-gray-400">{p.categoryName}</p>
+                    <div className="flex items-center gap-3">
+                      {p.imageUrl ? (
+                        <div className="relative w-10 h-10 rounded-xl overflow-hidden flex-shrink-0 border border-gray-100">
+                          <Image
+                            src={p.imageUrl}
+                            alt={p.name}
+                            fill
+                            className="object-cover"
+                            unoptimized
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-10 h-10 rounded-xl bg-orange/10 flex items-center justify-center
+                                        flex-shrink-0 text-sm font-bold text-orange">
+                          {p.name.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      <div>
+                        <p className="font-semibold text-navy-dark truncate max-w-[200px]">{p.name}</p>
+                        <p className="text-xs text-gray-400">{p.categoryName}</p>
+                      </div>
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-gray-500 font-mono text-xs">{p.sku}</td>
                   <td className="px-4 py-3 text-right font-bold text-navy-dark">
@@ -96,12 +127,22 @@ export default function AdminUrunlerPage() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full
-                      ${p.active
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-gray-100 text-gray-500'}`}>
-                      {p.active ? 'Aktif' : 'Pasif'}
-                    </span>
+                    <input
+                      type="checkbox"
+                      checked={p.active}
+                      onChange={() => toggleMutation.mutate({ id: p.id, patch: { isActive: !p.active } })}
+                      disabled={toggleMutation.isPending}
+                      className="w-4 h-4 accent-orange cursor-pointer disabled:cursor-default"
+                    />
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <input
+                      type="checkbox"
+                      checked={p.featured}
+                      onChange={() => toggleMutation.mutate({ id: p.id, patch: { featured: !p.featured } })}
+                      disabled={toggleMutation.isPending}
+                      className="w-4 h-4 accent-orange cursor-pointer disabled:cursor-default"
+                    />
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2 justify-end">
@@ -137,7 +178,7 @@ export default function AdminUrunlerPage() {
           <button disabled={page === 0} onClick={() => setPage((p) => p - 1)}
             className="px-4 py-2 text-sm font-semibold border border-gray-200 rounded-xl
                        disabled:opacity-40 hover:border-orange hover:text-orange transition-colors">
-            Ã–nceki
+            Önceki
           </button>
           <span className="text-sm text-gray-500">{page + 1} / {totalPages}</span>
           <button disabled={page >= totalPages - 1} onClick={() => setPage((p) => p + 1)}
@@ -150,4 +191,3 @@ export default function AdminUrunlerPage() {
     </div>
   )
 }
-
