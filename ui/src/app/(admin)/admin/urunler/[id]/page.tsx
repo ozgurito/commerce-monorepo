@@ -158,14 +158,15 @@ export default function UrunDuzenlemePage({ params }: Props) {
     let uploaded = 0
     try {
       for (const file of files) {
-        const { uploadUrl, fileKey } = await adminApi.getUploadUrl(file.name, file.type)
+        const { uploadUrl } = await adminApi.getUploadUrl(file.name, file.type)
         await fetch(uploadUrl, {
           method: 'PUT',
           body: file,
           headers: { 'Content-Type': file.type },
         })
+        const publicUrl = uploadUrl.split('?')[0]
         const isPrimary = !product?.images.length && uploaded === 0
-        await adminApi.addProductImage(productId, fileKey, isPrimary)
+        await adminApi.addProductImage(productId, publicUrl, isPrimary)
         uploaded++
       }
       queryClient.invalidateQueries({ queryKey: ['admin', 'product', productId] })
@@ -187,7 +188,7 @@ export default function UrunDuzenlemePage({ params }: Props) {
     if (existing) {
       deleteVariantMutation.mutate(existing.id)
     } else {
-      createVariantMutation.mutate({ variantType: 'SIZE', variantName: size })
+      createVariantMutation.mutate({ variantType: 'SIZE', name: size, size, stock: 0 })
     }
   }
 
@@ -195,8 +196,10 @@ export default function UrunDuzenlemePage({ params }: Props) {
     if (!newColorName.trim()) { toast.error('Renk adı girin'); return }
     createVariantMutation.mutate({
       variantType: 'COLOR',
-      variantName: newColorName.trim(),
+      name: newColorName.trim(),
+      color: newColorName.trim(),
       colorHex: newColorHex,
+      stock: 0,
     })
     setNewColorName('')
     setNewColorHex('#000000')

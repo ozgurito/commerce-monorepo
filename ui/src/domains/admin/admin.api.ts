@@ -79,9 +79,11 @@ export interface CreateCouponRequest {
 
 export interface CreateVariantRequest {
   variantType: 'SIZE' | 'COLOR'
-  variantName: string
+  name: string       // @NotBlank — backend field adı
+  size?: string      // SIZE varyantı için
+  color?: string     // COLOR varyantı için
   colorHex?: string
-  stock?: number
+  stock: number      // @NotNull — default 0
 }
 
 export const adminApi = {
@@ -147,8 +149,8 @@ export const adminApi = {
     return data
   },
 
-  addProductImage: async (productId: number, url: string, isPrimary = false): Promise<void> => {
-    await apiClient.post(`/api/products/${productId}/images`, { url, isPrimary })
+  addProductImage: async (productId: number, imageUrl: string, isPrimary = false): Promise<void> => {
+    await apiClient.post(`/api/products/${productId}/images`, { imageUrl, isPrimary })
   },
 
   deleteProductImage: async (productId: number, imageId: number): Promise<void> => {
