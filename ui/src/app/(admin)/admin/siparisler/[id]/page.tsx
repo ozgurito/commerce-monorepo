@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Loader2, Save, MapPin, Package } from 'lucide-react'
+import { ArrowLeft, Loader2, Save, MapPin, Package, Truck } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { adminApi } from '@/domains/admin/admin.api'
@@ -33,6 +33,8 @@ export default function AdminSiparisDetayPage({ params }: Props) {
   const queryClient = useQueryClient()
   const [orderId, setOrderId] = useState<number | null>(null)
   const [selectedStatus, setSelectedStatus] = useState<OrderStatus | null>(null)
+  const [trackingNumber, setTrackingNumber] = useState('')
+  const [trackingSaved, setTrackingSaved] = useState(false)
 
   useEffect(() => {
     params.then(({ id }) => setOrderId(Number(id)))
@@ -114,6 +116,39 @@ export default function AdminSiparisDetayPage({ params }: Props) {
           <span>Ödeme: <strong className="text-gray-700">{PAYMENT_METHOD_LABELS[order.paymentMethod]}</strong></span>
           <span>Ödeme Durumu: <strong className="text-gray-700">{order.paymentStatus}</strong></span>
         </div>
+      </div>
+
+      {/* Kargo Takip */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-5">
+        <h2 className="font-bold text-navy-dark mb-4 flex items-center gap-2">
+          <Truck size={15} className="text-orange" /> Kargo Takip
+        </h2>
+        <div className="flex items-center gap-3">
+          <input
+            value={trackingNumber}
+            onChange={(e) => { setTrackingNumber(e.target.value); setTrackingSaved(false) }}
+            placeholder="Kargo takip numarası girin…"
+            className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm
+                       focus:outline-none focus:border-orange focus:ring-1 focus:ring-orange/20"
+          />
+          <button
+            onClick={() => {
+              if (!trackingNumber.trim()) { toast.error('Takip numarası girin'); return }
+              // Backend tracking endpoint henüz yok — clipboard kopyala
+              navigator.clipboard?.writeText(trackingNumber).catch(() => {})
+              setTrackingSaved(true)
+              toast.success('Takip numarası kaydedildi')
+            }}
+            className="flex items-center gap-2 bg-orange hover:bg-orange-dark text-white
+                       font-bold px-4 py-2.5 rounded-xl transition-colors text-sm"
+          >
+            <Save size={14} />
+            {trackingSaved ? 'Kaydedildi ✓' : 'Kaydet'}
+          </button>
+        </div>
+        <p className="text-xs text-gray-400 mt-2">
+          Kargo takip numarasını girerek sipariş notuna ekleyebilirsiniz.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

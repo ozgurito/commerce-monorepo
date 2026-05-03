@@ -99,16 +99,26 @@ public class OrderService {
             }
             
             // STOK KONTROLÜ
-            if (variant.getStock() == null || variant.getStock() < itemReq.getQuantity()) {
-                throw new BaseException(ErrorCode.INSUFFICIENT_STOCK, 
-                    String.format("Ürün: %s, Mevcut stok: %d, İstenen: %d", 
-                        variant.getProduct().getName(), 
-                        variant.getStock() != null ? variant.getStock() : 0, 
-                        itemReq.getQuantity()));
+            // Variant stoğu 0 veya null ise ürün stoğunu kontrol et (fallback)
+            int effectiveStock = (variant.getStock() != null && variant.getStock() > 0)
+                    ? variant.getStock()
+                    : variant.getProduct().getStock();
+            if (effectiveStock < itemReq.getQuantity()) {
+                throw new BaseException(ErrorCode.INSUFFICIENT_STOCK,
+                    String.format("Ürün: %s, Mevcut stok: %d, İstenen: %d",
+                        variant.getProduct().getName(), effectiveStock, itemReq.getQuantity()));
             }
-            
-            // STOK DÜŞÜR (optimistic locking ile)
-            int updated = productVariantRepository.decreaseStock(variant.getId(), itemReq.getQuantity());
+
+            // STOK DÜŞÜR
+            // Variant stoğu gerçekse variant'ı düşür, 0 ise ürün stoğunu düşür
+            int updated;
+            if (variant.getStock() != null && variant.getStock() > 0) {
+                updated = productVariantRepository.decreaseStock(variant.getId(), itemReq.getQuantity());
+            } else {
+                // Variant stoğu 0 — ürün stoğunu düşür
+                variant.getProduct().setStock(variant.getProduct().getStock() - itemReq.getQuantity());
+                updated = 1; // manuel güncellendi
+            }
             if (updated == 0) {
                 throw new BaseException(ErrorCode.INSUFFICIENT_STOCK, 
                     "Stok güncellenemedi, başka bir kullanıcı ürünü satın almış olabilir");

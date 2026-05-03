@@ -4,6 +4,8 @@ import { ProductGallery } from '@/components/product/detail/ProductGallery'
 import { ProductInfo } from '@/components/product/detail/ProductInfo'
 import { Breadcrumb } from '@/components/product/detail/Breadcrumb'
 import { ReviewSection } from '@/components/product/detail/ReviewSection'
+import { RelatedProducts } from '@/components/product/detail/RelatedProducts'
+import { RecentlyViewedProducts } from '@/components/product/detail/RecentlyViewedProducts'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080'
 
@@ -53,7 +55,7 @@ export default async function UrunDetayPage(
         <ProductGallery
           images={product.images ?? []}
           productName={product.name}
-          fallbackUrl={product.images?.[0]?.imageUrl}
+          fallbackUrl={product.imageUrl ?? product.images?.[0]?.imageUrl}
         />
 
         {/* Sağ: Bilgi + Sepet */}
@@ -66,6 +68,12 @@ export default async function UrunDetayPage(
         averageRating={product.averageRating}
         totalReviews={product.totalReviews}
       />
+
+      {/* Benzer Ürünler */}
+      <RelatedProducts categoryId={product.categoryId} currentProductId={product.id} />
+
+      {/* Son İncelenenler */}
+      <RecentlyViewedProducts currentProductId={product.id} />
     </div>
   )
 }

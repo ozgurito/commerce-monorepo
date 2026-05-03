@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Plus, Trash2, X, Loader2, Ticket, ToggleLeft, ToggleRight } from 'lucide-react'
+import { Plus, Edit2, Trash2, X, Loader2, Ticket, ToggleLeft, ToggleRight } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { adminApi } from '@/domains/admin/admin.api'
 import { formatPrice } from '@/utils/format'
@@ -29,15 +29,30 @@ const inputCls = () =>
   'w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-1 focus:border-orange focus:ring-orange/20'
 
 interface ModalProps {
+  editTarget: CouponDto | null
   onClose: () => void
   onSave: (values: FormValues) => void
   isLoading: boolean
 }
 
-function CouponModal({ onClose, onSave, isLoading }: ModalProps) {
+function CouponModal({ editTarget, onClose, onSave, isLoading }: ModalProps) {
   const { register, handleSubmit, control, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { discountType: 'PERCENTAGE', isActive: true, firstOrderOnly: false },
+    defaultValues: editTarget
+      ? {
+          code:                  editTarget.code,
+          description:           editTarget.description ?? '',
+          discountType:          editTarget.discountType,
+          discountValue:         String(editTarget.discountValue),
+          minimumOrderAmount:    editTarget.minimumOrderAmount ? String(editTarget.minimumOrderAmount) : '',
+          maximumDiscountAmount: editTarget.maximumDiscountAmount ? String(editTarget.maximumDiscountAmount) : '',
+          usageLimit:            editTarget.usageLimit ? String(editTarget.usageLimit) : '',
+          startsAt:              editTarget.startsAt ? editTarget.startsAt.slice(0, 10) : '',
+          expiresAt:             editTarget.expiresAt ? editTarget.expiresAt.slice(0, 10) : '',
+          firstOrderOnly:        editTarget.firstOrderOnly,
+          isActive:              editTarget.isActive,
+        }
+      : { discountType: 'PERCENTAGE', isActive: true, firstOrderOnly: false },
   })
   const discountType = useWatch({ control, name: 'discountType' })
 
@@ -48,19 +63,22 @@ function CouponModal({ onClose, onSave, isLoading }: ModalProps) {
         <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
           <X size={18} />
         </button>
-        <h3 className="font-extrabold text-navy-dark text-lg mb-5">Yeni Kupon</h3>
+        <h3 className="font-extrabold text-navy-dark text-lg mb-5">
+          {editTarget ? 'Kuponu Düzenle' : 'Yeni Kupon'}
+        </h3>
 
         <form onSubmit={handleSubmit(onSave)} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-gray-600 mb-1">Kupon Kodu *</label>
               <input {...register('code')} placeholder="YENI10"
-                className={`${inputCls()} uppercase`} />
+                readOnly={!!editTarget}
+                className={`${inputCls()} uppercase ${editTarget ? 'bg-gray-50 cursor-default' : ''}`} />
               {errors.code && <p className="text-xs text-red-500 mt-1">{errors.code.message}</p>}
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-600 mb-1">İndirim Türü *</label>
-              <select {...register('discountType')} className={inputCls()}>
+              <select {...register('discountType')} disabled={!!editTarget} className={inputCls()}>
                 <option value="PERCENTAGE">Yüzde (%)</option>
                 <option value="FIXED_AMOUNT">Sabit Tutar (₺)</option>
                 <option value="FREE_SHIPPING">Ücretsiz Kargo</option>
@@ -134,7 +152,7 @@ function CouponModal({ onClose, onSave, isLoading }: ModalProps) {
                          rounded-xl transition-colors disabled:opacity-60 text-sm
                          flex items-center justify-center gap-2">
               {isLoading && <Loader2 size={14} className="animate-spin" />}
-              Oluştur
+              {editTarget ? 'Güncelle' : 'Oluştur'}
             </button>
           </div>
         </form>
@@ -153,6 +171,7 @@ export default function AdminKuponlarPage() {
   const queryClient = useQueryClient()
   const [page, setPage] = useState(0)
   const [showModal, setShowModal] = useState(false)
+  const [editTarget, setEditTarget] = useState<CouponDto | null>(null)
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin', 'coupons', page],
@@ -162,17 +181,17 @@ export default function AdminKuponlarPage() {
   const createMutation = useMutation({
     mutationFn: (values: FormValues) =>
       adminApi.createCoupon({
-        code: values.code.toUpperCase(),
-        description: values.description,
-        discountType: values.discountType,
-        discountValue: Number(values.discountValue),
-        minimumOrderAmount: values.minimumOrderAmount ? Number(values.minimumOrderAmount) : undefined,
+        code:                  values.code.toUpperCase(),
+        description:           values.description,
+        discountType:          values.discountType,
+        discountValue:         Number(values.discountValue),
+        minimumOrderAmount:    values.minimumOrderAmount ? Number(values.minimumOrderAmount) : undefined,
         maximumDiscountAmount: values.maximumDiscountAmount ? Number(values.maximumDiscountAmount) : undefined,
-        usageLimit: values.usageLimit ? Number(values.usageLimit) : undefined,
-        startsAt: values.startsAt || undefined,
-        expiresAt: values.expiresAt || undefined,
-        firstOrderOnly: values.firstOrderOnly,
-        isActive: values.isActive,
+        usageLimit:            values.usageLimit ? Number(values.usageLimit) : undefined,
+        startsAt:              values.startsAt || undefined,
+        expiresAt:             values.expiresAt || undefined,
+        firstOrderOnly:        values.firstOrderOnly,
+        isActive:              values.isActive,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'coupons'] })
@@ -185,10 +204,35 @@ export default function AdminKuponlarPage() {
     },
   })
 
+  const updateMutation = useMutation({
+    mutationFn: ({ id, values }: { id: number; values: FormValues }) =>
+      adminApi.updateCoupon(id, {
+        description:           values.description,
+        discountValue:         Number(values.discountValue),
+        minimumOrderAmount:    values.minimumOrderAmount ? Number(values.minimumOrderAmount) : undefined,
+        maximumDiscountAmount: values.maximumDiscountAmount ? Number(values.maximumDiscountAmount) : undefined,
+        usageLimit:            values.usageLimit ? Number(values.usageLimit) : undefined,
+        startsAt:              values.startsAt || undefined,
+        expiresAt:             values.expiresAt || undefined,
+        firstOrderOnly:        values.firstOrderOnly,
+        isActive:              values.isActive,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'coupons'] })
+      setEditTarget(null)
+      toast.success('Kupon güncellendi')
+    },
+    onError: (err: unknown) => {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      toast.error(msg ?? 'Güncelleme başarısız')
+    },
+  })
+
   const toggleMutation = useMutation({
     mutationFn: ({ id, isActive }: { id: number; isActive: boolean }) =>
       adminApi.updateCoupon(id, { isActive }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'coupons'] }),
+    onError: () => toast.error('Güncelleme başarısız'),
   })
 
   const deleteMutation = useMutation({
@@ -207,7 +251,7 @@ export default function AdminKuponlarPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-extrabold text-navy-dark">Kuponlar</h1>
         <button
-          onClick={() => setShowModal(true)}
+          onClick={() => { setEditTarget(null); setShowModal(true) }}
           className="flex items-center gap-2 bg-orange hover:bg-orange-dark text-white
                      font-bold px-4 py-2.5 rounded-xl transition-colors text-sm"
         >
@@ -231,6 +275,7 @@ export default function AdminKuponlarPage() {
               <tr>
                 <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 uppercase">Kod</th>
                 <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase">İndirim</th>
+                <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase">Min. Sipariş</th>
                 <th className="text-right px-4 py-3 text-xs font-bold text-gray-500 uppercase">Kullanım</th>
                 <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase">Bitiş</th>
                 <th className="text-center px-4 py-3 text-xs font-bold text-gray-500 uppercase">Aktif</th>
@@ -242,11 +287,12 @@ export default function AdminKuponlarPage() {
                 <tr key={c.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-5 py-3">
                     <span className="font-mono font-bold text-navy-dark">{c.code}</span>
-                    {c.description && (
-                      <p className="text-xs text-gray-400">{c.description}</p>
-                    )}
+                    {c.description && <p className="text-xs text-gray-400">{c.description}</p>}
                   </td>
                   <td className="px-4 py-3 font-semibold text-orange">{discountLabel(c)}</td>
+                  <td className="px-4 py-3 text-xs text-gray-500">
+                    {c.minimumOrderAmount ? formatPrice(c.minimumOrderAmount) : '—'}
+                  </td>
                   <td className="px-4 py-3 text-right text-gray-500">
                     {c.usedCount}{c.usageLimit ? ` / ${c.usageLimit}` : ''}
                   </td>
@@ -265,16 +311,24 @@ export default function AdminKuponlarPage() {
                     </button>
                   </td>
                   <td className="px-4 py-3">
-                    <button
-                      onClick={() => {
-                        if (confirm(`"${c.code}" silinsin mi?`)) deleteMutation.mutate(c.id)
-                      }}
-                      disabled={deleteMutation.isPending}
-                      className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50
-                                 rounded-lg transition-colors disabled:opacity-50"
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    <div className="flex items-center gap-1.5 justify-end">
+                      <button
+                        onClick={() => setEditTarget(c)}
+                        className="p-1.5 text-gray-400 hover:text-navy-dark hover:bg-gray-100 rounded-lg"
+                      >
+                        <Edit2 size={14} />
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (confirm(`"${c.code}" silinsin mi?`)) deleteMutation.mutate(c.id)
+                        }}
+                        disabled={deleteMutation.isPending}
+                        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50
+                                   rounded-lg transition-colors disabled:opacity-50"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -299,11 +353,16 @@ export default function AdminKuponlarPage() {
         </div>
       )}
 
-      {showModal && (
+      {(showModal || editTarget) && (
         <CouponModal
-          onClose={() => setShowModal(false)}
-          onSave={(v) => createMutation.mutate(v)}
-          isLoading={createMutation.isPending}
+          editTarget={editTarget}
+          onClose={() => { setShowModal(false); setEditTarget(null) }}
+          isLoading={createMutation.isPending || updateMutation.isPending}
+          onSave={(values) =>
+            editTarget
+              ? updateMutation.mutate({ id: editTarget.id, values })
+              : createMutation.mutate(values)
+          }
         />
       )}
     </div>

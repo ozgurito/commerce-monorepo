@@ -5,6 +5,9 @@ import { CategoryBubbles } from '@/components/home/CategoryBubbles'
 import { FlashDeal } from '@/components/home/FlashDeal'
 import { PromoBanners } from '@/components/home/PromoBanners'
 import { FeaturedProducts } from '@/components/home/FeaturedProducts'
+import { NewArrivalsSection } from '@/components/home/NewArrivalsSection'
+import { SaleBannerStrip } from '@/components/home/SaleBannerStrip'
+import { CategoryCards } from '@/components/home/CategoryCards'
 
 export const metadata: Metadata = {
   title: 'AlışverişNoktan — Türkiye\'nin Giyim Mağazası',
@@ -26,9 +29,7 @@ export default function HomePage() {
       <PromoStrip />
 
       {/* 3. Categories */}
-      <div className="max-w-[1280px] mx-auto px-5 pt-8">
-        <CategoryBubbles />
-      </div>
+      <CategoryBubbles />
 
       {/* 4. Flash deals */}
       <div className="bg-gradient-to-b from-gray-50 to-white">
@@ -40,8 +41,21 @@ export default function HomePage() {
         <FeaturedProducts />
       </div>
 
-      {/* 6. Promo banners */}
+      {/* 6. Yeni Gelenler */}
+      <NewArrivalsSection />
+
+      {/* 7. İndirim + Güven bandı */}
+      <div className="bg-gray-50">
+        <SaleBannerStrip />
+      </div>
+
+      {/* 8. Kategori kartları (T-Shirt, Hoodie, Sweatshirt, Tank Top) */}
       <div className="bg-white">
+        <CategoryCards />
+      </div>
+
+      {/* 9. Promo banners (Kadın, Erkek, Flaş Fırsat) */}
+      <div className="bg-gray-50">
         <PromoBanners />
       </div>
 

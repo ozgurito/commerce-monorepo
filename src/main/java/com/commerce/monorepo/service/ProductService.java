@@ -99,6 +99,7 @@ public class ProductService {
                 product.getIsActive(), product.getIsFeatured(), product.getAllowReviews(),
                 product.getCategory() != null ? product.getCategory().getId() : null,
                 product.getCategory() != null ? product.getCategory().getName() : null,
+                resolvePrimaryImage(product),
                 images, variants, averageRating, totalReviews,
                 product.getCreatedAt(), product.getUpdatedAt(),
                 product.getFitType(), product.getFabricComposition(), product.getCareInstructions(),
@@ -154,6 +155,7 @@ public class ProductService {
         return mapToDto(repo.save(p));
     }
 
+    @Transactional
     public ProductDto update(Long id, ProductUpdateRequest r) {
         var p = repo.findById(id)
                 .orElseThrow(() -> new BaseException(ErrorCode.PRODUCT_NOT_FOUND));
@@ -179,7 +181,10 @@ public class ProductService {
                     .orElseThrow(() -> new BaseException(ErrorCode.CATEGORY_NOT_FOUND));
             p.setCategory(category);
         }
-        
+
+        if (r.isActive() != null)   p.setIsActive(r.isActive());
+        if (r.isFeatured() != null) p.setIsFeatured(r.isFeatured());
+
         // Giyim spesifik alanlar
         if (r.fitType() != null) p.setFitType(r.fitType());
         if (r.fabricComposition() != null) p.setFabricComposition(r.fabricComposition());
@@ -235,6 +240,17 @@ public class ProductService {
             throw new BaseException(ErrorCode.PRODUCT_NOT_FOUND);
         }
         return mapToDto(product);
+    }
+
+    /** Slug ile tam detay — galeri + varyantlar dahil (ürün sayfası için) */
+    @Transactional(readOnly = true)
+    public ProductDetailDto getDetailBySlug(String slug) {
+        Product product = repo.findBySlug(slug)
+                .orElseThrow(() -> new BaseException(ErrorCode.PRODUCT_NOT_FOUND));
+        if (!Boolean.TRUE.equals(product.getIsActive())) {
+            throw new BaseException(ErrorCode.PRODUCT_NOT_FOUND);
+        }
+        return getDetail(product.getId());
     }
 
     @Transactional(readOnly = true)
@@ -420,6 +436,23 @@ public class ProductService {
         repo.save(product);
         
         return mapImageToDto(image);
+    }
+
+    public record ImageOrderItem(Long id, Integer displayOrder) {}
+
+    @Transactional
+    public void reorderImages(Long productId, List<ImageOrderItem> order) {
+        Product product = repo.findById(productId)
+                .orElseThrow(() -> new BaseException(ErrorCode.PRODUCT_NOT_FOUND));
+        Map<Long, ProductImage> imageMap = product.getImages().stream()
+                .collect(Collectors.toMap(ProductImage::getId, img -> img));
+        for (ImageOrderItem item : order) {
+            ProductImage img = imageMap.get(item.id());
+            if (img != null) {
+                img.setDisplayOrder(item.displayOrder());
+            }
+        }
+        repo.save(product);
     }
 
     private ProductImageDto mapImageToDto(ProductImage image) {

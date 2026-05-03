@@ -2,6 +2,10 @@ import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
   images: {
+    // Next.js 15+ SSRF koruması localhost/private IP'yi engeller.
+    // Dev ortamında MinIO (localhost:9000) görsellerinin çalışması için
+    // optimization'ı devre dışı bırak — tarayıcı direkt fetch yapar.
+    unoptimized: true,
     remotePatterns: [
       // Lokal geliştirme (MinIO / Spring)
       { protocol: 'http',  hostname: 'localhost', port: '9000' },

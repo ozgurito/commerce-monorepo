@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { X, ChevronDown, SlidersHorizontal } from 'lucide-react'
 import { categoriesApi } from '@/domains/categories/categories.api'
@@ -76,12 +76,17 @@ function FilterSection({
 }
 
 export function FilterSidebar({ filters, onFilterChange, onReset, isOpen, onClose }: Props) {
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
+
   const { data: categories = [] } = useQuery({
     queryKey: QUERY_KEYS.categories.all,
     queryFn: categoriesApi.getAll,
     staleTime: 5 * 60 * 1000,
   })
-  const rootCats = categories.filter((c: CategoryDto) => c.parentId === null && c.isActive)
+  const rootCats = mounted
+    ? categories.filter((c: CategoryDto) => c.parentId === null && c.isActive)
+    : []
 
   const toggleArr = (arr: string[], val: string) =>
     arr.includes(val) ? arr.filter((x) => x !== val) : [...arr, val]

@@ -1,15 +1,19 @@
 'use client'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Loader2, Save, Upload, Trash2, Star, Plus, X } from 'lucide-react'
-import Image from 'next/image'
+import { Reorder } from 'framer-motion'
+import {
+  ArrowLeft, Loader2, Save, Upload, Trash2, Star, Plus, X,
+  ZoomIn, ChevronLeft, ChevronRight, GripVertical,
+} from 'lucide-react'
 import toast from 'react-hot-toast'
 import { adminApi } from '@/domains/admin/admin.api'
 import { categoriesApi } from '@/domains/categories/categories.api'
+import type { ProductImageDto } from '@/domains/products/products.types'
 
 const SIZES = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL']
 
@@ -45,8 +49,14 @@ export default function UrunDuzenlemePage({ params }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [productId, setProductId] = useState<number | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [dragOver, setDragOver] = useState(false)
   const [newColorName, setNewColorName] = useState('')
   const [newColorHex, setNewColorHex] = useState('#000000')
+  // Lightbox state
+  const [zoomedIdx, setZoomedIdx] = useState<number | null>(null)
+  // Galeri sırası (drag-to-reorder)
+  const [imgOrder, setImgOrder] = useState<ProductImageDto[]>([])
+  const reorderTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     params.then(({ id }) => setProductId(Number(id)))
@@ -143,6 +153,16 @@ export default function UrunDuzenlemePage({ params }: Props) {
     onError: () => toast.error('Varyant eklenemedi'),
   })
 
+  const updateVariantMutation = useMutation({
+    mutationFn: ({ variantId, stock }: { variantId: number; stock: number }) =>
+      adminApi.updateVariant(productId!, variantId, { stock }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'product', productId] })
+      toast.success('Stok güncellendi')
+    },
+    onError: () => toast.error('Stok güncellenemedi'),
+  })
+
   const deleteVariantMutation = useMutation({
     mutationFn: (variantId: number) => adminApi.deleteVariant(productId!, variantId),
     onSuccess: () => {
@@ -151,44 +171,87 @@ export default function UrunDuzenlemePage({ params }: Props) {
     onError: () => toast.error('Varyant silinemedi'),
   })
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? [])
+  const doUpload = async (files: File[]) => {
     if (!files.length || !productId) return
     setUploading(true)
     let uploaded = 0
     try {
       for (const file of files) {
-        const { url, headers: signedHeaders } = await adminApi.getUploadUrl(file.type)
-        const putHeaders: Record<string, string> = { 'Content-Type': file.type }
-        for (const [h, vals] of Object.entries(signedHeaders ?? {})) {
-          putHeaders[h] = vals[0]
-        }
-        await fetch(url, { method: 'PUT', body: file, headers: putHeaders })
-        const publicUrl = url.split('?')[0]
+        const { imageUrl } = await adminApi.uploadImage(file)
         const isPrimary = !product?.images.length && uploaded === 0
-        await adminApi.addProductImage(productId, publicUrl, isPrimary)
+        await adminApi.addProductImage(productId, imageUrl, isPrimary)
         uploaded++
       }
       queryClient.invalidateQueries({ queryKey: ['admin', 'product', productId] })
       toast.success(`${uploaded} görsel yüklendi`)
-    } catch {
-      toast.error('Görsel yüklenemedi')
+    } catch (err: unknown) {
+      if ((err as { _tokenRefreshed?: boolean })?._tokenRefreshed) {
+        toast.error('Oturum yenilendi — lütfen görseli tekrar seçin')
+      } else {
+        const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+        toast.error(msg ?? 'Görsel yüklenemedi')
+      }
     } finally {
       setUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
 
-  const sizeVariants = product?.variants.filter((v) => v.variantType === 'SIZE' || v.size !== null) ?? []
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    doUpload(Array.from(e.target.files ?? []))
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setDragOver(false)
+    const files = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith('image/'))
+    if (files.length) doUpload(files)
+  }
+
+  const sizeVariants  = product?.variants.filter((v) => v.variantType === 'SIZE' || v.size !== null) ?? []
   const colorVariants = product?.variants.filter((v) => v.variantType === 'COLOR' || v.color !== null) ?? []
-  const primaryImage = product?.images.find((img) => img.isPrimary) ?? product?.images[0] ?? null
+  const primaryImage  = product?.images.find((img) => img.isPrimary) ?? product?.images[0] ?? null
+
+  const sortedImages  = (product?.images ?? [])
+    .slice()
+    .sort((a, b) => {
+      if (a.isPrimary !== b.isPrimary) return a.isPrimary ? -1 : 1
+      return (a.displayOrder ?? 0) - (b.displayOrder ?? 0)
+    })
+
+  // product değiştiğinde (yeni yükleme, silme, primary değişimi) imgOrder'ı güncelle
+  useEffect(() => {
+    if (product) {
+      setImgOrder(
+        [...(product.images ?? [])].sort((a, b) => {
+          if (a.isPrimary !== b.isPrimary) return a.isPrimary ? -1 : 1
+          return (a.displayOrder ?? 0) - (b.displayOrder ?? 0)
+        })
+      )
+    }
+  }, [product])
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const handleReorder = useCallback((newOrder: ProductImageDto[]) => {
+    setImgOrder(newOrder)
+    // Debounce: 500ms bekle sonra API'ye gönder
+    if (reorderTimerRef.current) clearTimeout(reorderTimerRef.current)
+    reorderTimerRef.current = setTimeout(() => {
+      if (!productId) return
+      adminApi.reorderImages(
+        productId,
+        newOrder.map((img, i) => ({ id: img.id, displayOrder: i }))
+      ).catch(() => toast.error('Sıra güncellenemedi'))
+    }, 500)
+  }, [productId])
 
   const handleSizeToggle = (size: string) => {
     const existing = sizeVariants.find((v) => v.size === size)
     if (existing) {
       deleteVariantMutation.mutate(existing.id)
     } else {
-      createVariantMutation.mutate({ variantType: 'SIZE', name: size, size, stock: 0 })
+      // Varyant stoğunu ürün stoğuna eşitle — CartService / OrderService variant.stock'u kontrol ediyor
+      createVariantMutation.mutate({ variantType: 'SIZE', name: size, size, stock: product?.stock ?? 100 })
     }
   }
 
@@ -205,6 +268,23 @@ export default function UrunDuzenlemePage({ params }: Props) {
     setNewColorHex('#000000')
   }
 
+  /* ── Lightbox navigasyon ── */
+  const lightboxPrev = () => setZoomedIdx((i) => (i !== null && i > 0 ? i - 1 : i))
+  const lightboxNext = () =>
+    setZoomedIdx((i) => (i !== null && i < imgOrder.length - 1 ? i + 1 : i))
+
+  useEffect(() => {
+    if (zoomedIdx === null) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setZoomedIdx(null)
+      if (e.key === 'ArrowLeft') lightboxPrev()
+      if (e.key === 'ArrowRight') lightboxNext()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [zoomedIdx])
+
   if (isLoading || !productId) {
     return (
       <div className="flex justify-center py-20">
@@ -215,6 +295,58 @@ export default function UrunDuzenlemePage({ params }: Props) {
 
   return (
     <div className="max-w-[1100px]">
+      {/* ── Lightbox ── */}
+      {zoomedIdx !== null && imgOrder[zoomedIdx] && (
+        <div
+          className="fixed inset-0 z-[600] bg-black/90 flex items-center justify-center p-4"
+          onClick={() => setZoomedIdx(null)}
+        >
+          {/* Kapama */}
+          <button
+            onClick={() => setZoomedIdx(null)}
+            className="absolute top-4 right-4 text-white/70 hover:text-white bg-white/10
+                       rounded-full p-2 transition-colors"
+          >
+            <X size={20} />
+          </button>
+
+          {/* Sol ok */}
+          {zoomedIdx > 0 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); lightboxPrev() }}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-white/70 hover:text-white
+                         bg-white/10 rounded-full p-2 transition-colors"
+            >
+              <ChevronLeft size={24} />
+            </button>
+          )}
+
+          {/* Görsel */}
+          <img
+            src={imgOrder[zoomedIdx].imageUrl}
+            alt=""
+            onClick={(e) => e.stopPropagation()}
+            className="max-h-[85vh] max-w-[90vw] object-contain rounded-xl shadow-2xl"
+          />
+
+          {/* Sağ ok */}
+          {zoomedIdx < imgOrder.length - 1 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); lightboxNext() }}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-white/70 hover:text-white
+                         bg-white/10 rounded-full p-2 transition-colors"
+            >
+              <ChevronRight size={24} />
+            </button>
+          )}
+
+          {/* Alt sayaç */}
+          <p className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/50 text-sm">
+            {zoomedIdx + 1} / {imgOrder.length}
+          </p>
+        </div>
+      )}
+
       <div className="flex items-center gap-3 mb-6">
         <button onClick={() => router.back()} className="text-gray-400 hover:text-orange">
           <ArrowLeft size={20} />
@@ -322,7 +454,12 @@ export default function UrunDuzenlemePage({ params }: Props) {
             {/* Galeri Görselleri */}
             <div className="bg-white rounded-2xl border border-gray-100 p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="font-bold text-navy-dark">Galeri Görselleri</h2>
+                <div>
+                  <h2 className="font-bold text-navy-dark">Galeri Görselleri</h2>
+                  {sortedImages.length > 0 && (
+                    <p className="text-xs text-gray-400 mt-0.5">{sortedImages.length} görsel · Görsele tıklayarak büyüt</p>
+                  )}
+                </div>
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
@@ -345,43 +482,69 @@ export default function UrunDuzenlemePage({ params }: Props) {
                 />
               </div>
 
-              {!product?.images.length ? (
+              {/* Drag & Drop alan */}
+              {!sortedImages.length ? (
                 <div
+                  onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
+                  onDragLeave={() => setDragOver(false)}
+                  onDrop={handleDrop}
                   onClick={() => fileInputRef.current?.click()}
-                  className="border-2 border-dashed border-gray-200 rounded-xl p-10 text-center
-                             cursor-pointer hover:border-orange transition-colors"
+                  className={`border-2 border-dashed rounded-xl p-10 text-center cursor-pointer
+                               transition-colors
+                               ${dragOver
+                                 ? 'border-orange bg-orange/5'
+                                 : 'border-gray-200 hover:border-orange'}`}
                 >
-                  <Upload size={28} className="text-gray-300 mx-auto mb-2" />
-                  <p className="text-sm text-gray-400">Görsel eklemek için tıklayın veya dosyaları sürükleyin</p>
+                  <Upload size={28} className={`mx-auto mb-2 ${dragOver ? 'text-orange' : 'text-gray-300'}`} />
+                  <p className="text-sm text-gray-400">
+                    Görselleri buraya sürükleyin veya{' '}
+                    <span className="text-orange font-semibold">tıklayın</span>
+                  </p>
+                  <p className="text-xs text-gray-300 mt-1">PNG, JPG, WebP — birden fazla seçebilirsiniz</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-4 gap-3">
-                  {product.images
-                    .slice()
-                    .sort((a, b) => (b.isPrimary ? 1 : 0) - (a.isPrimary ? 1 : 0))
-                    .map((img) => (
-                      <div key={img.id} className="relative group">
-                        <div className="aspect-square rounded-xl overflow-hidden bg-gray-50 relative">
-                          <Image
-                            src={img.imageUrl}
-                            alt=""
-                            fill
-                            className="object-cover"
-                            sizes="120px"
-                            unoptimized
-                          />
-                          {img.isPrimary && (
-                            <div className="absolute top-1 left-1 bg-orange text-white text-[9px]
-                                            font-bold px-1.5 py-0.5 rounded">Ana</div>
-                          )}
+                <Reorder.Group
+                  axis="x"
+                  values={imgOrder}
+                  onReorder={handleReorder}
+                  className="flex flex-wrap gap-3"
+                >
+                  {imgOrder.map((img, idx) => (
+                    <Reorder.Item
+                      key={img.id}
+                      value={img}
+                      className="relative group w-24 h-24 flex-shrink-0 cursor-grab active:cursor-grabbing"
+                    >
+                      <div
+                        className="w-24 h-24 rounded-xl overflow-hidden bg-gray-50 relative cursor-zoom-in"
+                        onClick={() => setZoomedIdx(idx)}
+                      >
+                        <img
+                          src={img.imageUrl}
+                          alt=""
+                          className="w-full h-full object-cover group-hover:scale-105
+                                     transition-transform duration-300"
+                          draggable={false}
+                        />
+                        {img.isPrimary && (
+                          <div className="absolute top-1 left-1 bg-orange text-white text-[9px]
+                                          font-bold px-1.5 py-0.5 rounded">Ana</div>
+                        )}
+                        <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100
+                                        transition-opacity bg-black/40 rounded-lg p-1">
+                          <GripVertical size={12} className="text-white" />
                         </div>
-                        <div className="absolute inset-0 bg-black/40 rounded-xl opacity-0 group-hover:opacity-100
-                                        transition-opacity flex items-center justify-center gap-1.5">
+                      </div>
+                      {/* Hover aksiyonlar */}
+                      <div className="absolute inset-0 bg-black/40 rounded-xl opacity-0 group-hover:opacity-100
+                                      transition-opacity flex items-end justify-center gap-1.5 pb-2 pointer-events-none">
+                        <div className="pointer-events-auto flex gap-1.5">
                           {!img.isPrimary && (
                             <button
                               type="button"
-                              onClick={() => setPrimaryMutation.mutate(img.id)}
-                              className="p-1.5 bg-white/90 rounded-lg hover:bg-white text-yellow-500"
+                              onClick={(e) => { e.stopPropagation(); setPrimaryMutation.mutate(img.id) }}
+                              className="p-1.5 bg-white/90 rounded-lg hover:bg-white text-yellow-500
+                                         transition-colors"
                               title="Ana görsel yap"
                             >
                               <Star size={13} />
@@ -389,88 +552,206 @@ export default function UrunDuzenlemePage({ params }: Props) {
                           )}
                           <button
                             type="button"
-                            onClick={() => deleteImageMutation.mutate(img.id)}
-                            className="p-1.5 bg-white/90 rounded-lg hover:bg-white text-red-500"
+                            onClick={(e) => { e.stopPropagation(); deleteImageMutation.mutate(img.id) }}
+                            className="p-1.5 bg-white/90 rounded-lg hover:bg-white text-red-500
+                                       transition-colors"
                             title="Sil"
                           >
                             <Trash2 size={13} />
                           </button>
                         </div>
                       </div>
-                    ))}
-                </div>
+                    </Reorder.Item>
+                  ))}
+
+                  {/* Yeni görsel ekle kartı — Reorder.Item değil, sürüklenmez */}
+                  <div
+                    onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
+                    onDragLeave={() => setDragOver(false)}
+                    onDrop={handleDrop}
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`w-24 h-24 rounded-xl border-2 border-dashed flex flex-col items-center
+                                justify-center gap-1.5 cursor-pointer transition-colors flex-shrink-0
+                                ${dragOver
+                                  ? 'border-orange bg-orange/5 text-orange'
+                                  : 'border-gray-200 hover:border-orange text-gray-300 hover:text-orange'}`}
+                  >
+                    {uploading
+                      ? <Loader2 size={20} className="text-orange animate-spin" />
+                      : <Upload size={20} />}
+                    <span className="text-[10px] font-semibold">
+                      {uploading ? 'Yükleniyor…' : 'Ekle'}
+                    </span>
+                  </div>
+                </Reorder.Group>
               )}
             </div>
 
             {/* Beden Yönetimi */}
             <div className="bg-white rounded-2xl border border-gray-100 p-6">
-              <h2 className="font-bold text-navy-dark mb-4">Bedenler</h2>
+              <div className="flex items-center justify-between mb-1">
+                <h2 className="font-bold text-navy-dark">Bedenler</h2>
+                <span className="text-xs text-gray-400">Stok sipariş gelince otomatik düşer</span>
+              </div>
+              <p className="text-xs text-gray-400 mb-4">
+                Aktif bedene tıklayarak kaldırabilirsiniz. Stok alanını düzenleyip Enter&apos;a basın.
+              </p>
+
+              {/* Mevcut bedenler — stoklu tablo */}
+              {sizeVariants.length > 0 && (
+                <div className="mb-4 rounded-xl border border-gray-100 overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 border-b border-gray-100">
+                      <tr>
+                        <th className="text-left px-3 py-2 text-xs font-bold text-gray-500">Beden</th>
+                        <th className="text-center px-3 py-2 text-xs font-bold text-gray-500">Stok</th>
+                        <th className="w-8" />
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {SIZES.filter(s => sizeVariants.some(v => v.size === s)).map((size) => {
+                        const variant = sizeVariants.find((v) => v.size === size)!
+                        return (
+                          <tr key={size} className="hover:bg-gray-50">
+                            <td className="px-3 py-2 font-bold text-navy-dark">{size}</td>
+                            <td className="px-3 py-2 text-center">
+                              <input
+                                type="number"
+                                min={0}
+                                defaultValue={variant.stock}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    const val = parseInt((e.target as HTMLInputElement).value)
+                                    if (!isNaN(val) && val >= 0) {
+                                      updateVariantMutation.mutate({ variantId: variant.id, stock: val })
+                                    }
+                                  }
+                                }}
+                                onBlur={(e) => {
+                                  const val = parseInt(e.target.value)
+                                  if (!isNaN(val) && val >= 0 && val !== variant.stock) {
+                                    updateVariantMutation.mutate({ variantId: variant.id, stock: val })
+                                  }
+                                }}
+                                className="w-20 text-center border border-gray-200 rounded-lg px-2 py-1
+                                           text-sm focus:outline-none focus:border-orange focus:ring-1
+                                           focus:ring-orange/20"
+                              />
+                            </td>
+                            <td className="px-3 py-2 text-right">
+                              <button
+                                type="button"
+                                onClick={() => deleteVariantMutation.mutate(variant.id)}
+                                disabled={deleteVariantMutation.isPending}
+                                className="text-gray-300 hover:text-red-500 transition-colors disabled:opacity-50"
+                                title="Bedeni kaldır"
+                              >
+                                <X size={14} />
+                              </button>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Beden ekle */}
               <div className="flex flex-wrap gap-2">
-                {SIZES.map((size) => {
-                  const active = sizeVariants.some((v) => v.size === size)
-                  return (
-                    <button
-                      key={size}
-                      type="button"
-                      onClick={() => handleSizeToggle(size)}
-                      disabled={createVariantMutation.isPending || deleteVariantMutation.isPending}
-                      className={`px-4 py-2 rounded-xl text-sm font-bold border transition-colors
-                        disabled:opacity-50
-                        ${active
-                          ? 'bg-orange text-white border-orange'
-                          : 'bg-white text-gray-600 border-gray-200 hover:border-orange hover:text-orange'}`}
-                    >
-                      {size}
-                    </button>
-                  )
-                })}
+                {SIZES.filter(s => !sizeVariants.some(v => v.size === s)).map((size) => (
+                  <button
+                    key={size}
+                    type="button"
+                    onClick={() => handleSizeToggle(size)}
+                    disabled={createVariantMutation.isPending}
+                    className="px-4 py-2 rounded-xl text-sm font-bold border-2 border-dashed border-gray-200
+                               text-gray-400 hover:border-orange hover:text-orange transition-all
+                               disabled:opacity-50"
+                  >
+                    + {size}
+                  </button>
+                ))}
+                {SIZES.every(s => sizeVariants.some(v => v.size === s)) && (
+                  <p className="text-xs text-gray-400 italic">Tüm bedenler eklendi</p>
+                )}
               </div>
             </div>
 
             {/* Renk Yönetimi */}
             <div className="bg-white rounded-2xl border border-gray-100 p-6">
-              <h2 className="font-bold text-navy-dark mb-4">Renkler</h2>
-              <div className="flex flex-wrap gap-2 mb-4">
-                {colorVariants.map((v) => (
-                  <div key={v.id}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 text-sm">
-                    <span
-                      className="w-4 h-4 rounded-full border border-gray-200 flex-shrink-0"
-                      style={{ backgroundColor: v.colorHex ?? '#ccc' }}
-                    />
-                    <span className="text-gray-700 font-medium">{v.color}</span>
-                    <button
-                      type="button"
-                      onClick={() => deleteVariantMutation.mutate(v.id)}
-                      disabled={deleteVariantMutation.isPending}
-                      className="text-gray-400 hover:text-red-500 ml-0.5 disabled:opacity-50"
+              <h2 className="font-bold text-navy-dark mb-1">Renkler</h2>
+              <p className="text-xs text-gray-400 mb-4">
+                Renk adı girin, renk kutusundan hex seçin, Ekle&apos;ye basın
+              </p>
+
+              {/* Mevcut renkler */}
+              {colorVariants.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {colorVariants.map((v) => (
+                    <div
+                      key={v.id}
+                      className="flex items-center gap-2 px-3 py-2 rounded-xl border border-gray-200
+                                 bg-gray-50 text-sm group/chip"
                     >
-                      <X size={12} />
-                    </button>
-                  </div>
-                ))}
-              </div>
+                      {/* Renk circle */}
+                      <span
+                        className="w-5 h-5 rounded-full border border-gray-300 flex-shrink-0 shadow-sm"
+                        style={{ backgroundColor: v.colorHex ?? '#cccccc' }}
+                        title={v.colorHex ?? 'Renk belirsiz'}
+                      />
+                      <span className="text-gray-700 font-semibold">{v.color}</span>
+                      {v.colorHex && (
+                        <span className="text-[10px] text-gray-400 font-mono">{v.colorHex}</span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => deleteVariantMutation.mutate(v.id)}
+                        disabled={deleteVariantMutation.isPending}
+                        className="text-gray-300 hover:text-red-500 disabled:opacity-50
+                                   transition-colors ml-0.5"
+                      >
+                        <X size={13} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Yeni renk ekle */}
               <div className="flex items-center gap-2">
                 <input
                   type="text"
                   value={newColorName}
                   onChange={(e) => setNewColorName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddColor())}
                   placeholder="Renk adı (örn. Lacivert)"
                   className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm
-                             focus:outline-none focus:ring-1 focus:border-orange focus:ring-orange/20"
+                             focus:outline-none focus:ring-1 focus:border-orange focus:ring-orange/20
+                             transition-colors"
                 />
-                <input
-                  type="color"
-                  value={newColorHex}
-                  onChange={(e) => setNewColorHex(e.target.value)}
-                  className="w-10 h-10 rounded-xl border border-gray-200 cursor-pointer p-1"
-                />
+                <div className="relative">
+                  <input
+                    type="color"
+                    value={newColorHex}
+                    onChange={(e) => setNewColorHex(e.target.value)}
+                    className="w-11 h-11 rounded-xl border border-gray-200 cursor-pointer p-1
+                               appearance-none"
+                    title="Renk seç"
+                  />
+                  {/* Preview label */}
+                  <span className="absolute -bottom-4 left-1/2 -translate-x-1/2 text-[9px]
+                                   text-gray-400 font-mono whitespace-nowrap">
+                    {newColorHex}
+                  </span>
+                </div>
                 <button
                   type="button"
                   onClick={handleAddColor}
-                  disabled={createVariantMutation.isPending}
-                  className="flex items-center gap-1 bg-orange hover:bg-orange-dark text-white
-                             font-bold px-4 py-2.5 rounded-xl text-sm disabled:opacity-60"
+                  disabled={createVariantMutation.isPending || !newColorName.trim()}
+                  className="flex items-center gap-1.5 bg-orange hover:bg-orange-dark text-white
+                             font-bold px-4 py-2.5 rounded-xl text-sm disabled:opacity-60
+                             transition-colors"
                 >
                   <Plus size={14} /> Ekle
                 </button>
@@ -485,15 +766,27 @@ export default function UrunDuzenlemePage({ params }: Props) {
             <div className="bg-white rounded-2xl border border-gray-100 p-5">
               <h2 className="font-bold text-navy-dark mb-3">Kapak Görseli</h2>
               {primaryImage ? (
-                <div className="relative w-full rounded-xl overflow-hidden bg-gray-50"
-                  style={{ height: 220 }}>
-                  <Image
+                <div
+                  className="w-full rounded-xl overflow-hidden bg-gray-50 relative group/cover cursor-zoom-in"
+                  style={{ height: 220 }}
+                  onClick={() => {
+                    const idx = sortedImages.findIndex((i) => i.id === primaryImage.id)
+                    setZoomedIdx(idx >= 0 ? idx : 0)
+                  }}
+                >
+                  <img
                     src={primaryImage.imageUrl}
                     alt={product?.name ?? ''}
-                    fill
-                    className="object-cover"
-                    unoptimized
+                    className="w-full h-full object-cover group-hover/cover:scale-105
+                               transition-transform duration-300"
                   />
+                  <div className="absolute inset-0 bg-black/0 group-hover/cover:bg-black/20
+                                  transition-colors flex items-center justify-center">
+                    <ZoomIn
+                      size={24}
+                      className="text-white opacity-0 group-hover/cover:opacity-100 transition-opacity"
+                    />
+                  </div>
                 </div>
               ) : (
                 <div
@@ -509,7 +802,7 @@ export default function UrunDuzenlemePage({ params }: Props) {
               )}
               {primaryImage && (
                 <p className="text-xs text-gray-400 mt-2 text-center">
-                  Galeri&apos;den &quot;Ana Görsel&quot; seçerek değiştirebilirsiniz
+                  Galeri&apos;den <Star size={10} className="inline text-yellow-400" /> ikonuyla değiştirin
                 </p>
               )}
             </div>
@@ -533,12 +826,21 @@ export default function UrunDuzenlemePage({ params }: Props) {
               disabled={updateMutation.isPending}
               className="w-full flex items-center justify-center gap-2 bg-orange hover:bg-orange-dark
                          text-white font-bold px-5 py-3 rounded-xl transition-colors
-                         disabled:opacity-60 text-sm"
+                         disabled:opacity-60 text-sm shadow-lg shadow-orange/20"
             >
               {updateMutation.isPending
                 ? <><Loader2 size={14} className="animate-spin" /> Kaydediliyor…</>
                 : <><Save size={14} /> Güncelle</>}
             </button>
+
+            {/* Kısa bilgi */}
+            <div className="bg-gray-50 rounded-xl p-4 space-y-1.5 text-xs text-gray-500">
+              <p className="font-bold text-gray-600 mb-2">İpuçları</p>
+              <p>• Görsele tıklayarak tam ekran önizleme açılır</p>
+              <p>• ⭐ ile ana görseli değiştirebilirsiniz</p>
+              <p>• Görseli sürükleyip bırakarak da yükleyebilirsiniz</p>
+              <p>• Klavye ile lightbox'ta gezin: ← →</p>
+            </div>
           </div>
 
         </div>

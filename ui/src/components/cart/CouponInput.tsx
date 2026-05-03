@@ -5,22 +5,24 @@ import { Tag, X, Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { cartApi } from '@/domains/cart/cart.api'
 import { QUERY_KEYS } from '@/lib/query-keys'
+import { formatPrice } from '@/utils/format'
 
 interface Props {
   appliedCoupon: string | null
-  onApplied: (code: string) => void
+  discountAmount: number | null
+  onApplied: (code: string, discountAmount: number) => void
   onRemoved: () => void
 }
 
-export function CouponInput({ appliedCoupon, onApplied, onRemoved }: Props) {
+export function CouponInput({ appliedCoupon, discountAmount, onApplied, onRemoved }: Props) {
   const [code, setCode] = useState('')
   const queryClient = useQueryClient()
 
   const applyMutation = useMutation({
     mutationFn: () => cartApi.applyCoupon(code.trim().toUpperCase()),
-    onSuccess: () => {
+    onSuccess: (res: { couponCode: string; discountAmount: number }) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.cart.all })
-      onApplied(code.trim().toUpperCase())
+      onApplied(res.couponCode ?? code.trim().toUpperCase(), Number(res.discountAmount ?? 0))
       setCode('')
       toast.success('Kupon uygulandı!')
     },
@@ -45,7 +47,11 @@ export function CouponInput({ appliedCoupon, onApplied, onRemoved }: Props) {
         <div className="flex items-center gap-2 text-green-700">
           <Tag size={14} />
           <span className="text-sm font-bold">{appliedCoupon}</span>
-          <span className="text-xs">uygulandı</span>
+          {discountAmount != null && discountAmount > 0 ? (
+            <span className="text-xs font-semibold">-{formatPrice(discountAmount)}</span>
+          ) : (
+            <span className="text-xs">uygulandı</span>
+          )}
         </div>
         <button
           onClick={() => removeMutation.mutate()}

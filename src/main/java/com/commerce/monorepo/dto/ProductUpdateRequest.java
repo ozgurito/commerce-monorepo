@@ -10,6 +10,8 @@ public record ProductUpdateRequest(
         @Min(0) Integer stock,
         String sku,
         Long categoryId,
+        Boolean isActive,
+        Boolean isFeatured,
         String fitType,
         String fabricComposition,
         String careInstructions,

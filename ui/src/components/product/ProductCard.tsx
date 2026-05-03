@@ -130,14 +130,12 @@ export function ProductCard({ product, priority = false }: Props) {
               className="object-cover group-hover:scale-[1.06] transition-transform duration-500"
             />
           ) : (
-            <div className={`w-full h-full flex flex-col items-center justify-center
-                             bg-gradient-to-br ${nameToGradient(product.name)}`}>
-              <span className="text-5xl font-extrabold text-white/90 select-none drop-shadow-md
-                               leading-none tracking-tighter">
+            <div className="w-full h-full flex flex-col items-center justify-center bg-gray-100">
+              <span className="text-5xl font-extrabold text-gray-300 select-none leading-none tracking-tighter">
                 {product.name.charAt(0).toUpperCase()}
               </span>
               {product.categoryName && (
-                <span className="text-[10px] font-semibold text-white/70 mt-2 uppercase tracking-wider">
+                <span className="text-[10px] font-semibold text-gray-400 mt-2 uppercase tracking-wider">
                   {product.categoryName}
                 </span>
               )}

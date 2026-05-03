@@ -18,6 +18,16 @@ const CATEGORY_THEMES = [
   { gradient: 'from-yellow-500 to-amber-500',  light: 'bg-yellow-50', emoji: '🩴' },
 ]
 
+// Kategori bubble'ları için özel kare ikonlar (DB image_url'dan bağımsız)
+const BUBBLE_ICONS: Record<string, string> = {
+  'tshirt':     '/images/cat-icon-tshirt.png',
+  't-shirt':    '/images/cat-icon-tshirt.png',
+  'hoodie':     '/images/cat-icon-hoodie.png',
+  'sweatshirt': '/images/cat-icon-sweatshirt.png',
+  'tank-top':   '/images/cat-icon-tanktop.png',
+  'tanktop':    '/images/cat-icon-tanktop.png',
+}
+
 export function CategoryBubbles() {
   const { data: categories = [] } = useQuery({
     queryKey: QUERY_KEYS.categories.all,
@@ -56,29 +66,30 @@ export function CategoryBubbles() {
                         [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {rootCats.map((cat: CategoryDto, i: number) => {
             const theme = CATEGORY_THEMES[i % CATEGORY_THEMES.length]
+            const bubbleIcon = BUBBLE_ICONS[cat.slug] ?? cat.imageUrl ?? null
             return (
               <Link
                 key={cat.id}
                 href={`/kategori/${cat.slug}`}
-                className="flex flex-col items-center gap-2 group snap-start flex-shrink-0 w-[72px] sm:w-auto"
+                className="flex flex-col items-center gap-2.5 group snap-start flex-shrink-0 w-[80px] sm:w-auto"
               >
                 {/* Daire */}
-                <div className={`relative w-[64px] h-[64px] sm:w-[72px] sm:h-[72px] lg:w-[80px] lg:h-[80px]
+                <div className={`relative w-[72px] h-[72px] sm:w-[88px] sm:h-[88px] lg:w-[104px] lg:h-[104px]
                                  rounded-full overflow-hidden flex-shrink-0
                                  bg-gradient-to-br ${theme.gradient}
                                  ring-2 ring-transparent group-hover:ring-orange group-hover:ring-offset-2
-                                 group-hover:scale-110 transition-all duration-250 shadow-sm`}>
-                  {cat.imageUrl ? (
+                                 group-hover:scale-110 transition-all duration-250 shadow-md`}>
+                  {bubbleIcon ? (
                     <Image
-                      src={cat.imageUrl}
+                      src={bubbleIcon}
                       alt={cat.name}
                       fill
-                      className="object-cover"
-                      sizes="80px"
+                      className="object-cover object-center"
+                      sizes="(min-width: 1024px) 104px, (min-width: 640px) 88px, 72px"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                      <span className="text-2xl font-extrabold text-white/90 select-none">
+                      <span className="text-3xl font-extrabold text-white/90 select-none">
                         {cat.name.charAt(0).toUpperCase()}
                       </span>
                     </div>
@@ -86,9 +97,9 @@ export function CategoryBubbles() {
                 </div>
 
                 {/* Etiket */}
-                <span className="text-[11px] sm:text-xs font-semibold text-gray-700 text-center
+                <span className="text-[11px] sm:text-[13px] font-semibold text-gray-700 text-center
                                  group-hover:text-orange transition-colors leading-tight
-                                 line-clamp-2 max-w-[72px]">
+                                 line-clamp-2 max-w-[90px]">
                   {cat.name}
                 </span>
               </Link>

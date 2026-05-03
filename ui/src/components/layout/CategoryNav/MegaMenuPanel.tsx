@@ -15,16 +15,20 @@ interface Props {
 }
 
 const CAT_THEMES: Record<string, { gradient: string; icon: string }> = {
-  default:     { gradient: 'from-orange to-orange-dark',      icon: '🛍️' },
-  't-shirt':   { gradient: 'from-blue-500 to-indigo-600',     icon: '👕' },
-  'hoodie':    { gradient: 'from-purple-500 to-violet-600',   icon: '🧥' },
-  'sweatshirt':{ gradient: 'from-teal-500 to-cyan-600',       icon: '👔' },
-  'tank-top':  { gradient: 'from-pink-500 to-rose-600',       icon: '🎽' },
-  'elbise':    { gradient: 'from-pink-400 to-rose-500',       icon: '👗' },
-  'pantolon':  { gradient: 'from-blue-600 to-indigo-700',     icon: '👖' },
-  'gömlek':    { gradient: 'from-sky-500 to-blue-600',        icon: '👕' },
-  'ayakkabı':  { gradient: 'from-amber-500 to-orange-600',    icon: '👟' },
-  'çanta':     { gradient: 'from-emerald-500 to-green-600',   icon: '👜' },
+  default:      { gradient: 'from-[#0d1a40] to-[#1a3a8f]',    icon: '🛍️' },
+  // DB sluglar (tire yok)
+  'tshirt':     { gradient: 'from-[#1a3a6b] to-[#2d5fa6]',    icon: '👕' },
+  'hoodie':     { gradient: 'from-[#1a1040] to-[#2d1a6b]',    icon: '🧥' },
+  'sweatshirt': { gradient: 'from-[#0a2a2a] to-[#0d4a4a]',    icon: '👔' },
+  'tanktop':    { gradient: 'from-[#3d0a2a] to-[#6b1a4a]',    icon: '🎽' },
+  'tank-top':   { gradient: 'from-[#3d0a2a] to-[#6b1a4a]',    icon: '🎽' },
+  // Tire'li alternatifler
+  't-shirt':    { gradient: 'from-[#1a3a6b] to-[#2d5fa6]',    icon: '👕' },
+  'elbise':     { gradient: 'from-[#3d0a2a] to-[#6b1a4a]',    icon: '👗' },
+  'pantolon':   { gradient: 'from-[#0d1a60] to-[#1a3a8f]',    icon: '👖' },
+  'gömlek':     { gradient: 'from-[#0a2040] to-[#1a4070]',    icon: '👕' },
+  'ayakkabı':   { gradient: 'from-[#3a1a00] to-[#6b3a00]',    icon: '👟' },
+  'çanta':      { gradient: 'from-[#0a3a1a] to-[#1a6b3a]',    icon: '👜' },
 }
 
 function getTheme(slug: string) {
@@ -50,14 +54,28 @@ export function MegaMenuPanel({ category, subCategories, isOpen }: Props) {
            style={{ minHeight: 280 }}>
 
         {/* ── Sol: Kategori hero banner ── */}
-        <div className={`w-[180px] flex-shrink-0 bg-gradient-to-b ${theme.gradient}
-                         flex flex-col items-start justify-between p-5 relative overflow-hidden`}>
+        <div className="w-[180px] flex-shrink-0 flex flex-col items-start justify-between p-5 relative overflow-hidden">
+          {/* Background: gerçek görsel varsa full-bleed, yoksa gradient */}
+          {category.imageUrl ? (
+            <>
+              <Image
+                src={category.imageUrl}
+                alt={category.name}
+                fill
+                sizes="180px"
+                className="object-cover object-center"
+              />
+              <div className={`absolute inset-0 bg-gradient-to-b ${theme.gradient} opacity-50`} />
+            </>
+          ) : (
+            <div className={`absolute inset-0 bg-gradient-to-b ${theme.gradient}`} />
+          )}
+
           {/* Dekoratif daire */}
           <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-white/10 rounded-full" />
           <div className="absolute top-4 right-3 w-10 h-10 bg-white/10 rounded-full" />
 
-          <div>
-            <span className="text-3xl mb-2 block">{theme.icon}</span>
+          <div className="relative">
             <p className="text-white/80 text-[10px] font-semibold uppercase tracking-wider">
               Kategori
             </p>
@@ -73,9 +91,9 @@ export function MegaMenuPanel({ category, subCategories, isOpen }: Props) {
 
           <Link
             href={`/kategori/${category.slug}`}
-            className="flex items-center gap-1.5 mt-3 bg-white/20 hover:bg-white/30
+            className="relative flex items-center gap-1.5 mt-3 bg-white/20 hover:bg-white/30
                        text-white text-xs font-bold px-3 py-1.5 rounded-full
-                       transition-colors whitespace-nowrap"
+                       transition-colors whitespace-nowrap backdrop-blur-sm border border-white/20"
           >
             Tümünü Gör <ArrowRight size={11} />
           </Link>

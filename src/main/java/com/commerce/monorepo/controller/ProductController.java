@@ -67,8 +67,8 @@ public class ProductController {
 
     @GetMapping("/slug/{slug}")
     @RateLimit(key = "product:slug", limit = 30, windowSeconds = 60)
-    public ProductDto getBySlug(@PathVariable String slug) {
-        return service.getBySlug(slug);
+    public ProductDetailDto getBySlug(@PathVariable String slug) {
+        return service.getDetailBySlug(slug);
     }
 
     // ============================================
@@ -219,6 +219,20 @@ public class ProductController {
             @PathVariable Long productId,
             @PathVariable Long imageId) {
         return service.setPrimaryImage(productId, imageId);
+    }
+
+    public record ImageOrderRequest(Long id, Integer displayOrder) {}
+
+    @PutMapping("/{productId}/images/reorder")
+    @PreAuthorize("hasRole('ADMIN')")
+    @RateLimit(key = "product:image:reorder", limit = 20, windowSeconds = 60)
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void reorderImages(
+            @PathVariable Long productId,
+            @RequestBody List<ImageOrderRequest> order) {
+        service.reorderImages(productId, order.stream()
+                .map(r -> new ProductService.ImageOrderItem(r.id(), r.displayOrder()))
+                .toList());
     }
 
     // ============================================

@@ -19,6 +19,7 @@ public record ProductDetailDto(
     Boolean allowReviews,
     Long categoryId,
     String categoryName,
+    String imageUrl,
     List<ProductImageDto> images,
     List<ProductVariantDto> variants,
     Double averageRating,

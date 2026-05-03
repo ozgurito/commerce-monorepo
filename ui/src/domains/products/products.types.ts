@@ -65,6 +65,7 @@ export interface ProductDetailDto {
   allowReviews: boolean
   categoryId: number
   categoryName: string
+  imageUrl: string | null
   images: ProductImageDto[]
   variants: ProductVariantDto[]
   averageRating: number

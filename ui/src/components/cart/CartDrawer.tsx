@@ -3,21 +3,23 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { AnimatePresence, motion } from 'framer-motion'
-import { X, ShoppingBag, Trash2 } from 'lucide-react'
+import { X, ShoppingBag, Trash2, Clock } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { cartApi } from '@/domains/cart/cart.api'
 import { useCartStore } from '@/store/cart.store'
 import { useAuthStore } from '@/store/auth.store'
-import { QUERY_KEYS } from '@/lib/query-keys'
+import { useRecentlyViewed, type RecentItem } from '@/hooks/useRecentlyViewed'
 import { formatPrice } from '@/utils/format'
+import { QUERY_KEYS } from '@/lib/query-keys'
 import { CartItem } from './CartItem'
 import { CouponInput } from './CouponInput'
 
 export function CartDrawer() {
-  const { isDrawerOpen, closeDrawer, syncFromCart } = useCartStore()
+  const { isDrawerOpen, closeDrawer, syncFromCart, couponCode: appliedCoupon, discountAmount, applyCoupon, clearCoupon } = useCartStore()
   const { token } = useAuthStore()
   const queryClient = useQueryClient()
-  const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null)
+  const { get: getRecentlyViewed } = useRecentlyViewed()
+  const [recentItems, setRecentItems] = useState<RecentItem[]>([])
 
   const { data: cart } = useQuery({
     queryKey: QUERY_KEYS.cart.all,
@@ -29,6 +31,10 @@ export function CartDrawer() {
   useEffect(() => {
     if (cart) syncFromCart(cart.itemCount, cart.totalAmount)
   }, [cart, syncFromCart])
+
+  useEffect(() => {
+    if (isDrawerOpen) setRecentItems(getRecentlyViewed().slice(0, 4))
+  }, [isDrawerOpen, getRecentlyViewed])
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -47,15 +53,18 @@ export function CartDrawer() {
     mutationFn: cartApi.clear,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.cart.all })
-      setAppliedCoupon(null)
+      clearCoupon()
       toast.success('Sepet temizlendi')
     },
   })
 
   const items = cart?.items ?? []
   const isEmpty = items.length === 0
-  const shipping = cart && cart.totalAmount >= 150 ? 0 : 29.90
-  const grandTotal = (cart?.totalAmount ?? 0) + shipping
+  const subtotal = cart?.totalAmount ?? 0
+  const discount = discountAmount ?? 0
+  const discountedSubtotal = Math.max(0, subtotal - discount)
+  const shipping = discountedSubtotal >= 150 ? 0 : 29.90
+  const grandTotal = discountedSubtotal + shipping
 
   return (
     <AnimatePresence>
@@ -135,7 +144,7 @@ export function CartDrawer() {
                 </Link>
               </div>
             ) : isEmpty ? (
-              <div className="flex-1 flex flex-col items-center justify-center gap-4 px-5">
+              <div className="flex-1 flex flex-col items-center gap-4 px-5 py-8 overflow-y-auto">
                 <ShoppingBag size={48} className="text-gray-200" />
                 <p className="text-gray-500 font-medium">Sepetiniz boş</p>
                 <Link
@@ -146,6 +155,49 @@ export function CartDrawer() {
                 >
                   Alışverişe Başla
                 </Link>
+
+                {recentItems.length > 0 && (
+                  <div className="w-full mt-4">
+                    <div className="flex items-center gap-1.5 mb-3">
+                      <Clock size={13} className="text-gray-400" />
+                      <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                        Son İncelenenler
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      {recentItems.map((item) => (
+                        <Link
+                          key={item.id}
+                          href={`/urunler/${item.slug}`}
+                          onClick={closeDrawer}
+                          className="group"
+                        >
+                          <div className="w-full aspect-square rounded-xl overflow-hidden bg-gray-100 mb-1.5">
+                            {item.imageUrl ? (
+                              <img
+                                src={item.imageUrl}
+                                alt={item.name}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center
+                                              font-extrabold text-xl text-gray-400">
+                                {item.name.charAt(0).toUpperCase()}
+                              </div>
+                            )}
+                          </div>
+                          <p className="text-xs font-semibold text-gray-700 line-clamp-2
+                                         group-hover:text-orange transition-colors">
+                            {item.name}
+                          </p>
+                          <p className="text-xs font-extrabold text-navy-dark mt-0.5">
+                            {formatPrice(item.price)}
+                          </p>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <>
@@ -160,15 +212,22 @@ export function CartDrawer() {
                 <div className="border-t border-gray-100 px-5 py-4 space-y-4 bg-white">
                   <CouponInput
                     appliedCoupon={appliedCoupon}
-                    onApplied={setAppliedCoupon}
-                    onRemoved={() => setAppliedCoupon(null)}
+                    discountAmount={discountAmount}
+                    onApplied={applyCoupon}
+                    onRemoved={clearCoupon}
                   />
 
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between text-sm text-gray-500">
                       <span>Ara Toplam</span>
-                      <span>{formatPrice(cart?.totalAmount ?? 0)}</span>
+                      <span>{formatPrice(subtotal)}</span>
                     </div>
+                    {discount > 0 && (
+                      <div className="flex items-center justify-between text-sm text-green-600 font-semibold">
+                        <span>Kupon İndirimi</span>
+                        <span>-{formatPrice(discount)}</span>
+                      </div>
+                    )}
                     <div className="flex items-center justify-between text-sm text-gray-500">
                       <span>Kargo</span>
                       <span className={shipping === 0 ? 'text-green-600 font-semibold' : ''}>

@@ -1,9 +1,10 @@
 'use client'
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Star, Check, Trash2, Loader2, MessageSquare } from 'lucide-react'
+import { Star, Check, Trash2, Loader2, MessageSquare, X, XCircle, Reply } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { adminApi } from '@/domains/admin/admin.api'
+import type { ReviewDto } from '@/domains/reviews/reviews.types'
 
 const FILTER_OPTIONS = [
   { value: '', label: 'Tümü' },
@@ -15,12 +16,61 @@ function StarRating({ rating }: { rating: number }) {
   return (
     <div className="flex gap-0.5">
       {Array.from({ length: 5 }).map((_, i) => (
-        <Star
-          key={i}
-          size={12}
-          className={i < rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-200 fill-gray-200'}
-        />
+        <Star key={i} size={12}
+          className={i < rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-200 fill-gray-200'} />
       ))}
+    </div>
+  )
+}
+
+interface ReplyModalProps {
+  review: ReviewDto
+  onClose: () => void
+  onSave: (response: string) => void
+  isLoading: boolean
+}
+
+function ReplyModal({ review, onClose, onSave, isLoading }: ReplyModalProps) {
+  const [response, setResponse] = useState(review.adminResponse ?? '')
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-[480px] p-6">
+        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+          <X size={18} />
+        </button>
+        <h3 className="font-extrabold text-navy-dark text-lg mb-1">Admin Yanıtı</h3>
+        <p className="text-xs text-gray-400 mb-4">
+          <strong>{review.userName}</strong> — {review.productName}
+        </p>
+        <div className="bg-gray-50 rounded-xl p-3 mb-4 text-sm text-gray-600 italic">
+          &ldquo;{review.comment}&rdquo;
+        </div>
+        <textarea
+          value={response}
+          onChange={(e) => setResponse(e.target.value)}
+          rows={4}
+          placeholder="Yoruma yanıt yazın…"
+          className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none
+                     focus:ring-1 focus:border-orange focus:ring-orange/20 resize-none"
+        />
+        <div className="flex gap-3 mt-4">
+          <button type="button" onClick={onClose}
+            className="flex-1 border border-gray-200 text-gray-600 font-semibold py-2.5 rounded-xl text-sm">
+            İptal
+          </button>
+          <button
+            onClick={() => onSave(response)}
+            disabled={isLoading || !response.trim()}
+            className="flex-1 bg-orange hover:bg-orange-dark text-white font-bold py-2.5
+                       rounded-xl transition-colors disabled:opacity-60 text-sm
+                       flex items-center justify-center gap-2"
+          >
+            {isLoading && <Loader2 size={14} className="animate-spin" />}
+            Yanıtı Kaydet
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
@@ -29,15 +79,12 @@ export default function AdminYorumlarPage() {
   const queryClient = useQueryClient()
   const [page, setPage] = useState(0)
   const [approvedFilter, setApprovedFilter] = useState('')
+  const [replyTarget, setReplyTarget] = useState<ReviewDto | null>(null)
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin', 'reviews', page, approvedFilter],
     queryFn: () =>
-      adminApi.getReviews(
-        page,
-        20,
-        approvedFilter === '' ? undefined : approvedFilter === 'true',
-      ),
+      adminApi.getReviews(page, 20, approvedFilter === '' ? undefined : approvedFilter === 'true'),
   })
 
   const approveMutation = useMutation({
@@ -46,6 +93,27 @@ export default function AdminYorumlarPage() {
       queryClient.invalidateQueries({ queryKey: ['admin', 'reviews'] })
       toast.success('Yorum onaylandı')
     },
+    onError: () => toast.error('İşlem başarısız'),
+  })
+
+  const rejectMutation = useMutation({
+    mutationFn: (id: number) => adminApi.rejectReview(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'reviews'] })
+      toast.success('Yorum reddedildi')
+    },
+    onError: () => toast.error('İşlem başarısız'),
+  })
+
+  const respondMutation = useMutation({
+    mutationFn: ({ id, response }: { id: number; response: string }) =>
+      adminApi.respondToReview(id, response),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'reviews'] })
+      setReplyTarget(null)
+      toast.success('Yanıt kaydedildi')
+    },
+    onError: () => toast.error('Yanıt kaydedilemedi'),
   })
 
   const deleteMutation = useMutation({
@@ -87,10 +155,9 @@ export default function AdminYorumlarPage() {
       ) : (
         <div className="space-y-3">
           {reviews.map((review) => (
-            <div
-              key={review.id}
+            <div key={review.id}
               className={`bg-white rounded-2xl border p-5
-                          ${!review.approved ? 'border-yellow-200 bg-yellow-50/30' : 'border-gray-100'}`}
+                ${!review.approved ? 'border-yellow-200 bg-yellow-50/30' : 'border-gray-100'}`}
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
@@ -118,20 +185,45 @@ export default function AdminYorumlarPage() {
                   {review.comment && (
                     <p className="text-sm text-gray-600 leading-relaxed">{review.comment}</p>
                   )}
+                  {review.adminResponse && (
+                    <div className="mt-3 bg-orange/5 border border-orange/20 rounded-xl px-3 py-2">
+                      <p className="text-xs font-bold text-orange mb-0.5">Admin Yanıtı</p>
+                      <p className="text-xs text-gray-600">{review.adminResponse}</p>
+                    </div>
+                  )}
                 </div>
 
-                <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="flex items-center gap-1.5 flex-shrink-0">
                   {!review.approved && (
                     <button
                       onClick={() => approveMutation.mutate(review.id)}
                       disabled={approveMutation.isPending}
                       className="flex items-center gap-1 text-xs font-bold text-green-600
-                                 bg-green-50 hover:bg-green-100 px-3 py-1.5 rounded-lg transition-colors
+                                 bg-green-50 hover:bg-green-100 px-2.5 py-1.5 rounded-lg transition-colors
                                  disabled:opacity-60"
                     >
                       <Check size={12} /> Onayla
                     </button>
                   )}
+                  {review.approved && (
+                    <button
+                      onClick={() => rejectMutation.mutate(review.id)}
+                      disabled={rejectMutation.isPending}
+                      className="flex items-center gap-1 text-xs font-bold text-red-500
+                                 bg-red-50 hover:bg-red-100 px-2.5 py-1.5 rounded-lg transition-colors
+                                 disabled:opacity-60"
+                    >
+                      <XCircle size={12} /> Reddet
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setReplyTarget(review)}
+                    className="p-1.5 text-gray-400 hover:text-orange hover:bg-orange/10
+                               rounded-lg transition-colors"
+                    title="Yanıt yaz"
+                  >
+                    <Reply size={14} />
+                  </button>
                   <button
                     onClick={() => {
                       if (confirm('Bu yorum silinsin mi?')) deleteMutation.mutate(review.id)
@@ -163,6 +255,15 @@ export default function AdminYorumlarPage() {
             Sonraki
           </button>
         </div>
+      )}
+
+      {replyTarget && (
+        <ReplyModal
+          review={replyTarget}
+          onClose={() => setReplyTarget(null)}
+          isLoading={respondMutation.isPending}
+          onSave={(response) => respondMutation.mutate({ id: replyTarget.id, response })}
+        />
       )}
     </div>
   )

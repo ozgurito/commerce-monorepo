@@ -1,7 +1,7 @@
 'use client'
-import { useState, useRef } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Heart, ShoppingBag, Star, Minus, Plus, Truck, RotateCcw, Shield, Share2, Check, ShoppingCart } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Heart, ShoppingBag, Star, Minus, Plus, Truck, RotateCcw, Shield, Share2, Check, ShoppingCart, CheckCircle2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { cartApi } from '@/domains/cart/cart.api'
 import { wishlistApi } from '@/domains/wishlist/wishlist.api'
@@ -9,20 +9,21 @@ import { useAuthStore } from '@/store/auth.store'
 import { useUIStore } from '@/store/ui.store'
 import { useCartStore } from '@/store/cart.store'
 import { QUERY_KEYS } from '@/lib/query-keys'
-import { formatPrice } from '@/utils/format'
-import { VariantSelector } from './VariantSelector'
+import { formatPrice, FREE_SHIPPING_THRESHOLD } from '@/utils/format'
+import { VariantSelector, groupVariants } from './VariantSelector'
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed'
 import type { ProductDetailDto, ProductVariantDto } from '@/domains/products/products.types'
 
-const FREE_SHIPPING_THRESHOLD = 150
+// FREE_SHIPPING_THRESHOLD utils/format.ts'den import ediliyor
 
 interface Props {
   product: ProductDetailDto
 }
 
 export function ProductInfo({ product }: Props) {
-  const [selectedVariant, setSelectedVariant] = useState<ProductVariantDto | null>(null)
-  const [variantError, setVariantError] = useState(false)
+  // Beden ve renk grupları ayrı ayrı takip edilir
+  const [selections, setSelections] = useState<Record<string, ProductVariantDto | null>>({})
+  const [errorGroups, setErrorGroups] = useState<string[]>([])
   const [quantity, setQuantity] = useState(1)
   const [wishlisted, setWishlisted] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -34,6 +35,17 @@ export function ProductInfo({ product }: Props) {
   const queryClient = useQueryClient()
   const { push: pushRecent } = useRecentlyViewed()
 
+  // Wishlist başlangıç durumu — sayfa açılınca kontrol et
+  const { data: isInWishlist } = useQuery({
+    queryKey: QUERY_KEYS.wishlist.check(product.id),
+    queryFn: () => wishlistApi.check(product.id),
+    enabled: !!token,
+    staleTime: 60_000,
+  })
+  useEffect(() => {
+    if (isInWishlist !== undefined) setWishlisted(isInWishlist)
+  }, [isInWishlist])
+
   // Track recently viewed once on mount — pushRecent writes to localStorage only, no setState
   const trackedRef = useRef<null | true>(null)
   if (trackedRef.current == null) {
@@ -43,7 +55,7 @@ export function ProductInfo({ product }: Props) {
       slug:     product.slug,
       name:     product.name,
       price:    product.price,
-      imageUrl: product.images?.[0]?.imageUrl ?? null,
+      imageUrl: product.imageUrl ?? product.images?.[0]?.imageUrl ?? null,
     })
   }
 
@@ -53,15 +65,21 @@ export function ProductInfo({ product }: Props) {
     : 0
   const savings = hasDiscount ? product.comparePrice! - product.price : 0
 
-  const effectiveStock = selectedVariant ? selectedVariant.stock : product.stock
+  // Stok: beden varyantı seçildiyse onun stoğu, yoksa ürün stoğu
+  const selectedSize = selections['Beden'] ?? null
+  const selectedColor = selections['Renk'] ?? null
+  const activeVariant = selectedSize ?? selectedColor ?? null
+  // Stok her zaman ürün seviyesinden — varyant stoğu 0 olsa bile ürünün stoğu geçerli
+  // (Beden varyantları admin panelinden stock:0 oluşturulsa da ürünün kendisi stokluysa göster)
+  const effectiveStock = product.stock
   const isOutOfStock = effectiveStock === 0
   const maxQty = Math.min(effectiveStock, 10)
-  const displayPrice = product.price + (selectedVariant?.priceModifier ?? 0)
+  const displayPrice = product.price + (activeVariant?.priceModifier ?? 0)
   const needsForFreeShipping = Math.max(0, FREE_SHIPPING_THRESHOLD - displayPrice * quantity)
   const hasFreeShipping = displayPrice * quantity >= FREE_SHIPPING_THRESHOLD
 
   const cartMutation = useMutation({
-    mutationFn: () => cartApi.addItem({ productId: product.id, variantId: selectedVariant?.id, quantity }),
+    mutationFn: () => cartApi.addItem({ productId: product.id, variantId: activeVariant?.id, quantity }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.cart.all })
       openDrawer()
@@ -81,12 +99,24 @@ export function ProductInfo({ product }: Props) {
 
   const handleAddToCart = () => {
     if (!token) { openAuthModal('login'); return }
-    if ((product.variants?.length ?? 0) > 0 && !selectedVariant) {
-      setVariantError(true)
+
+    // Hangi gruplar zorunlu ama seçilmedi?
+    const groups = groupVariants(product.variants ?? [])
+    const missing: string[] = []
+
+    // Beden varsa beden seçimi zorunlu
+    if (groups['Beden']?.length && !selections['Beden']) missing.push('Beden')
+    // Renk tek grup ise renk seçimi zorunlu
+    if (!groups['Beden']?.length && groups['Renk']?.length && !selections['Renk']) missing.push('Renk')
+
+    if (missing.length > 0) {
+      setErrorGroups(missing)
       variantRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      toast.error('Lütfen önce bir varyant seçin')
+      toast.error(`Lütfen ${missing.join(' ve ')} seçin`)
       return
     }
+
+    setErrorGroups([])
     cartMutation.mutate()
   }
 
@@ -122,6 +152,22 @@ export function ProductInfo({ product }: Props) {
         <h1 className="text-xl sm:text-2xl font-extrabold text-navy-dark leading-snug">
           {product.name}
         </h1>
+
+        {/* Materyal rozetleri */}
+        {(product.material || product.fitType) && (
+          <div className="flex flex-wrap gap-2 mt-2">
+            {product.material && (
+              <span className="text-xs font-bold px-2.5 py-1 bg-navy-dark text-white rounded-full">
+                {product.material}
+              </span>
+            )}
+            {product.fitType && (
+              <span className="text-xs font-bold px-2.5 py-1 bg-orange text-white rounded-full">
+                {product.fitType} Kesim
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Rating */}
@@ -207,9 +253,12 @@ export function ProductInfo({ product }: Props) {
       <div ref={variantRef}>
         <VariantSelector
           variants={product.variants ?? []}
-          selected={selectedVariant}
-          onSelect={(v) => { setSelectedVariant(v); setVariantError(false) }}
-          hasError={variantError}
+          selections={selections}
+          onSelect={(groupName, v) => {
+            setSelections(prev => ({ ...prev, [groupName]: v }))
+            setErrorGroups(prev => prev.filter(g => g !== groupName))
+          }}
+          errorGroups={errorGroups}
         />
       </div>
 
@@ -347,16 +396,46 @@ export function ProductInfo({ product }: Props) {
         </div>
       )}
 
-      {/* Product specs */}
-      {(product.material || product.fitType || product.season || product.originCountry) && (
+      {/* Özellikler — checkmark listesi */}
+      {(() => {
+        const features = [
+          product.material          && `${product.material} kumaş`,
+          product.fabricComposition && product.fabricComposition,
+          product.fitType           && `${product.fitType} kesim`,
+          product.careInstructions  && product.careInstructions,
+          product.season            && `${product.season} sezonu uygun`,
+        ].filter(Boolean) as string[]
+        if (!features.length) return null
+        return (
+          <div className="border-t border-gray-100 pt-4">
+            <h3 className="text-sm font-extrabold text-gray-800 mb-3">Özellikler</h3>
+            <ul className="space-y-2">
+              {features.map((f) => (
+                <li key={f} className="flex items-start gap-2 text-sm text-gray-600">
+                  <CheckCircle2 size={16} className="text-orange flex-shrink-0 mt-0.5" />
+                  {f}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )
+      })()}
+
+      {/* Ürün Özellikleri — teknik grid */}
+      {(product.material || product.fabricComposition || product.careInstructions ||
+        product.fitType  || product.gender            || product.season           ||
+        product.originCountry) && (
         <div className="border-t border-gray-100 pt-4">
-          <h3 className="text-sm font-extrabold text-gray-800 mb-3">Ürün Özellikleri</h3>
+          <h3 className="text-sm font-extrabold text-gray-800 mb-3">Ürün Detayları</h3>
           <div className="grid grid-cols-2 gap-2">
             {[
-              { key: 'Materyal',  val: product.material },
-              { key: 'Kesim',     val: product.fitType },
-              { key: 'Sezon',     val: product.season },
-              { key: 'Menşei',    val: product.originCountry },
+              { key: 'Materyal',       val: product.material },
+              { key: 'Gramaj/İçerik', val: product.fabricComposition },
+              { key: 'Yıkama',        val: product.careInstructions },
+              { key: 'Kesim',         val: product.fitType },
+              { key: 'Cinsiyet',      val: product.gender },
+              { key: 'Sezon',         val: product.season },
+              { key: 'Menşei',        val: product.originCountry },
             ].filter(x => x.val).map(({ key, val }) => (
               <div key={key} className="bg-gray-50 rounded-xl p-2.5">
                 <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">{key}</p>

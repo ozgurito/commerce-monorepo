@@ -2,7 +2,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
-  LayoutDashboard, Package, ShoppingBag, Tag, Star, Ticket, LogOut,
+  LayoutDashboard, Package, ShoppingBag, Tag, Star, Ticket, LogOut, Users, FileSpreadsheet,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useRouter } from 'next/navigation'
@@ -10,12 +10,14 @@ import { useAuthStore } from '@/store/auth.store'
 import { authApi } from '@/domains/auth/auth.api'
 
 const NAV_ITEMS = [
-  { href: '/admin',            label: 'Dashboard',   icon: LayoutDashboard, exact: true },
-  { href: '/admin/urunler',    label: 'Ürünler',     icon: Package },
-  { href: '/admin/siparisler', label: 'Siparişler',  icon: ShoppingBag },
-  { href: '/admin/kategoriler',label: 'Kategoriler', icon: Tag },
-  { href: '/admin/yorumlar',   label: 'Yorumlar',    icon: Star },
-  { href: '/admin/kuponlar',   label: 'Kuponlar',    icon: Ticket },
+  { href: '/admin',                  label: 'Dashboard',     icon: LayoutDashboard, exact: true },
+  { href: '/admin/urunler',          label: 'Ürünler',       icon: Package },
+  { href: '/admin/urunler/import',   label: 'Excel İçe Aktar', icon: FileSpreadsheet, sub: true },
+  { href: '/admin/siparisler',       label: 'Siparişler',    icon: ShoppingBag },
+  { href: '/admin/kategoriler',      label: 'Kategoriler',   icon: Tag },
+  { href: '/admin/yorumlar',         label: 'Yorumlar',      icon: Star },
+  { href: '/admin/kuponlar',         label: 'Kuponlar',      icon: Ticket },
+  { href: '/admin/kullanicilar',     label: 'Kullanıcılar',  icon: Users },
 ]
 
 export function AdminSidebar() {
@@ -45,20 +47,20 @@ export function AdminSidebar() {
 
       {/* Nav */}
       <nav className="flex-1 py-4 space-y-0.5 px-2">
-        {NAV_ITEMS.map(({ href, label, icon: Icon, exact }) => {
+        {NAV_ITEMS.map(({ href, label, icon: Icon, exact, sub }) => {
           const active = isActive(href, exact)
           return (
             <Link
               key={href}
               href={href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold
-                          transition-colors
+              className={`flex items-center gap-3 rounded-xl text-sm font-semibold transition-colors
+                          ${sub ? 'px-3 py-2 ml-4' : 'px-3 py-2.5'}
                           ${active
                             ? 'bg-orange text-white'
                             : 'text-white/60 hover:text-white hover:bg-white/10'}`}
             >
-              <Icon size={16} className={active ? 'text-white' : 'text-white/40'} />
-              {label}
+              <Icon size={sub ? 13 : 16} className={active ? 'text-white' : 'text-white/40'} />
+              <span className={sub ? 'text-xs' : ''}>{label}</span>
             </Link>
           )
         })}

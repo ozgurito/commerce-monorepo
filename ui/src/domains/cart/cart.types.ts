@@ -13,6 +13,7 @@ export interface CartItemDto {
   variantName: string | null   // "M - Mavi" gibi
   size: string | null
   color: string | null
+  imageUrl: string | null
 }
 
 export interface CartDto {

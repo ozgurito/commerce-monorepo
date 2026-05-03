@@ -3,11 +3,11 @@ import Link from 'next/link'
 import { Truck, RotateCcw, Shield, Phone } from 'lucide-react'
 
 const TICKER_ITEMS = [
-  { icon: Truck,      text: 'Ücretsiz kargo',  highlight: '500₺ ve üzeri' },
+  { icon: Truck,      text: 'Ücretsiz kargo',  highlight: '150₺ ve üzeri' },
   { icon: RotateCcw,  text: 'Kolay iade',       highlight: '30 gün' },
   { icon: Shield,     text: 'Güvenli ödeme',    highlight: '256-bit SSL' },
   { icon: Phone,      text: 'Müşteri hattı',    highlight: '0850 123 45 67' },
-  { icon: Truck,      text: 'Ücretsiz kargo',  highlight: '500₺ ve üzeri' },
+  { icon: Truck,      text: 'Ücretsiz kargo',  highlight: '150₺ ve üzeri' },
   { icon: RotateCcw,  text: 'Kolay iade',       highlight: '30 gün' },
   { icon: Shield,     text: 'Güvenli ödeme',    highlight: '256-bit SSL' },
   { icon: Phone,      text: 'Müşteri hattı',    highlight: '0850 123 45 67' },

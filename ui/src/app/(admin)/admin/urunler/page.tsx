@@ -3,9 +3,10 @@ import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Search, Edit2, Trash2, Loader2, Package } from 'lucide-react'
+import { Plus, Search, Edit2, Trash2, Loader2, Package, FileSpreadsheet } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { adminApi } from '@/domains/admin/admin.api'
+import { categoriesApi } from '@/domains/categories/categories.api'
 import { formatPrice } from '@/utils/format'
 import { useDebounce } from '@/hooks/useDebounce'
 
@@ -13,11 +14,22 @@ export default function AdminUrunlerPage() {
   const queryClient = useQueryClient()
   const [page, setPage] = useState(0)
   const [keyword, setKeyword] = useState('')
+  const [categoryId, setCategoryId] = useState('')
   const debouncedKeyword = useDebounce(keyword, 400)
 
+  const { data: categories = [] } = useQuery({
+    queryKey: ['categories'],
+    queryFn: categoriesApi.getAll,
+  })
+
   const { data, isLoading } = useQuery({
-    queryKey: ['admin', 'products', page, debouncedKeyword],
-    queryFn: () => adminApi.getProducts(page, 20, debouncedKeyword || undefined),
+    queryKey: ['admin', 'products', page, debouncedKeyword, categoryId],
+    queryFn: () => {
+      if (categoryId) {
+        return adminApi.getProducts(page, 20, debouncedKeyword || undefined, Number(categoryId))
+      }
+      return adminApi.getProducts(page, 20, debouncedKeyword || undefined)
+    },
   })
 
   const deleteMutation = useMutation({
@@ -45,25 +57,48 @@ export default function AdminUrunlerPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-extrabold text-navy-dark">Ürünler</h1>
-        <Link
-          href="/admin/urunler/yeni"
-          className="flex items-center gap-2 bg-orange hover:bg-orange-dark text-white
-                     font-bold px-4 py-2.5 rounded-xl transition-colors text-sm"
-        >
-          <Plus size={16} /> Yeni Ürün
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/admin/urunler/import"
+            className="flex items-center gap-2 border border-gray-200 text-gray-600 hover:border-orange
+                       hover:text-orange font-semibold px-4 py-2.5 rounded-xl transition-colors text-sm"
+          >
+            <FileSpreadsheet size={16} /> Excel İçe Aktar
+          </Link>
+          <Link
+            href="/admin/urunler/yeni"
+            className="flex items-center gap-2 bg-orange hover:bg-orange-dark text-white
+                       font-bold px-4 py-2.5 rounded-xl transition-colors text-sm"
+          >
+            <Plus size={16} /> Yeni Ürün
+          </Link>
+        </div>
       </div>
 
-      {/* Arama */}
-      <div className="relative">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-        <input
-          value={keyword}
-          onChange={(e) => { setKeyword(e.target.value); setPage(0) }}
-          placeholder="Ürün ara…"
-          className="w-full border border-gray-200 rounded-xl pl-9 pr-4 py-2.5 text-sm
-                     focus:outline-none focus:ring-1 focus:border-orange focus:ring-orange/20"
-        />
+      {/* Arama + Kategori Filtre */}
+      <div className="flex gap-3">
+        <div className="relative flex-1">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            value={keyword}
+            onChange={(e) => { setKeyword(e.target.value); setPage(0) }}
+            placeholder="Ürün ara…"
+            className="w-full border border-gray-200 rounded-xl pl-9 pr-4 py-2.5 text-sm
+                       focus:outline-none focus:ring-1 focus:border-orange focus:ring-orange/20"
+          />
+        </div>
+        <select
+          value={categoryId}
+          onChange={(e) => { setCategoryId(e.target.value); setPage(0) }}
+          className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm
+                     focus:outline-none focus:ring-1 focus:border-orange focus:ring-orange/20
+                     min-w-[160px]"
+        >
+          <option value="">Tüm Kategoriler</option>
+          {categories.map((c) => (
+            <option key={c.id} value={c.id}>{c.name}</option>
+          ))}
+        </select>
       </div>
 
       {/* Tablo */}

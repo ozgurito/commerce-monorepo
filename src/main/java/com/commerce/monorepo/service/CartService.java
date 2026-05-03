@@ -55,8 +55,12 @@ public class CartService {
             }
         }
 
-        // Stok kontrolü (variant varsa variant stoğu, yoksa ürün stoğu)
-        int availableStock = variant != null ? variant.getStock() : product.getStock();
+        // Stok kontrolü:
+        // - Variant seçilmişse variant.stock kullan, ancak 0 ise ürün stoğuna düş
+        //   (admin varyantları stock:0 ile oluşturmuş olabilir — ürün stoğu gerçek kaynaktır)
+        // - Variant yoksa direkt ürün stoğu
+        int variantStock = variant != null ? variant.getStock() : -1;
+        int availableStock = (variantStock > 0) ? variantStock : product.getStock();
         if (availableStock < request.getQuantity()) {
             throw new BaseException(ErrorCode.INSUFFICIENT_STOCK);
         }
@@ -113,11 +117,12 @@ public class CartService {
                 .findFirst()
                 .orElseThrow(() -> new BaseException(ErrorCode.CART_ITEM_NOT_FOUND));
 
-        // Stok kontrolü (variant varsa variant stoğu, yoksa ürün stoğu)
+        // Stok kontrolü — variant stoğu 0 ise ürün stoğuna düş
         Product product = cartItem.getProduct();
-        int availableStock = cartItem.getProductVariant() != null 
-                ? cartItem.getProductVariant().getStock() 
-                : product.getStock();
+        int varStock = cartItem.getProductVariant() != null
+                ? cartItem.getProductVariant().getStock()
+                : -1;
+        int availableStock = (varStock > 0) ? varStock : product.getStock();
         if (availableStock < request.getQuantity()) {
             throw new BaseException(ErrorCode.INSUFFICIENT_STOCK);
         }
@@ -194,9 +199,11 @@ public class CartService {
                     itemDto.setUnitPrice(item.getUnitPrice());
                     itemDto.setTotalPrice(item.getTotalPrice());
                     
-                    // Stok - variant varsa variant stoğu
+                    // Stok — variant stoğu 0 ise ürün stoğunu kullan
                     if (item.getProductVariant() != null) {
-                        itemDto.setAvailableStock(item.getProductVariant().getStock());
+                        int varSt = item.getProductVariant().getStock() != null
+                                ? item.getProductVariant().getStock() : 0;
+                        itemDto.setAvailableStock(varSt > 0 ? varSt : item.getProduct().getStock());
                         itemDto.setVariantId(item.getProductVariant().getId());
                         itemDto.setVariantName(item.getProductVariant().getName());
                         itemDto.setSize(item.getProductVariant().getSize());
@@ -204,7 +211,12 @@ public class CartService {
                     } else {
                         itemDto.setAvailableStock(item.getProduct().getStock());
                     }
-                    
+
+                    // Ürün görseli — ilk resmi al
+                    if (item.getProduct().getImages() != null && !item.getProduct().getImages().isEmpty()) {
+                        itemDto.setImageUrl(item.getProduct().getImages().get(0).getImageUrl());
+                    }
+
                     return itemDto;
                 })
                 .collect(Collectors.toList())

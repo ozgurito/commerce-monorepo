@@ -22,4 +22,5 @@ public class CartItemDto {
     private String variantName;    // "M - Mavi" gibi
     private String size;           // "M", "L", "XL"
     private String color;          // "Mavi", "Kırmızı"
+    private String imageUrl;
 }

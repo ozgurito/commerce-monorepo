@@ -19,7 +19,7 @@ import type { Address, PaymentMethod } from '@/domains/orders/orders.types'
 export default function OdemePage() {
   const router = useRouter()
   const { token } = useAuthStore()
-  const { syncFromCart } = useCartStore()
+  const { syncFromCart, couponCode, discountAmount, clearCoupon } = useCartStore()
 
   const [step, setStep] = useState(0)
   const [shippingAddress, setShippingAddress] = useState<Address | null>(null)
@@ -81,6 +81,7 @@ export default function OdemePage() {
       }
 
       syncFromCart(0, 0)
+      clearCoupon()
 
       if (paymentMethod === 'CREDIT_CARD') {
         router.push(`/odeme/iyzico?orderId=${order.id}`)
@@ -197,7 +198,7 @@ export default function OdemePage() {
 
         {/* Sağ: Sipariş özeti */}
         <div className="lg:col-span-1">
-          <OrderSummary cart={cart} />
+          <OrderSummary cart={cart} couponCode={couponCode} discountAmount={discountAmount} />
         </div>
       </div>
     </div>

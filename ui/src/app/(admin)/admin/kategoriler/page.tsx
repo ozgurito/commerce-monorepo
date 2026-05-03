@@ -1,14 +1,37 @@
 'use client'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import Image from 'next/image'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Plus, Edit2, Trash2, X, Loader2, Tag, ChevronDown } from 'lucide-react'
+import { Plus, Edit2, Trash2, X, Loader2, Tag, ChevronDown, Upload, ChevronRight } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { categoriesApi } from '@/domains/categories/categories.api'
 import { adminApi } from '@/domains/admin/admin.api'
 import type { CategoryDto } from '@/domains/categories/categories.types'
+
+/** Hiyerarşik dropdown için düz liste oluştur (kök → alt → alt-alt) */
+function buildHierarchy(
+  categories: CategoryDto[],
+  excludeId?: number,
+): { cat: CategoryDto; depth: number }[] {
+  const result: { cat: CategoryDto; depth: number }[] = []
+  const roots = categories.filter((c) => !c.parentId && c.id !== excludeId)
+    .sort((a, b) => a.displayOrder - b.displayOrder)
+
+  function walk(cats: CategoryDto[], depth: number) {
+    for (const cat of cats) {
+      result.push({ cat, depth })
+      const children = categories
+        .filter((c) => c.parentId === cat.id && c.id !== excludeId)
+        .sort((a, b) => a.displayOrder - b.displayOrder)
+      if (children.length) walk(children, depth + 1)
+    }
+  }
+  walk(roots, 0)
+  return result
+}
 
 const schema = z.object({
   name:            z.string().min(2, 'En az 2 karakter'),
@@ -35,7 +58,10 @@ interface ModalProps {
 
 function CategoryModal({ categories, editTarget, onClose, onSave, isLoading }: ModalProps) {
   const [seoOpen, setSeoOpen] = useState(false)
-  const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({
+  const [imgUploading, setImgUploading] = useState(false)
+  const imgInputRef = useRef<HTMLInputElement>(null)
+  const hierarchy = buildHierarchy(categories, editTarget?.id)
+  const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: editTarget
       ? {
@@ -75,21 +101,74 @@ function CategoryModal({ categories, editTarget, onClose, onSave, isLoading }: M
           <div>
             <label className="block text-xs font-bold text-gray-600 mb-1">Üst Kategori</label>
             <select {...register('parentId')} className={inputCls()}>
-              <option value="">Ana kategori (yok)</option>
-              {categories
-                .filter((c) => c.id !== editTarget?.id)
-                .map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
+              <option value="">— Ana kategori (kök seviye)</option>
+              {hierarchy.map(({ cat, depth }) => (
+                <option key={cat.id} value={cat.id}>
+                  {depth > 0 ? `${'　'.repeat(depth)}↳ ` : ''}{cat.name}
+                </option>
+              ))}
             </select>
+            {watch('parentId') && (
+              <p className="text-[10px] text-gray-400 mt-1 flex items-center gap-1">
+                <ChevronRight size={10} />
+                {hierarchy.find(({ cat }) => String(cat.id) === watch('parentId'))?.cat.name}
+                &apos;nın alt kategorisi olacak
+              </p>
+            )}
           </div>
           <div>
-            <label className="block text-xs font-bold text-gray-600 mb-1">Görsel URL</label>
-            <input
-              {...register('imageUrl')}
-              placeholder="https://..."
-              className={inputCls()}
-            />
+            <label className="block text-xs font-bold text-gray-600 mb-1">Görsel</label>
+            <div className="flex gap-2">
+              <input
+                {...register('imageUrl')}
+                placeholder="https://... ya da yükle →"
+                className={`${inputCls()} flex-1`}
+              />
+              <button
+                type="button"
+                disabled={imgUploading}
+                onClick={() => imgInputRef.current?.click()}
+                className="flex items-center gap-1.5 px-3 py-2.5 border border-gray-200 rounded-xl
+                           text-sm text-gray-600 hover:border-orange hover:text-orange transition-colors
+                           disabled:opacity-50 flex-shrink-0"
+              >
+                {imgUploading
+                  ? <Loader2 size={14} className="animate-spin" />
+                  : <Upload size={14} />}
+                <span className="text-xs">Yükle</span>
+              </button>
+              <input
+                ref={imgInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0]
+                  if (!file) return
+                  setImgUploading(true)
+                  try {
+                    const { imageUrl } = await adminApi.uploadImage(file)
+                    setValue('imageUrl', imageUrl, { shouldDirty: true })
+                    toast.success('Görsel yüklendi')
+                  } catch (err: unknown) {
+                    // Token yenilendi ama FormData retry edilemedi → kullanıcı tekrar denesin
+                    if ((err as { _tokenRefreshed?: boolean })?._tokenRefreshed) {
+                      toast.error('Oturum yenilendi — lütfen görseli tekrar seçin')
+                    } else {
+                      toast.error('Görsel yüklenemedi')
+                    }
+                  } finally {
+                    setImgUploading(false)
+                    e.target.value = ''
+                  }
+                }}
+              />
+            </div>
+            {watch('imageUrl') && (
+              <div className="mt-2 w-16 h-16 rounded-xl overflow-hidden border border-gray-100">
+                <img src={watch('imageUrl')} alt="" className="w-full h-full object-cover" />
+              </div>
+            )}
           </div>
           <div>
             <label className="block text-xs font-bold text-gray-600 mb-1">Görüntüleme Sırası</label>
@@ -161,10 +240,17 @@ export default function AdminKategorilerPage() {
     queryFn: categoriesApi.getAll,
   })
 
+  const toSlug = (name: string) =>
+    name.toLowerCase()
+      .replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ş/g, 's')
+      .replace(/ı/g, 'i').replace(/ö/g, 'o').replace(/ç/g, 'c')
+      .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+
   const createMutation = useMutation({
     mutationFn: (v: FormValues) =>
       adminApi.createCategory({
         name:         v.name,
+        slug:         toSlug(v.name),
         description:  v.description,
         parentId:     v.parentId && v.parentId !== '' ? Number(v.parentId) : undefined,
         isActive:     v.isActive,
@@ -247,23 +333,27 @@ export default function AdminKategorilerPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {categories.map((cat) => (
-                <tr key={cat.id} className="hover:bg-gray-50 transition-colors">
+              {buildHierarchy(categories).map(({ cat, depth }) => (
+                <tr key={cat.id} className={`hover:bg-gray-50 transition-colors ${depth > 0 ? 'bg-gray-50/50' : ''}`}>
                   <td className="px-5 py-3">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3" style={{ paddingLeft: depth * 20 }}>
+                      {depth > 0 && <ChevronRight size={12} className="text-gray-300 flex-shrink-0" />}
                       {cat.imageUrl ? (
-                        <img src={cat.imageUrl} alt={cat.name}
-                          className="w-8 h-8 rounded-lg object-cover border border-gray-100 flex-shrink-0" />
+                        <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-gray-100 flex-shrink-0">
+                          <Image src={cat.imageUrl} alt={cat.name} fill className="object-cover" unoptimized />
+                        </div>
                       ) : (
                         <div className="w-8 h-8 rounded-lg bg-orange/10 flex items-center justify-center flex-shrink-0">
                           <Tag size={14} className="text-orange" />
                         </div>
                       )}
-                      <span className="font-semibold text-navy-dark">{cat.name}</span>
+                      <span className={`font-semibold text-navy-dark ${depth > 0 ? 'text-sm' : ''}`}>
+                        {cat.name}
+                      </span>
                     </div>
                   </td>
                   <td className="px-4 py-3 text-gray-500 text-xs">
-                    {cat.parentId ? parentMap.get(cat.parentId) ?? '—' : '—'}
+                    {cat.parentId ? parentMap.get(cat.parentId) ?? '—' : <span className="text-orange font-semibold">Kök</span>}
                   </td>
                   <td className="px-4 py-3 text-center text-gray-500 text-xs">{cat.displayOrder}</td>
                   <td className="px-4 py-3 text-center">
@@ -282,7 +372,7 @@ export default function AdminKategorilerPage() {
                       </button>
                       <button
                         onClick={() => {
-                          if (confirm(`"${cat.name}" silinsin mi?`)) deleteMutation.mutate(cat.id)
+                          if (confirm(`"${cat.name}" silinsin mi?\nAlt kategoriler de etkilenebilir.`)) deleteMutation.mutate(cat.id)
                         }}
                         disabled={deleteMutation.isPending}
                         className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg disabled:opacity-50"

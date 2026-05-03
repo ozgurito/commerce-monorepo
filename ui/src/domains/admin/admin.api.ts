@@ -7,6 +7,7 @@ import type { CategoryDto } from '@/domains/categories/categories.types'
 import type { ReviewDto } from '@/domains/reviews/reviews.types'
 import type { CouponDto } from '@/domains/coupons/coupons.types'
 import type { PagedOrders } from '@/domains/orders/orders.api'
+import type { UserDto } from '@/domains/user/user.types'
 
 export interface PagedProducts {
   content: ProductDto[]
@@ -22,6 +23,21 @@ export interface PagedReviewsAdmin {
   totalPages: number
   number: number
   last: boolean
+}
+
+export interface PagedUsers {
+  content: UserDto[]
+  totalElements: number
+  totalPages: number
+  number: number
+  last: boolean
+}
+
+export interface ProductImportResultDto {
+  totalRows: number
+  successCount: number
+  failureCount: number
+  errors: { row: number; message: string }[]
 }
 
 export interface PagedCoupons {
@@ -52,7 +68,7 @@ export interface CreateProductRequest {
 
 export interface CreateCategoryRequest {
   name: string
-  slug?: string
+  slug: string
   description?: string
   parentId?: number
   displayOrder?: number
@@ -117,9 +133,21 @@ export const adminApi = {
   },
 
   // --- Products ---
-  getProducts: async (page = 0, size = 20, keyword?: string): Promise<PagedProducts> => {
+  getProducts: async (page = 0, size = 20, keyword?: string, categoryId?: number): Promise<PagedProducts> => {
+    if (categoryId) {
+      const { data } = await apiClient.get(`/api/products/category/${categoryId}`, {
+        params: { page, size },
+      })
+      return data
+    }
+    if (keyword) {
+      const { data } = await apiClient.get('/api/products/search', {
+        params: { q: keyword, page, size },
+      })
+      return data
+    }
     const { data } = await apiClient.get('/api/products', {
-      params: { page, size, ...(keyword ? { keyword } : {}) },
+      params: { page, size },
     })
     return data
   },
@@ -144,9 +172,13 @@ export const adminApi = {
   },
 
   // --- Image upload ---
-  // Backend returns { url, key, method, headers } (NOT uploadUrl/fileKey)
-  getUploadUrl: async (contentType: string): Promise<{ url: string; key: string; method: string; headers: Record<string, string[]> }> => {
-    const { data } = await apiClient.post('/api/assets/upload-url', { contentType })
+  // Dosyayı backend'e gönder → backend MinIO'ya yükler → { imageUrl, key } döner
+  uploadImage: async (file: File): Promise<{ imageUrl: string; key: string }> => {
+    const form = new FormData()
+    form.append('file', file)
+    const { data } = await apiClient.post('/api/assets/upload', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
     return data
   },
 
@@ -211,6 +243,11 @@ export const adminApi = {
     return data
   },
 
+  rejectReview: async (id: number): Promise<ReviewDto> => {
+    const { data } = await apiClient.put(`/api/reviews/${id}/reject`)
+    return data
+  },
+
   deleteReview: async (id: number): Promise<void> => {
     await apiClient.delete(`/api/reviews/${id}`)
   },
@@ -238,5 +275,28 @@ export const adminApi = {
 
   deleteCoupon: async (id: number): Promise<void> => {
     await apiClient.delete(`/api/coupons/${id}`)
+  },
+
+  // --- Image Reorder ---
+  reorderImages: async (productId: number, order: { id: number; displayOrder: number }[]): Promise<void> => {
+    await apiClient.put(`/api/products/${productId}/images/reorder`, order)
+  },
+
+  // --- Excel Bulk Import ---
+  importProducts: async (file: File): Promise<ProductImportResultDto> => {
+    const form = new FormData()
+    form.append('file', file)
+    const { data } = await apiClient.post('/api/admin/products/import', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return data
+  },
+
+  // --- Users ---
+  getUsers: async (page = 0, size = 20, keyword?: string): Promise<PagedUsers> => {
+    const { data } = await apiClient.get('/api/users', {
+      params: { page, size, ...(keyword ? { keyword } : {}) },
+    })
+    return data
   },
 }

@@ -1,9 +1,11 @@
 package com.commerce.monorepo.controller;
 
 import com.commerce.monorepo.ratelimit.RateLimit;
+import com.commerce.monorepo.storage.StorageService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
@@ -21,12 +23,29 @@ import java.util.UUID;
 public class AssetController {
 
     private final S3Presigner presigner;
+    private final StorageService storageService;
 
     @Value("${storage.s3.bucket}")
     private String bucket;
 
-    public AssetController(S3Presigner presigner) {
+    @Value("${storage.s3.endpoint}")
+    private String endpoint;
+
+    public AssetController(S3Presigner presigner, StorageService storageService) {
         this.presigner = presigner;
+        this.storageService = storageService;
+    }
+
+    public record UploadImageRes(String imageUrl, String key) {}
+
+    // Multipart upload — browser → backend → MinIO (CORS sorunu yok)
+    @RateLimit(key = "asset:upload", limit = 20, windowSeconds = 60, perUser = true)
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
+    @PostMapping(path = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public UploadImageRes upload(@RequestPart("file") MultipartFile file) throws Exception {
+        String key = storageService.put(file.getContentType(), file.getInputStream(), file.getSize());
+        String imageUrl = endpoint + "/" + bucket + "/" + key;
+        return new UploadImageRes(imageUrl, key);
     }
 
     public record UploadReq(String key, String contentType) {}
