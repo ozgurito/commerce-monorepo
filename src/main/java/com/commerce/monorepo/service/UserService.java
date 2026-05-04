@@ -10,6 +10,8 @@ import com.commerce.monorepo.exception.BaseException;
 import com.commerce.monorepo.exception.ErrorCode;
 import com.commerce.monorepo.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +32,43 @@ public class UserService {
         return userRepository.findAll().stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public Page<UserDto> findAllPaged(Pageable pageable) {
+        return userRepository.findAll(pageable).map(this::toDto);
+    }
+
+    /** Admin: hesabı aktif / pasif yap */
+    @Transactional
+    public UserDto toggleActive(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new BaseException(ErrorCode.USER_NOT_FOUND));
+        user.setIsActive(!Boolean.TRUE.equals(user.getIsActive()));
+        return toDto(userRepository.save(user));
+    }
+
+    /** Admin: rol değiştir */
+    @Transactional
+    public UserDto changeRole(Long id, String roleName) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new BaseException(ErrorCode.USER_NOT_FOUND));
+        try {
+            user.setRole(UserRole.valueOf(roleName.toUpperCase()));
+        } catch (IllegalArgumentException e) {
+            throw new BaseException(ErrorCode.VALIDATION_ERROR);
+        }
+        return toDto(userRepository.save(user));
+    }
+
+    /** Admin: brute-force kilidini manuel aç */
+    @Transactional
+    public UserDto unlockAccount(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new BaseException(ErrorCode.USER_NOT_FOUND));
+        user.setLockedUntil(null);
+        user.setFailedLoginAttempts(0);
+        return toDto(userRepository.save(user));
     }
 
     @Transactional(readOnly = true)
@@ -125,6 +164,9 @@ public class UserService {
                 user.getPhone(),
                 user.getIdentityNumber(),
                 user.getRole() != null ? user.getRole().name() : null,
+                user.getIsActive(),
+                user.getEmailVerified(),
+                user.getLastLoginAt() != null ? user.getLastLoginAt().atOffset(ZoneOffset.UTC) : null,
                 user.getCreatedAt() != null ? user.getCreatedAt().atOffset(ZoneOffset.UTC) : null
         );
     }

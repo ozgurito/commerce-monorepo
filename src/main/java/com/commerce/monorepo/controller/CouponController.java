@@ -1,6 +1,7 @@
 package com.commerce.monorepo.controller;
 
 import com.commerce.monorepo.dto.*;
+import com.commerce.monorepo.ratelimit.RateLimit;
 import com.commerce.monorepo.service.CouponService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -31,18 +32,21 @@ public class CouponController {
     // ========== PUBLIC ENDPOINTS ==========
 
     @GetMapping("/validate/{code}")
+    @RateLimit(key = "coupon:validate", limit = 10, windowSeconds = 60)
     @Operation(summary = "Kupon kodunu doğrula", description = "Kupon kodunun geçerli olup olmadığını kontrol eder")
     public ResponseEntity<CouponDto> validateCoupon(@PathVariable String code) {
         return ResponseEntity.ok(couponService.getCouponByCode(code));
     }
 
     @GetMapping("/valid")
+    @RateLimit(key = "coupon:valid", limit = 10, windowSeconds = 60)
     @Operation(summary = "Geçerli kuponları listele", description = "Şu an geçerli olan tüm kuponları listeler")
     public ResponseEntity<List<CouponDto>> getValidCoupons() {
         return ResponseEntity.ok(couponService.getValidCoupons());
     }
 
     @PostMapping("/apply")
+    @RateLimit(key = "coupon:apply", limit = 5, windowSeconds = 60)
     @Operation(summary = "Kuponu sepete uygula", description = "Kupon kodunu sepete uygular ve indirim hesaplar")
     public ResponseEntity<ApplyCouponResponse> applyCoupon(@Valid @RequestBody ApplyCouponRequest request) {
         return ResponseEntity.ok(couponService.applyCouponToCart(request));

@@ -10,6 +10,8 @@ public enum ErrorCode {
     INVALID_CREDENTIALS("1001", "Kullanıcı adı veya şifre hatalı", HttpStatus.UNAUTHORIZED),
     UNAUTHORIZED("1002", "Yetkilendirme gerekli", HttpStatus.UNAUTHORIZED),
     ACCESS_DENIED("1003", "Bu işlemi yapmaya yetkiniz yok", HttpStatus.FORBIDDEN),
+    ACCOUNT_DISABLED("1014", "Hesabınız askıya alınmıştır. Destek ile iletişime geçin.", HttpStatus.FORBIDDEN),
+    ACCOUNT_LOCKED("1015", "Çok fazla hatalı giriş denemesi. Hesabınız geçici olarak kilitlendi. Lütfen 15 dakika sonra tekrar deneyin.", HttpStatus.FORBIDDEN),
 
     EMAIL_TAKEN("1004", "Bu e-posta zaten kayıtlı", HttpStatus.CONFLICT),
     FULL_NAME_TAKEN("1005", "Bu kullanıcı adı zaten kullanımda", HttpStatus.CONFLICT),

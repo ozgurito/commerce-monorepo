@@ -293,10 +293,23 @@ export const adminApi = {
   },
 
   // --- Users ---
-  getUsers: async (page = 0, size = 20, keyword?: string): Promise<PagedUsers> => {
-    const { data } = await apiClient.get('/api/users', {
-      params: { page, size, ...(keyword ? { keyword } : {}) },
-    })
+  getUsers: async (page = 0, size = 20): Promise<PagedUsers> => {
+    const { data } = await apiClient.get('/api/users', { params: { page, size } })
+    return data
+  },
+
+  toggleUserActive: async (id: number): Promise<UserDto> => {
+    const { data } = await apiClient.patch(`/api/users/${id}/toggle-active`)
+    return data
+  },
+
+  changeUserRole: async (id: number, role: string): Promise<UserDto> => {
+    const { data } = await apiClient.patch(`/api/users/${id}/role`, null, { params: { role } })
+    return data
+  },
+
+  unlockUser: async (id: number): Promise<UserDto> => {
+    const { data } = await apiClient.patch(`/api/users/${id}/unlock`)
     return data
   },
 }

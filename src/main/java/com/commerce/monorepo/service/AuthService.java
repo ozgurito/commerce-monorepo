@@ -68,7 +68,10 @@ public class AuthService {
         );
     }
 
-    /** Kullanıcı girişi */
+    private static final int MAX_FAILED_ATTEMPTS = 5;
+    private static final int LOCK_MINUTES        = 15;
+
+    /** Kullanıcı girişi — brute-force korumalı */
     @Transactional
     public AuthResponse login(AuthRequest request, String ip) {
         String email = request.email().trim().toLowerCase();
@@ -76,29 +79,47 @@ public class AuthService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new BaseException(ErrorCode.INVALID_CREDENTIALS));
 
+        // Hesap pasife alındıysa reddet
+        if (Boolean.FALSE.equals(user.getIsActive())) {
+            throw new BaseException(ErrorCode.ACCOUNT_DISABLED);
+        }
+
+        // Brute-force kilidi hâlâ aktif mi?
+        if (user.getLockedUntil() != null && LocalDateTime.now().isBefore(user.getLockedUntil())) {
+            throw new BaseException(ErrorCode.ACCOUNT_LOCKED);
+        }
+
         try {
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(email, request.password())
             );
 
-            String accessToken = jwtTokenProvider.generateToken(
-                    user.getEmail(),
-                    user.getId(),
-                    user.getRole()
-            );
+            // Başarılı giriş — sayaçları sıfırla
+            user.setFailedLoginAttempts(0);
+            user.setLockedUntil(null);
+            user.setLastLoginAt(LocalDateTime.now());
+            userRepository.save(user);
 
+            String accessToken = jwtTokenProvider.generateToken(
+                    user.getEmail(), user.getId(), user.getRole());
             String refreshRaw = refreshTokenService.create(user.getId(), ip);
 
             return new AuthResponse(
-                    accessToken,
-                    refreshRaw,
-                    user.getId(),
-                    user.getEmail(),
-                    user.getFullName(),
-                    user.getRole() != null ? user.getRole().name() : "USER"
-            );
+                    accessToken, refreshRaw,
+                    user.getId(), user.getEmail(), user.getFullName(),
+                    user.getRole() != null ? user.getRole().name() : "USER");
 
+        } catch (BaseException e) {
+            throw e;
         } catch (Exception e) {
+            // Yanlış şifre — sayacı artır
+            int attempts = (user.getFailedLoginAttempts() == null ? 0 : user.getFailedLoginAttempts()) + 1;
+            user.setFailedLoginAttempts(attempts);
+            if (attempts >= MAX_FAILED_ATTEMPTS) {
+                user.setLockedUntil(LocalDateTime.now().plusMinutes(LOCK_MINUTES));
+                user.setFailedLoginAttempts(0);
+            }
+            userRepository.save(user);
             throw new BaseException(ErrorCode.INVALID_CREDENTIALS);
         }
     }

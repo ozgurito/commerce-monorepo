@@ -1,4 +1,3 @@
-// src/main/java/com/commerce/api/dto/UserDto.java
 package com.commerce.monorepo.dto;
 
 import java.time.OffsetDateTime;
@@ -10,5 +9,8 @@ public record UserDto(
         String phone,
         String identityNumber,
         String role,
+        Boolean isActive,
+        Boolean emailVerified,
+        OffsetDateTime lastLoginAt,
         OffsetDateTime createdAt
 ) {}

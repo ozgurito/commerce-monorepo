@@ -8,6 +8,9 @@ import com.commerce.monorepo.service.UserService;
 import com.commerce.monorepo.ratelimit.RateLimit;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -15,6 +18,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/users")
@@ -26,8 +30,8 @@ public class UserController {
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
     @RateLimit(key = "users:list", limit = 30, windowSeconds = 60)
-    public List<UserDto> list() {
-        return userService.findAll();
+    public Page<UserDto> list(@PageableDefault(size = 20) Pageable pageable) {
+        return userService.findAllPaged(pageable);
     }
 
     @GetMapping("/{id}")
@@ -43,6 +47,29 @@ public class UserController {
     public ResponseEntity<UserDto> create(@Valid @RequestBody CreateUserRequest request) {
         UserDto created = userService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
+    // ─── Admin işlemleri ──────────────────────────────────────
+
+    @PatchMapping("/{id}/toggle-active")
+    @PreAuthorize("hasRole('ADMIN')")
+    @RateLimit(key = "users:toggle", limit = 20, windowSeconds = 60)
+    public UserDto toggleActive(@PathVariable Long id) {
+        return userService.toggleActive(id);
+    }
+
+    @PatchMapping("/{id}/role")
+    @PreAuthorize("hasRole('ADMIN')")
+    @RateLimit(key = "users:role", limit = 10, windowSeconds = 60)
+    public UserDto changeRole(@PathVariable Long id, @RequestParam String role) {
+        return userService.changeRole(id, role);
+    }
+
+    @PatchMapping("/{id}/unlock")
+    @PreAuthorize("hasRole('ADMIN')")
+    @RateLimit(key = "users:unlock", limit = 20, windowSeconds = 60)
+    public UserDto unlockAccount(@PathVariable Long id) {
+        return userService.unlockAccount(id);
     }
 
     @GetMapping("/me")
