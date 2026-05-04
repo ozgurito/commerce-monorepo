@@ -1,8 +1,9 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Heart, ShoppingBag, Star, Minus, Plus, Truck, RotateCcw, Shield, Share2, Check, ShoppingCart, CheckCircle2 } from 'lucide-react'
+import { Heart, ShoppingBag, Star, Minus, Plus, Truck, RotateCcw, Shield, Share2, Check, ShoppingCart, CheckCircle2, Zap } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { useRouter } from 'next/navigation'
 import { cartApi } from '@/domains/cart/cart.api'
 import { wishlistApi } from '@/domains/wishlist/wishlist.api'
 import { useAuthStore } from '@/store/auth.store'
@@ -34,6 +35,7 @@ export function ProductInfo({ product }: Props) {
   const { openDrawer } = useCartStore()
   const queryClient = useQueryClient()
   const { push: pushRecent } = useRecentlyViewed()
+  const router = useRouter()
 
   // Wishlist başlangıç durumu — sayfa açılınca kontrol et
   const { data: isInWishlist } = useQuery({
@@ -88,6 +90,15 @@ export function ProductInfo({ product }: Props) {
     onError: () => toast.error('Sepete eklenemedi'),
   })
 
+  const buyNowMutation = useMutation({
+    mutationFn: () => cartApi.addItem({ productId: product.id, variantId: activeVariant?.id, quantity }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.cart.all })
+      router.push('/odeme')
+    },
+    onError: () => toast.error('Bir hata oluştu, tekrar deneyin'),
+  })
+
   const wishlistMutation = useMutation({
     mutationFn: () => wishlisted ? wishlistApi.remove(product.id) : wishlistApi.add(product.id),
     onSuccess: () => {
@@ -118,6 +129,25 @@ export function ProductInfo({ product }: Props) {
 
     setErrorGroups([])
     cartMutation.mutate()
+  }
+
+  const handleBuyNow = () => {
+    if (!token) { openAuthModal('login'); return }
+
+    const groups = groupVariants(product.variants ?? [])
+    const missing: string[] = []
+    if (groups['Beden']?.length && !selections['Beden']) missing.push('Beden')
+    if (!groups['Beden']?.length && groups['Renk']?.length && !selections['Renk']) missing.push('Renk')
+
+    if (missing.length > 0) {
+      setErrorGroups(missing)
+      variantRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      toast.error(`Lütfen ${missing.join(' ve ')} seçin`)
+      return
+    }
+
+    setErrorGroups([])
+    buyNowMutation.mutate()
   }
 
   const handleShare = async () => {
@@ -314,29 +344,47 @@ export function ProductInfo({ product }: Props) {
       )}
 
       {/* CTA Buttons */}
-      <div className="flex gap-3">
-        <button
-          onClick={handleAddToCart}
-          disabled={isOutOfStock || cartMutation.isPending}
-          className="flex-1 flex items-center justify-center gap-2 bg-orange hover:bg-orange-dark
-                     active:scale-[0.98] text-white font-extrabold py-4 rounded-2xl transition-all
-                     disabled:opacity-60 disabled:cursor-not-allowed shadow-lg shadow-orange/20
-                     text-[15px]"
-        >
-          <ShoppingBag size={18} />
-          {isOutOfStock ? 'Stokta Yok' : cartMutation.isPending ? 'Ekleniyor…' : 'Sepete Ekle'}
-        </button>
-        <button
-          onClick={() => { if (!token) { openAuthModal('login'); return }; wishlistMutation.mutate() }}
-          aria-label="Favorilere ekle"
-          className={`w-14 rounded-2xl border-2 flex items-center justify-center transition-all
-                      active:scale-95
-                      ${wishlisted
-                        ? 'border-red-300 bg-red-50 text-red-500 shadow-sm'
-                        : 'border-gray-200 text-gray-400 hover:border-red-300 hover:text-red-400'}`}
-        >
-          <Heart size={19} className={wishlisted ? 'fill-red-500' : ''} />
-        </button>
+      <div className="space-y-2.5">
+        {/* Hemen Al */}
+        {!isOutOfStock && (
+          <button
+            onClick={handleBuyNow}
+            disabled={buyNowMutation.isPending}
+            className="w-full flex items-center justify-center gap-2 border-2 border-orange
+                       text-orange hover:bg-orange hover:text-white active:scale-[0.98]
+                       font-extrabold py-4 rounded-2xl transition-all
+                       disabled:opacity-60 disabled:cursor-not-allowed text-[15px]"
+          >
+            <Zap size={18} />
+            {buyNowMutation.isPending ? 'Yönlendiriliyor…' : 'Hemen Al'}
+          </button>
+        )}
+
+        {/* Sepete Ekle + Favori */}
+        <div className="flex gap-3">
+          <button
+            onClick={handleAddToCart}
+            disabled={isOutOfStock || cartMutation.isPending}
+            className="flex-1 flex items-center justify-center gap-2 bg-orange hover:bg-orange-dark
+                       active:scale-[0.98] text-white font-extrabold py-4 rounded-2xl transition-all
+                       disabled:opacity-60 disabled:cursor-not-allowed shadow-lg shadow-orange/20
+                       text-[15px]"
+          >
+            <ShoppingBag size={18} />
+            {isOutOfStock ? 'Stokta Yok' : cartMutation.isPending ? 'Ekleniyor…' : 'Sepete Ekle'}
+          </button>
+          <button
+            onClick={() => { if (!token) { openAuthModal('login'); return }; wishlistMutation.mutate() }}
+            aria-label="Favorilere ekle"
+            className={`w-14 rounded-2xl border-2 flex items-center justify-center transition-all
+                        active:scale-95
+                        ${wishlisted
+                          ? 'border-red-300 bg-red-50 text-red-500 shadow-sm'
+                          : 'border-gray-200 text-gray-400 hover:border-red-300 hover:text-red-400'}`}
+          >
+            <Heart size={19} className={wishlisted ? 'fill-red-500' : ''} />
+          </button>
+        </div>
       </div>
 
       {/* Free shipping progress */}
