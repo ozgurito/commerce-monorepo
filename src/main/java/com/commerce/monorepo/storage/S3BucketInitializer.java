@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
 
@@ -24,18 +25,18 @@ public class S3BucketInitializer {
 
     @PostConstruct
     public void ensureBucket() {
+        // MinIO / S3 erişilemiyor olsa da uygulama başlamalı (görsel yükleme opsiyonel)
         try {
-            boolean exists = s3.listBuckets().buckets().stream().anyMatch(b -> b.name().equals(bucket));
+            boolean exists = s3.listBuckets().buckets().stream()
+                    .anyMatch(b -> b.name().equals(bucket));
             if (!exists) {
                 s3.createBucket(CreateBucketRequest.builder().bucket(bucket).build());
                 log.info("S3 bucket created: {}", bucket);
+            } else {
+                log.info("S3 bucket already exists: {}", bucket);
             }
-        } catch (S3Exception e) {
-            log.warn("Could not create bucket {}: {}", bucket, e.getMessage());
-        }
 
-        // Public read policy — ayrı try/catch, bucket oluşturma hatasından bağımsız
-        try {
+            // Public read policy
             String policy = """
                 {
                   "Version": "2012-10-17",
@@ -48,16 +49,10 @@ public class S3BucketInitializer {
                 }
                 """.formatted(bucket);
             s3.putBucketPolicy(PutBucketPolicyRequest.builder()
-                    .bucket(bucket)
-                    .policy(policy)
-                    .build());
+                    .bucket(bucket).policy(policy).build());
             log.info("Public read policy set on bucket: {}", bucket);
-        } catch (S3Exception e) {
-            log.error("Could not set public policy on bucket {}: {}", bucket, e.getMessage());
-        }
 
-        // CORS — tarayıcıdan presigned PUT yapılabilmesi için (localhost:3000 → localhost:9000)
-        try {
+            // CORS — tarayıcıdan presigned PUT yapılabilmesi için
             s3.putBucketCors(PutBucketCorsRequest.builder()
                     .bucket(bucket)
                     .corsConfiguration(CORSConfiguration.builder()
@@ -71,8 +66,15 @@ public class S3BucketInitializer {
                             .build())
                     .build());
             log.info("CORS configured on bucket: {}", bucket);
+
+        } catch (SdkClientException e) {
+            // MinIO / S3 çalışmıyor — görsel yükleme devre dışı, diğer özellikler etkilenmez
+            log.warn("S3/MinIO erişilemiyor, bucket başlatma atlandı ({}). Görsel yükleme çalışmayacak: {}",
+                    bucket, e.getMessage());
         } catch (S3Exception e) {
-            log.error("Could not set CORS on bucket {}: {}", bucket, e.getMessage());
+            log.warn("S3 bucket başlatma hatası ({}): {}", bucket, e.getMessage());
+        } catch (Exception e) {
+            log.warn("Beklenmeyen S3 başlatma hatası, uygulama devam ediyor: {}", e.getMessage());
         }
     }
 }
