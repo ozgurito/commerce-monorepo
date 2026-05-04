@@ -15,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
@@ -31,8 +32,35 @@ public class ProductController {
     @GetMapping
     @RateLimit(key = "product:list", limit = 60, windowSeconds = 60)
     public Page<ProductDto> list(
-            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return service.list(pageable);
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) BigDecimal minPrice,
+            @RequestParam(required = false) BigDecimal maxPrice,
+            @RequestParam(required = false) List<String> colors,
+            @RequestParam(required = false) List<String> sizes,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Boolean inStockOnly,
+            @RequestParam(required = false) Boolean featured,
+            @RequestParam(required = false, defaultValue = "createdAt") String sortBy,
+            @RequestParam(required = false, defaultValue = "DESC") String sortDirection,
+            @RequestParam(required = false, defaultValue = "0") int page,
+            @RequestParam(required = false, defaultValue = "20") int size) {
+
+        ProductSearchRequest req = ProductSearchRequest.builder()
+                .categoryId(categoryId)
+                .minPrice(minPrice)
+                .maxPrice(maxPrice)
+                .colors(colors)
+                .sizes(sizes)
+                .keyword(keyword)
+                .inStockOnly(inStockOnly)
+                .featuredOnly(featured)   // frontend "featured" → spec "featuredOnly"
+                .sortBy(sortBy)
+                .sortDirection(sortDirection)
+                .page(page)
+                .size(size)
+                .build();
+
+        return service.listFiltered(req);
     }
 
     @GetMapping("/search")

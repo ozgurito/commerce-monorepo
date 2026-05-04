@@ -24,7 +24,6 @@ export function PriceRangeSlider({ initialMin, initialMax, onChange }: Props) {
 
   return (
     <div>
-      <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Fiyat Aralığı</p>
       <div className="flex items-center gap-2">
         <input
           type="number"

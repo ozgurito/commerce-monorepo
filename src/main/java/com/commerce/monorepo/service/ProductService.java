@@ -49,6 +49,32 @@ public class ProductService {
         return repo.findAll(pageable).map(this::mapToDto);
     }
 
+    /**
+     * Filtreli ürün listesi — GET /api/products endpoint'i için.
+     * ProductSpecification kullanarak tüm filtreleri (kategori, fiyat, renk, beden vb.) uygular.
+     */
+    @Transactional(readOnly = true)
+    public Page<ProductDto> listFiltered(ProductSearchRequest request) {
+        request = request.withDefaults();
+
+        // Alt kategorileri dahil et: categoryId yerine tüm child id'leri kullan
+        if (request.getCategoryId() != null && Boolean.TRUE.equals(request.getIncludeSubcategories())) {
+            List<Long> categoryIds = categoryRepository.findCategoryAndChildIds(request.getCategoryId());
+            if (categoryIds != null && !categoryIds.isEmpty()) {
+                request.setCategoryIds(categoryIds);
+                request.setCategoryId(null); // categoryIds kapsamı zaten içeriyor, tekrar ekleme
+            }
+        }
+
+        Sort sort = createSort(request.getSortBy(), request.getSortDirection());
+        Pageable pageable = PageRequest.of(request.getPage(), request.getSize(), sort);
+
+        return repo.findAll(
+                ProductSpecification.buildSpecification(request),
+                pageable
+        ).map(this::mapToDto);
+    }
+
     @Transactional(readOnly = true)
     public ProductDto get(Long id) {
         var p = repo.findById(id)
