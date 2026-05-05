@@ -130,7 +130,6 @@ public class ProductController {
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    @RateLimit(key = "product:create", limit = 10, windowSeconds = 60)
     @ResponseStatus(HttpStatus.CREATED)
     public ProductDto create(@Valid @RequestBody ProductCreateRequest r) {
         return service.create(r);
@@ -173,7 +172,6 @@ public class ProductController {
 
     @PostMapping("/{productId}/variants")
     @PreAuthorize("hasRole('ADMIN')")
-    @RateLimit(key = "variant:create", limit = 20, windowSeconds = 60)
     @ResponseStatus(HttpStatus.CREATED)
     public ProductVariantDto createVariant(
             @PathVariable Long productId,
@@ -223,7 +221,6 @@ public class ProductController {
 
     @PostMapping("/{productId}/images")
     @PreAuthorize("hasRole('ADMIN')")
-    @RateLimit(key = "product:image:add", limit = 20, windowSeconds = 60)
     public ProductImageDto addProductImage(
             @PathVariable Long productId,
             @Valid @RequestBody ProductImageRequest request) {

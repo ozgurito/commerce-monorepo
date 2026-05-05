@@ -1,11 +1,11 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { productsApi } from '@/domains/products/products.api'
 import { categoriesApi } from '@/domains/categories/categories.api'
 import { QUERY_KEYS } from '@/lib/query-keys'
-import { useIntersection } from '@/hooks/useIntersection'
 import { FilterSidebar } from './FilterSidebar'
 import { SortBar } from './SortBar'
 import { QuickFilterChips } from './QuickFilterChips'
@@ -13,9 +13,8 @@ import { ActiveFilters } from './ActiveFilters'
 import { ProductGrid } from './ProductGrid'
 import { SkeletonGrid } from './SkeletonCard'
 import type { CategoryDto } from '@/domains/categories/categories.types'
-import type { ProductDto } from '@/domains/products/products.types'
 
-const PAGE_SIZE = 20
+const PAGE_SIZE = 24
 
 interface Props {
   defaultCategoryId?: number
@@ -26,23 +25,25 @@ export function ProductsView({ defaultCategoryId }: Props = {}) {
   const router = useRouter()
   const pathname = usePathname()
   const [filterOpen, setFilterOpen] = useState(false)
-  const { ref: sentinelRef, isIntersecting: isSentinelVisible } = useIntersection()
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
 
-  // URL'den filtre değerlerini oku — kategori sayfasında default olarak sabit categoryId kullan
-  const keyword     = searchParams.get('keyword') ?? undefined
-  const categoryId  = searchParams.get('categoryId')
+  // URL'den filtre değerlerini oku
+  const keyword    = searchParams.get('keyword') ?? undefined
+  const categoryId = searchParams.get('categoryId')
     ? Number(searchParams.get('categoryId'))
     : defaultCategoryId
-  const minPrice    = searchParams.get('minPrice') ? Number(searchParams.get('minPrice')) : undefined
-  const maxPrice    = searchParams.get('maxPrice') ? Number(searchParams.get('maxPrice')) : undefined
-  const colors      = searchParams.getAll('colors')
-  const sizes       = searchParams.getAll('sizes')
-  const sortBy      = searchParams.get('sortBy') ?? 'createdAt'
-  const sortDir     = searchParams.get('sortDir') ?? 'DESC'
-  const indirim     = searchParams.get('indirim') === 'true'
-  const yeni        = searchParams.get('yeni') === 'true'
+  const minPrice   = searchParams.get('minPrice') ? Number(searchParams.get('minPrice')) : undefined
+  const maxPrice   = searchParams.get('maxPrice') ? Number(searchParams.get('maxPrice')) : undefined
+  const colors     = searchParams.getAll('colors')
+  const sizes      = searchParams.getAll('sizes')
+  const sortBy     = searchParams.get('sortBy') ?? 'createdAt'
+  const sortDir    = searchParams.get('sortDir') ?? 'DESC'
+  const indirim    = searchParams.get('indirim') === 'true'
+  const yeni       = searchParams.get('yeni') === 'true'
+  const page       = searchParams.get('page') ? Number(searchParams.get('page')) : 0
 
-  // Kategori adını bul (ActiveFilters için)
+  // Kategori adını bul
   const { data: categories = [] } = useQuery({
     queryKey: QUERY_KEYS.categories.all,
     queryFn: categoriesApi.getAll,
@@ -55,40 +56,27 @@ export function ProductsView({ defaultCategoryId }: Props = {}) {
     colors: colors.length ? colors : undefined,
     sizes:  sizes.length  ? sizes  : undefined,
     sortBy, sortDirection: sortDir as 'ASC' | 'DESC',
-    size: PAGE_SIZE,
+    size: PAGE_SIZE, page,
     ...(indirim && { inStockOnly: false }),
     ...(yeni    && { featured: true }),
   }
 
-  const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    isLoading,
-  } = useInfiniteQuery({
+  const { data, isLoading } = useQuery({
     queryKey: QUERY_KEYS.products.list(queryParams),
-    queryFn: ({ pageParam }) =>
-      productsApi.getList({ ...queryParams, page: pageParam as number }),
-    initialPageParam: 0,
-    getNextPageParam: (lastPage) =>
-      lastPage.last ? undefined : lastPage.number + 1,
+    queryFn: () => productsApi.getList(queryParams),
     staleTime: 2 * 60 * 1000,
+    placeholderData: (prev) => prev,
   })
 
-  // Sentinel görününce sonraki sayfayı yükle
-  useEffect(() => {
-    if (isSentinelVisible && hasNextPage && !isFetchingNextPage) {
-      fetchNextPage()
-    }
-  }, [isSentinelVisible, hasNextPage, isFetchingNextPage, fetchNextPage])
+  const allProducts = data?.content ?? []
+  const total       = data?.totalElements ?? 0
+  const totalPages  = data?.totalPages ?? 1
 
-  const allProducts: ProductDto[] = data?.pages.flatMap((p) => p.content) ?? []
-  const total = data?.pages[0]?.totalElements ?? 0
-
-  // URL güncelleme
+  // URL güncelleme — filtre değişince sayfa 0'a döner
   const updateParams = useCallback((patch: Record<string, string | string[] | undefined>) => {
     const params = new URLSearchParams(searchParams.toString())
+    // Filtre değişince sayfayı sıfırla
+    if (!('page' in patch)) params.delete('page')
     Object.entries(patch).forEach(([k, v]) => {
       params.delete(k)
       if (Array.isArray(v)) {
@@ -97,8 +85,12 @@ export function ProductsView({ defaultCategoryId }: Props = {}) {
         params.set(k, v)
       }
     })
-    router.push(`${pathname}?${params.toString()}`, { scroll: false })
+    router.push(`${pathname}?${params.toString()}`, { scroll: true })
   }, [searchParams, router, pathname])
+
+  const goToPage = (p: number) => {
+    updateParams({ page: p === 0 ? undefined : String(p) })
+  }
 
   const handleFilterChange = (patch: {
     categoryId?: number
@@ -132,6 +124,9 @@ export function ProductsView({ defaultCategoryId }: Props = {}) {
   const handleSortChange = (sb: string, sd: string) => {
     updateParams({ sortBy: sb, sortDir: sd })
   }
+
+  // Server/client içerik uyuşmazlığını (hydration) önle
+  if (!mounted) return <SkeletonGrid count={PAGE_SIZE} />
 
   return (
     <div className="flex gap-6">
@@ -184,15 +179,57 @@ export function ProductsView({ defaultCategoryId }: Props = {}) {
           <>
             <ProductGrid products={allProducts} />
 
-            {/* Infinite scroll sentinel */}
-            <div ref={sentinelRef} className="h-10 mt-6 flex items-center justify-center">
-              {isFetchingNextPage && (
-                <div className="w-6 h-6 border-2 border-orange border-t-transparent rounded-full animate-spin" />
-              )}
-              {!hasNextPage && allProducts.length > 0 && (
-                <p className="text-xs text-gray-400">Tüm ürünler yüklendi</p>
-              )}
-            </div>
+            {/* Klasik Sayfalama */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-1.5 mt-10 mb-4">
+                {/* Önceki */}
+                <button
+                  onClick={() => goToPage(page - 1)}
+                  disabled={page === 0}
+                  className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200
+                             text-gray-600 hover:bg-gray-50 disabled:opacity-30 transition-colors"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+
+                {/* Sayfa numaraları */}
+                {Array.from({ length: totalPages }, (_, i) => i).filter(i => {
+                  if (totalPages <= 7) return true
+                  if (i === 0 || i === totalPages - 1) return true
+                  if (Math.abs(i - page) <= 2) return true
+                  return false
+                }).reduce<(number | 'ellipsis')[]>((acc, i, idx, arr) => {
+                  if (idx > 0 && (i as number) - (arr[idx - 1] as number) > 1) acc.push('ellipsis')
+                  acc.push(i)
+                  return acc
+                }, []).map((item, idx) =>
+                  item === 'ellipsis' ? (
+                    <span key={`e${idx}`} className="w-9 h-9 flex items-center justify-center text-gray-400 text-sm">…</span>
+                  ) : (
+                    <button
+                      key={item}
+                      onClick={() => goToPage(item as number)}
+                      className={`w-9 h-9 flex items-center justify-center rounded-xl text-sm font-semibold transition-colors
+                        ${page === item
+                          ? 'bg-orange text-white'
+                          : 'border border-gray-200 text-gray-700 hover:bg-gray-50'}`}
+                    >
+                      {(item as number) + 1}
+                    </button>
+                  )
+                )}
+
+                {/* Sonraki */}
+                <button
+                  onClick={() => goToPage(page + 1)}
+                  disabled={page >= totalPages - 1}
+                  className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200
+                             text-gray-600 hover:bg-gray-50 disabled:opacity-30 transition-colors"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            )}
           </>
         )}
       </div>

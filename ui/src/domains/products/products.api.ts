@@ -23,7 +23,7 @@ export const productsApi = {
   },
 
   quickSearch: async (q: string): Promise<ProductDto[]> => {
-    const { data } = await apiClient.get('/api/products/quick-search', { params: { q } })
+    const { data } = await apiClient.get('/api/products/search/quick', { params: { q } })
     return data
   },
 

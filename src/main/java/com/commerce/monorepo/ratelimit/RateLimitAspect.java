@@ -24,6 +24,15 @@ public class RateLimitAspect {
     @Before("@annotation(rateLimit)")
     public void applyRateLimit(JoinPoint jp, RateLimit rateLimit) {
 
+        // ADMIN kullanıcılar için rate limit atlanabilir (toplu işlemler için)
+        if (rateLimit.skipForAdmin()) {
+            Authentication skipCheck = SecurityContextHolder.getContext().getAuthentication();
+            if (skipCheck != null && skipCheck.getAuthorities().stream()
+                    .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
+                return;
+            }
+        }
+
         String keyPrefix = rateLimit.key();
         String key;
 

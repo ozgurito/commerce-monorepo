@@ -7,18 +7,26 @@ import { QUERY_KEYS } from '@/lib/query-keys'
 import { PriceRangeSlider } from './PriceRangeSlider'
 import type { CategoryDto } from '@/domains/categories/categories.types'
 
-const SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '2XL', '3XL']
+const SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '2XL', '3XL', '4XL', '5XL']
 const COLORS: { label: string; hex: string }[] = [
-  { label: 'Siyah',    hex: '#111111' },
-  { label: 'Beyaz',    hex: '#FFFFFF' },
-  { label: 'Lacivert', hex: '#1A2B5E' },
-  { label: 'Kırmızı',  hex: '#EF4444' },
-  { label: 'Mavi',     hex: '#3B82F6' },
-  { label: 'Yeşil',    hex: '#22C55E' },
-  { label: 'Gri',      hex: '#9CA3AF' },
-  { label: 'Bej',      hex: '#D4B896' },
-  { label: 'Kahve',    hex: '#92400E' },
-  { label: 'Pembe',    hex: '#EC4899' },
+  { label: 'Siyah',       hex: '#111111' },
+  { label: 'Beyaz',       hex: '#FFFFFF' },
+  { label: 'Lacivert',    hex: '#1A2B5E' },
+  { label: 'Kırmızı',     hex: '#EF4444' },
+  { label: 'Mavi',        hex: '#3B82F6' },
+  { label: 'Yeşil',       hex: '#22C55E' },
+  { label: 'Gri',         hex: '#9CA3AF' },
+  { label: 'Bej',         hex: '#D4B896' },
+  { label: 'Kahve',       hex: '#92400E' },
+  { label: 'Kahverengi',  hex: '#7C4A2A' },
+  { label: 'Pembe',       hex: '#EC4899' },
+  { label: 'Haki',        hex: '#8B8B5A' },
+  { label: 'Ekru',        hex: '#F5F0E1' },
+  { label: 'Sarı',        hex: '#EAB308' },
+  { label: 'Turuncu',     hex: '#F97316' },
+  { label: 'Mor',         hex: '#A855F7' },
+  { label: 'Bordo',       hex: '#881337' },
+  { label: 'Antrasit',    hex: '#374151' },
 ]
 
 interface Filters {

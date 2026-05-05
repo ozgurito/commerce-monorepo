@@ -9,4 +9,6 @@ public @interface RateLimit {
     int limit();
     int windowSeconds();
     boolean perUser() default false;
+    /** true ise ADMIN rolündeki kullanıcılar bu endpoint'te rate limit'e tabi tutulmaz. */
+    boolean skipForAdmin() default false;
 }
