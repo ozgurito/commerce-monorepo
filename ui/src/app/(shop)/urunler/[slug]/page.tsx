@@ -50,13 +50,15 @@ export default async function UrunDetayPage(
     <div className="max-w-[1280px] mx-auto px-5 py-6">
       <Breadcrumb categoryId={product.categoryId} productName={product.name} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-        {/* Sol: Galeri */}
-        <ProductGallery
-          images={product.images ?? []}
-          productName={product.name}
-          fallbackUrl={product.imageUrl ?? product.images?.[0]?.imageUrl}
-        />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:items-start">
+        {/* Sol: Galeri — sticky kalır, ProductInfo kaydıkça üstte tutunur */}
+        <div className="lg:sticky lg:top-[130px] self-start">
+          <ProductGallery
+            images={product.images ?? []}
+            productName={product.name}
+            fallbackUrl={product.imageUrl ?? product.images?.[0]?.imageUrl}
+          />
+        </div>
 
         {/* Sağ: Bilgi + Sepet */}
         <ProductInfo product={product} />

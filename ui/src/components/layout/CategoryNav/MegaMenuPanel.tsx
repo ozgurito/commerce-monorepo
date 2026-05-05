@@ -50,11 +50,11 @@ export function MegaMenuPanel({ category, subCategories, isOpen }: Props) {
 
   return (
     <div className="bg-white shadow-[0_12px_48px_rgba(0,0,0,.18)] border-t border-gray-100">
-      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10 xl:px-14 flex gap-0"
+      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10 xl:px-14 flex gap-0 items-stretch"
            style={{ minHeight: 280 }}>
 
         {/* ── Sol: Kategori hero banner ── */}
-        <div className="w-[180px] flex-shrink-0 flex flex-col items-start justify-between p-5 relative overflow-hidden">
+        <div className="w-[180px] flex-shrink-0 flex flex-col items-start justify-between p-5 relative overflow-hidden min-h-[280px]">
           {/* Background: gerçek görsel varsa full-bleed, yoksa gradient */}
           {category.imageUrl ? (
             <>
@@ -100,7 +100,7 @@ export function MegaMenuPanel({ category, subCategories, isOpen }: Props) {
         </div>
 
         {/* ── Orta: Alt kategoriler veya quick links ── */}
-        <div className="flex-[2] py-5 px-6 border-r border-gray-100">
+        <div className="flex-[2] py-5 px-6 border-r border-gray-100 min-h-[280px]">
           {/* Alt kategoriler */}
           {subCategories.length > 0 ? (
             <>
@@ -175,7 +175,7 @@ export function MegaMenuPanel({ category, subCategories, isOpen }: Props) {
         </div>
 
         {/* ── Sağ: Öne çıkan ürünler ── */}
-        <div className="w-[240px] flex-shrink-0 py-5 pl-6">
+        <div className="w-[240px] flex-shrink-0 py-5 pl-6 min-h-[280px]">
           <p className="text-[10px] font-extrabold text-gray-400 uppercase tracking-[0.15em] mb-3">
             Öne Çıkanlar
           </p>
