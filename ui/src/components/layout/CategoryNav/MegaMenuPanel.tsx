@@ -39,9 +39,9 @@ export function MegaMenuPanel({ category, subCategories, isOpen }: Props) {
   const theme = getTheme(category.slug)
 
   // Öne çıkan veya normal ürünleri getir
-  const { data: products } = useQuery({
-    queryKey: QUERY_KEYS.products.list({ categoryId: category.id, size: 4 }),
-    queryFn: () => productsApi.getList({ categoryId: category.id, size: 4 }),
+  const { data: products, isLoading: productsLoading } = useQuery({
+    queryKey: QUERY_KEYS.products.list({ categoryId: category.id, size: 4, sortBy: 'createdAt', sortDirection: 'DESC' }),
+    queryFn: () => productsApi.getList({ categoryId: category.id, size: 4, sortBy: 'createdAt', sortDirection: 'DESC' }),
     staleTime: 5 * 60 * 1000,
     enabled: isOpen,
   })
@@ -180,7 +180,20 @@ export function MegaMenuPanel({ category, subCategories, isOpen }: Props) {
             Öne Çıkanlar
           </p>
 
-          {productList.length > 0 ? (
+          {productsLoading ? (
+            /* Yükleniyor skeleton */
+            <div className="flex flex-col gap-2">
+              {[1,2,3].map((i) => (
+                <div key={i} className="flex items-center gap-3 p-2">
+                  <div className="w-11 h-11 rounded-xl bg-gray-100 flex-shrink-0 animate-pulse" />
+                  <div className="flex-1">
+                    <div className="h-3 bg-gray-100 rounded animate-pulse mb-1.5 w-4/5" />
+                    <div className="h-3 bg-gray-100 rounded animate-pulse w-2/5" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : productList.length > 0 ? (
             <div className="flex flex-col gap-1">
               {productList.map((product) => (
                 <Link
@@ -218,10 +231,10 @@ export function MegaMenuPanel({ category, subCategories, isOpen }: Props) {
               ))}
             </div>
           ) : (
-            /* Ürün yoksa CTA */
+            /* Kategoride ürün yok */
             <div className="flex flex-col items-center justify-center h-[160px] text-center">
               <span className="text-3xl mb-2">{theme.icon}</span>
-              <p className="text-xs text-gray-400 mb-3">Ürünler yükleniyor…</p>
+              <p className="text-xs text-gray-400 mb-3">Yakında yeni ürünler</p>
               <Link
                 href={`/kategori/${category.slug}`}
                 className={`text-xs font-bold text-white px-4 py-2 rounded-xl

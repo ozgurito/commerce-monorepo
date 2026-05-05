@@ -19,6 +19,9 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     Page<Product> findByNameContainingIgnoreCaseOrDescriptionContainingIgnoreCaseAndIsActiveTrue(
             String name, String description, Pageable pageable);
 
+    /** Sadece ürün adına göre arama — autocomplete için (description'dan yanlış sonuç gelmesin) */
+    Page<Product> findByNameContainingIgnoreCaseAndIsActiveTrue(String name, Pageable pageable);
+
     Optional<Product> findBySlug(String slug);
     List<Product> findByIsActiveTrueOrderByCreatedAtDesc();
     Page<Product> findByIsActiveTrue(Pageable pageable);

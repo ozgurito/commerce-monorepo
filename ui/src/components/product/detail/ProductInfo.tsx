@@ -438,9 +438,26 @@ export function ProductInfo({ product }: Props) {
       {product.description && (
         <div className="border-t border-gray-100 pt-4">
           <h3 className="text-sm font-extrabold text-gray-800 mb-2">Ürün Açıklaması</h3>
-          <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">
-            {product.description}
-          </p>
+          {/* Trendyol açıklamaları ";." ile ayrılmış cümleler içerir — madde listesi olarak göster */}
+          {product.description.includes(';') ? (
+            <ul className="space-y-1.5">
+              {product.description
+                .split(/[;]+/)
+                .map(s => s.replace(/^[\s.]+|[\s.]+$/g, ''))
+                .filter(s => s.length > 4)
+                .slice(0, 8)
+                .map((sentence, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
+                    <span className="w-1.5 h-1.5 rounded-full bg-orange flex-shrink-0 mt-1.5" />
+                    {sentence}
+                  </li>
+                ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">
+              {product.description}
+            </p>
+          )}
         </div>
       )}
 

@@ -647,8 +647,9 @@ public class ProductService {
         }
 
         Pageable pageable = PageRequest.of(0, limit);
-        Page<Product> products = repo.findByNameContainingIgnoreCaseOrDescriptionContainingIgnoreCaseAndIsActiveTrue(
-                keyword, keyword, pageable);
+        // Sadece isme göre ara — açıklamada geçen kategori etiketleri (ör: "Sweatshirt,Tişört;")
+        // yanlış sonuç getirmesin
+        Page<Product> products = repo.findByNameContainingIgnoreCaseAndIsActiveTrue(keyword, pageable);
 
         return products.getContent()
                 .stream()

@@ -13,6 +13,22 @@ interface Props {
 
 const SIZE_ORDER = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL']
 
+// colorHex DB'de null olduğunda renk adına göre fallback
+const COLOR_MAP: Record<string, string> = {
+  'siyah': '#111111', 'beyaz': '#FFFFFF', 'lacivert': '#1A2B5E',
+  'kırmızı': '#EF4444', 'mavi': '#3B82F6', 'yeşil': '#22C55E',
+  'gri': '#9CA3AF', 'bej': '#D4B896', 'kahve': '#92400E',
+  'kahverengi': '#7C4A2A', 'pembe': '#EC4899', 'haki': '#8B8B5A',
+  'ekru': '#F5F0E1', 'sarı': '#EAB308', 'turuncu': '#F97316',
+  'mor': '#A855F7', 'bordo': '#881337', 'antrasit': '#374151',
+}
+
+function resolveColorHex(hex: string | null | undefined, name: string | null | undefined): string {
+  if (hex && hex !== '#cccccc') return hex
+  const key = (name ?? '').toLowerCase().trim()
+  return COLOR_MAP[key] ?? '#cccccc'
+}
+
 function groupVariants(variants: ProductVariantDto[] | null | undefined) {
   const groups: Record<string, ProductVariantDto[]> = {}
   if (!variants) return groups
@@ -68,7 +84,7 @@ export function VariantSelector({ variants, selections, onSelect, errorGroups = 
 
                 /* ── Renk grubu → dairesel swatch ── */
                 if (isColorGroup) {
-                  const hex = v.colorHex || '#cccccc'
+                  const hex = resolveColorHex(v.colorHex, v.color)
                   return (
                     <button
                       key={v.id}

@@ -99,7 +99,7 @@ export function ReviewSection({ productId, averageRating, totalReviews }: Props)
   const reviews = data?.content ?? []
 
   return (
-    <section id="reviews" className="mt-12 pt-8 border-t border-gray-100">
+    <section id="reviews" className="mt-8 pt-6 border-t border-gray-100">
       <h2 className="text-xl font-extrabold text-navy-dark mb-6">
         Değerlendirmeler
         {totalReviews > 0 && (
