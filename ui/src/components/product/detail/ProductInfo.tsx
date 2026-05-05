@@ -1,7 +1,7 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Heart, ShoppingBag, Star, Minus, Plus, Truck, RotateCcw, Shield, Share2, Check, ShoppingCart, CheckCircle2, Zap } from 'lucide-react'
+import { Heart, ShoppingBag, Star, Minus, Plus, Truck, RotateCcw, Shield, Share2, Check, ShoppingCart, Zap } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useRouter } from 'next/navigation'
 import { cartApi } from '@/domains/cart/cart.api'
@@ -434,82 +434,6 @@ export function ProductInfo({ product }: Props) {
         ))}
       </div>
 
-      {/* Description */}
-      {product.description && (
-        <div className="border-t border-gray-100 pt-4">
-          <h3 className="text-sm font-extrabold text-gray-800 mb-2">Ürün Açıklaması</h3>
-          {/* Trendyol açıklamaları ";." ile ayrılmış cümleler içerir — madde listesi olarak göster */}
-          {product.description.includes(';') ? (
-            <ul className="space-y-1.5">
-              {product.description
-                .split(/[;]+/)
-                .map(s => s.replace(/^[\s.]+|[\s.]+$/g, ''))
-                .filter(s => s.length > 4)
-                .slice(0, 8)
-                .map((sentence, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
-                    <span className="w-1.5 h-1.5 rounded-full bg-orange flex-shrink-0 mt-1.5" />
-                    {sentence}
-                  </li>
-                ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">
-              {product.description}
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* Özellikler — checkmark listesi */}
-      {(() => {
-        const features = [
-          product.material          && `${product.material} kumaş`,
-          product.fabricComposition && product.fabricComposition,
-          product.fitType           && `${product.fitType} kesim`,
-          product.careInstructions  && product.careInstructions,
-          product.season            && `${product.season} sezonu uygun`,
-        ].filter(Boolean) as string[]
-        if (!features.length) return null
-        return (
-          <div className="border-t border-gray-100 pt-4">
-            <h3 className="text-sm font-extrabold text-gray-800 mb-3">Özellikler</h3>
-            <ul className="space-y-2">
-              {features.map((f) => (
-                <li key={f} className="flex items-start gap-2 text-sm text-gray-600">
-                  <CheckCircle2 size={16} className="text-orange flex-shrink-0 mt-0.5" />
-                  {f}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )
-      })()}
-
-      {/* Ürün Özellikleri — teknik grid */}
-      {(product.material || product.fabricComposition || product.careInstructions ||
-        product.fitType  || product.gender            || product.season           ||
-        product.originCountry) && (
-        <div className="border-t border-gray-100 pt-4">
-          <h3 className="text-sm font-extrabold text-gray-800 mb-3">Ürün Detayları</h3>
-          <div className="grid grid-cols-2 gap-2">
-            {[
-              { key: 'Materyal',       val: product.material },
-              { key: 'Gramaj/İçerik', val: product.fabricComposition },
-              { key: 'Yıkama',        val: product.careInstructions },
-              { key: 'Kesim',         val: product.fitType },
-              { key: 'Cinsiyet',      val: product.gender },
-              { key: 'Sezon',         val: product.season },
-              { key: 'Menşei',        val: product.originCountry },
-            ].filter(x => x.val).map(({ key, val }) => (
-              <div key={key} className="bg-gray-50 rounded-xl p-2.5">
-                <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">{key}</p>
-                <p className="text-sm text-gray-800 font-semibold mt-0.5">{val}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   )
 }
