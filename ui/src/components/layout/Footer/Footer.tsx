@@ -74,7 +74,7 @@ export function Footer() {
             <div className="mt-5 space-y-2">
               <div className="flex items-center gap-2 text-sm text-white/60">
                 <Phone size={14} className="text-orange flex-shrink-0" />
-                0850 123 45 67
+                0541 877 16 35
               </div>
               <div className="flex items-center gap-2 text-sm text-white/60">
                 <Mail size={14} className="text-orange flex-shrink-0" />

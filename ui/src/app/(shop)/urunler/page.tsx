@@ -71,7 +71,7 @@ export default async function UrunlerPage({
     <div>
       {indirim && (
         <PageHero
-          image="/images/Gemini_Generated_Image_wqe2m0wqe2m0wqe2.png"
+          image="/images/cat-header-indirim.png"
           overlay="bg-gradient-to-r from-red-900/85 via-red-800/55 to-red-900/10"
           fallbackGradient="bg-gradient-to-r from-red-500 to-orange"
           icon="⚡" tag="Kampanya" title="İndirimli Ürünler"
@@ -79,7 +79,7 @@ export default async function UrunlerPage({
       )}
       {yeni && !indirim && (
         <PageHero
-          image="/images/Gemini_Generated_Image_cn8r3pcn8r3pcn8r.png"
+          image="/images/cat-header-yeni-gelenler.png"
           overlay="bg-gradient-to-r from-[#0d1a40]/85 via-[#0d1a40]/50 to-[#0d1a40]/10"
           fallbackGradient="bg-gradient-to-r from-navy-dark to-navy"
           icon="✨" tag="Koleksiyon" title="Yeni Gelenler"

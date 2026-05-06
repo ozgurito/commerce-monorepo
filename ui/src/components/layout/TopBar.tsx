@@ -6,11 +6,11 @@ const TICKER_ITEMS = [
   { icon: Truck,      text: 'Ücretsiz kargo',  highlight: '150₺ ve üzeri' },
   { icon: RotateCcw,  text: 'Kolay iade',       highlight: '30 gün' },
   { icon: Shield,     text: 'Güvenli ödeme',    highlight: '256-bit SSL' },
-  { icon: Phone,      text: 'Müşteri hattı',    highlight: '0850 123 45 67' },
+  { icon: Phone,      text: 'Müşteri hattı',    highlight: '0541 877 16 35' },
   { icon: Truck,      text: 'Ücretsiz kargo',  highlight: '150₺ ve üzeri' },
   { icon: RotateCcw,  text: 'Kolay iade',       highlight: '30 gün' },
   { icon: Shield,     text: 'Güvenli ödeme',    highlight: '256-bit SSL' },
-  { icon: Phone,      text: 'Müşteri hattı',    highlight: '0850 123 45 67' },
+  { icon: Phone,      text: 'Müşteri hattı',    highlight: '0541 877 16 35' },
 ]
 
 export function TopBar() {

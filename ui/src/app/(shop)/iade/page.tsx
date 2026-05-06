@@ -96,12 +96,12 @@ export default function IadePage() {
         </div>
         <div className="flex gap-3 flex-shrink-0">
           <a
-            href="tel:08501234567"
+            href="tel:+905418771635"
             className="flex items-center gap-2 bg-navy-dark text-white font-bold
                        px-5 py-2.5 rounded-xl hover:opacity-90 transition-opacity text-sm"
           >
             <Phone size={14} />
-            0850 123 45 67
+            0541 877 16 35
           </a>
           <a
             href="mailto:iade@alisverisnoktam.com"

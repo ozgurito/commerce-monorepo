@@ -85,7 +85,7 @@ export default function KargoTakipPage() {
             { icon: Truck, title: 'Standart Kargo', desc: '1–3 iş günü içinde teslim' },
             { icon: Package, title: 'Ücretsiz Kargo', desc: '150 TL ve üzeri siparişlerde' },
             { icon: MapPin, title: 'Teslimat Bölgesi', desc: 'Türkiye geneli tüm iller' },
-            { icon: Phone, title: 'Kargo Desteği', desc: '0850 123 45 67' },
+            { icon: Phone, title: 'Kargo Desteği', desc: '0541 877 16 35' },
           ].map(({ icon: Icon, title, desc }) => (
             <div key={title} className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl">
               <div className="w-9 h-9 bg-orange/10 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -107,7 +107,7 @@ export default function KargoTakipPage() {
           {[
             { q: 'Kargom ne zaman gelecek?', a: 'Siparişiniz onaylandıktan sonra 1–3 iş günü içinde teslim edilir.' },
             { q: 'Kargo ücretini nasıl öğrenirim?', a: '150 TL ve üzeri siparişlerde kargo ücretsizdir. Altında kalan siparişler için 29,90 TL kargo ücreti uygulanır.' },
-            { q: 'Kargom kaybolursa ne yapmalıyım?', a: 'Müşteri hizmetlerimizi arayın: 0850 123 45 67. 24 saat içinde dönüş sağlarız.' },
+            { q: 'Kargom kaybolursa ne yapmalıyım?', a: 'Müşteri hizmetlerimizi arayın: 0541 877 16 35. 24 saat içinde dönüş sağlarız.' },
           ].map(({ q, a }) => (
             <div key={q} className="border border-gray-100 rounded-xl p-4">
               <p className="font-semibold text-gray-800 text-sm mb-1.5">{q}</p>

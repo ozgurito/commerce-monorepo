@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 
-const WHATSAPP_NUMBER = '905001234567'
+const WHATSAPP_NUMBER = '905418771635'
 const WHATSAPP_MESSAGE = 'Merhaba! AlışverişNoktan hakkında bilgi almak istiyorum.'
 
 export default function WhatsAppButton() {
