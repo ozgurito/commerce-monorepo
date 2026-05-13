@@ -13,6 +13,7 @@ export function Logo() {
           height={44}
           className="object-contain w-full h-full"
           priority
+          unoptimized
         />
       </div>
 
