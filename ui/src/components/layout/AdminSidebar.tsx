@@ -38,10 +38,14 @@ export function AdminSidebar() {
   return (
     <aside className="w-56 bg-navy-dark min-h-screen flex flex-col flex-shrink-0">
       {/* Logo */}
-      <div className="px-5 py-5 border-b border-white/10">
-        <Link href="/admin" className="text-white font-extrabold text-lg leading-tight">
-          Alışveriş<span className="text-orange">Noktan</span>
-          <span className="block text-xs font-normal text-white/40 mt-0.5">Admin Panel</span>
+      <div className="px-5 py-4 border-b border-white/10">
+        <Link href="/admin" className="flex items-center gap-2.5">
+          <img src="/images/logo.png" alt="Logo" className="w-9 h-9 object-contain flex-shrink-0" />
+          <div className="leading-tight">
+            <span className="text-white font-extrabold text-base">Alışveriş</span>
+            <span className="text-orange font-extrabold text-base">Noktan</span>
+            <span className="block text-[10px] font-normal text-white/40">Admin Panel</span>
+          </div>
         </Link>
       </div>
 
