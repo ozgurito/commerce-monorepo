@@ -233,6 +233,11 @@ public class ProductService {
         repo.deleteById(id);
     }
 
+    @Transactional
+    public void deleteAll() {
+        repo.deleteAll();
+    }
+
     @Transactional(readOnly = true)
     public Page<ProductDto> getProductsByCategory(Long categoryId, Pageable pageable) {
         return repo.findByCategoryIdAndIsActiveTrue(categoryId, pageable)

@@ -171,6 +171,10 @@ export const adminApi = {
     await apiClient.delete(`/api/products/${id}`)
   },
 
+  deleteAllProducts: async (): Promise<void> => {
+    await apiClient.delete('/api/products/all')
+  },
+
   // --- Image upload ---
   // Dosyayı backend'e gönder → backend MinIO'ya yükler → { imageUrl, key } döner
   uploadImage: async (file: File): Promise<{ imageUrl: string; key: string }> => {

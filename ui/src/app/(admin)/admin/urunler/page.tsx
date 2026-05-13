@@ -3,7 +3,7 @@ import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Search, Edit2, Trash2, Loader2, Package, FileSpreadsheet } from 'lucide-react'
+import { Plus, Search, Edit2, Trash2, Loader2, Package, FileSpreadsheet, AlertTriangle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { adminApi } from '@/domains/admin/admin.api'
 import { categoriesApi } from '@/domains/categories/categories.api'
@@ -32,6 +32,8 @@ export default function AdminUrunlerPage() {
     },
   })
 
+  const [deleteAllConfirm, setDeleteAllConfirm] = useState(false)
+
   const deleteMutation = useMutation({
     mutationFn: (id: number) => adminApi.deleteProduct(id),
     onSuccess: () => {
@@ -39,6 +41,16 @@ export default function AdminUrunlerPage() {
       toast.success('Ürün silindi')
     },
     onError: () => toast.error('Ürün silinemedi'),
+  })
+
+  const deleteAllMutation = useMutation({
+    mutationFn: () => adminApi.deleteAllProducts(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'products'] })
+      setDeleteAllConfirm(false)
+      toast.success('Tüm ürünler silindi')
+    },
+    onError: () => toast.error('Silme işlemi başarısız'),
   })
 
   const toggleMutation = useMutation({
@@ -58,6 +70,36 @@ export default function AdminUrunlerPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-extrabold text-navy-dark">Ürünler</h1>
         <div className="flex items-center gap-2">
+          {/* Tüm Ürünleri Sil — iki adımlı onay */}
+          {deleteAllConfirm ? (
+            <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
+              <span className="text-xs font-bold text-red-600">Emin misiniz? Bu geri alınamaz!</span>
+              <button
+                onClick={() => deleteAllMutation.mutate()}
+                disabled={deleteAllMutation.isPending}
+                className="text-xs font-bold text-white bg-red-500 hover:bg-red-600
+                           px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-1"
+              >
+                {deleteAllMutation.isPending
+                  ? <><Loader2 size={12} className="animate-spin" /> Siliniyor…</>
+                  : 'Evet, Sil'}
+              </button>
+              <button
+                onClick={() => setDeleteAllConfirm(false)}
+                className="text-xs font-semibold text-gray-500 hover:text-gray-700 px-2 py-1.5"
+              >
+                İptal
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setDeleteAllConfirm(true)}
+              className="flex items-center gap-2 border border-red-200 text-red-500 hover:bg-red-50
+                         font-semibold px-4 py-2.5 rounded-xl transition-colors text-sm"
+            >
+              <AlertTriangle size={15} /> Tümünü Sil
+            </button>
+          )}
           <Link
             href="/admin/urunler/import"
             className="flex items-center gap-2 border border-gray-200 text-gray-600 hover:border-orange

@@ -150,6 +150,14 @@ public class ProductController {
         service.delete(id);
     }
 
+    @DeleteMapping("/all")
+    @PreAuthorize("hasRole('ADMIN')")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Tüm ürünleri sil (admin only — dikkatli kullanın!)")
+    public void deleteAll() {
+        service.deleteAll();
+    }
+
     @PatchMapping("/{id}/stock")
     @PreAuthorize("hasRole('ADMIN')")
     @RateLimit(key = "product:stock", limit = 20, windowSeconds = 60)
