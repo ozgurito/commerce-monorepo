@@ -10,28 +10,47 @@ import toast from 'react-hot-toast'
 import { adminApi } from '@/domains/admin/admin.api'
 import { categoriesApi } from '@/domains/categories/categories.api'
 
-/* ── Trendyol sütun indexleri ───────────────────────────────────── */
+/* ── Trendyol sütun indexleri (17 kolon format) ─────────────────────
+ * [0] Barkod           [1] Model Kodu      [2] Ürün Rengi
+ * [3] Beden            [4] Cinsiyet        [5] Marka
+ * [6] Kategori İsmi    [7] Tedarikçi Kodu  [8] Ürün Adı
+ * [9] Ürün Açıklaması  [10] Fiyat          [11] Stok
+ * [12-16] Görsel 1-5
+ * ─────────────────────────────────────────────────────────────────── */
 const COL = {
-  BARKOD:       1,
-  MODEL_KODU:   3,
-  RENK:         4,
-  BEDEN:        5,
-  CINSIYET:     7,
-  KATEGORI:     9,
-  URUN_ADI:     11,
-  ACIKLAMA:     12,
-  PIYASA_FIYAT: 13,
-  SATIS_FIYAT:  14,
-  STOK:         16,
-  GORSEL_1:     20,
-  GORSEL_2:     21,
-  GORSEL_3:     22,
-  GORSEL_4:     23,
-  GORSEL_5:     24,
-  GORSEL_6:     25,
-  GORSEL_7:     26,
-  GORSEL_8:     27,
-  DURUM:        31,
+  BARKOD:      0,
+  MODEL_KODU:  1,
+  RENK:        2,
+  BEDEN:       3,
+  CINSIYET:    4,
+  MARKA:       5,
+  KATEGORI:    6,
+  URUN_ADI:    8,
+  ACIKLAMA:    9,
+  SATIS_FIYAT: 10,
+  STOK:        11,
+  GORSEL_1:    12,
+  GORSEL_2:    13,
+  GORSEL_3:    14,
+  GORSEL_4:    15,
+  GORSEL_5:    16,
+}
+
+/* Kategori isim normalizasyonu: "Büyük Beden X" → "X" */
+function normalizeCategoryName(raw: string): string {
+  return raw
+    .replace(/büyük beden\s*/i, '')
+    .replace(/eşofman takımı/i, 'Eşofman')
+    .replace(/alt\s*-\s*üst takım/i, 'Eşofman')
+    .replace(/şort\s*&\s*bermuda/i, 'Şort')
+    .trim()
+}
+
+/* Cinsiyet normalizasyonu */
+function normalizeGender(raw: string): string {
+  if (/kadın|kız/i.test(raw)) return 'Kadın'
+  if (/erkek/i.test(raw)) return 'Erkek'
+  return 'Unisex'
 }
 
 interface ParsedProduct {
@@ -77,20 +96,19 @@ function parseExcel(rows: unknown[][]): ParsedProduct[] {
     if (!name) return
 
     const price = parseFloat(String(first[COL.SATIS_FIYAT] ?? '0')) || 0
-    const comparePrice = parseFloat(String(first[COL.PIYASA_FIYAT] ?? '0')) || undefined
 
-    // Tüm satırların stok toplamı (ya da ilk satırın stoku)
-    const totalStock = groupRows.reduce((sum, r) => {
-      return sum + (parseInt(String((r as unknown[])[COL.STOK] ?? '0')) || 0)
-    }, 0)
+    // Stok: ilk satırın değeri (Excel'de her variant için aynı genellikle)
+    const totalStock = parseInt(String(first[COL.STOK] ?? '1000')) || 1000
 
-    // Görseller — ilk satırdaki dolu görsel URL'lerini al
-    const images = [
-      COL.GORSEL_1, COL.GORSEL_2, COL.GORSEL_3, COL.GORSEL_4,
-      COL.GORSEL_5, COL.GORSEL_6, COL.GORSEL_7, COL.GORSEL_8,
-    ]
-      .map(idx => String(first[idx] ?? '').trim())
-      .filter(url => url.startsWith('http'))
+    // Görseller — tüm satırlarda tarayıp dolu URL'leri topla (dedupe)
+    const imageSet = new Set<string>()
+    for (const r of groupRows) {
+      for (const idx of [COL.GORSEL_1, COL.GORSEL_2, COL.GORSEL_3, COL.GORSEL_4, COL.GORSEL_5]) {
+        const url = String((r as unknown[])[idx] ?? '').trim()
+        if (url.startsWith('http')) imageSet.add(url)
+      }
+    }
+    const images = [...imageSet].slice(0, 8)
 
     // Unique bedenler
     const sizes = [...new Set(
@@ -106,20 +124,23 @@ function parseExcel(rows: unknown[][]): ParsedProduct[] {
         .filter(Boolean)
     )].map(name => ({ name }))
 
+    const rawCategory = String(first[COL.KATEGORI] ?? '').trim()
+    const rawGender   = String(first[COL.CINSIYET] ?? '').trim()
+
     products.push({
       modelKodu,
       name,
       description: String(first[COL.ACIKLAMA] ?? '').trim() || name,
       price,
-      comparePrice: (comparePrice && comparePrice > price) ? comparePrice : undefined,
-      stock: totalStock || 100,
+      comparePrice: undefined,
+      stock: totalStock,
       sku: String(first[COL.BARKOD] ?? modelKodu).trim(),
-      categoryName: String(first[COL.KATEGORI] ?? '').trim(),
-      gender: String(first[COL.CINSIYET] ?? '').trim(),
+      categoryName: normalizeCategoryName(rawCategory),
+      gender: normalizeGender(rawGender),
       images,
       sizes,
       colors,
-      isActive: String(first[COL.DURUM] ?? '').toLowerCase().includes('aktif') || true,
+      isActive: true,
     })
   })
 
@@ -183,10 +204,11 @@ export default function ImportPage() {
     for (let i = 0; i < parsed.length; i++) {
       const p = parsed[i]
       try {
-        // Kategori eşleştir
-        const cat = categories.find(c =>
-          c.name.toLowerCase() === p.categoryName.toLowerCase()
-        )
+        // Kategori eşleştir — tam eşleşme yoksa içerme ile dene
+        const catNorm = p.categoryName.toLowerCase()
+        const cat = categories.find(c => c.name.toLowerCase() === catNorm)
+          ?? categories.find(c => c.name.toLowerCase().includes(catNorm))
+          ?? categories.find(c => catNorm.includes(c.name.toLowerCase()))
         const categoryId = cat?.id ?? categories[0]?.id ?? 1
 
         // Ürün oluştur
@@ -278,7 +300,7 @@ export default function ImportPage() {
           Görsel URL&apos;leri, bedenler ve renkler otomatik eşlenir.
         </p>
         <div className="mt-2 flex flex-wrap gap-2">
-          {['Ürün Adı', 'Fiyat', 'Stok', 'Kategori', 'Görseller (8 adet)', 'Bedenler', 'Renkler', 'Cinsiyet'].map(f => (
+          {['Ürün Adı', 'Fiyat', 'Stok', 'Kategori', 'Görseller (5 adet)', 'Bedenler', 'Renkler', 'Cinsiyet', 'Marka'].map(f => (
             <span key={f} className="text-[10px] font-semibold bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full">
               {f}
             </span>
