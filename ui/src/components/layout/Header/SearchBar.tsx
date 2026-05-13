@@ -87,7 +87,7 @@ export function SearchBar() {
   const showDropdown  = showTrending || showResults || showNoResults
 
   return (
-    <div ref={wrapRef} className="relative w-full" style={{ maxWidth: 680 }}>
+    <div ref={wrapRef} className="relative w-full" style={{ maxWidth: 920 }}>
       <form onSubmit={handleSubmit}>
         <div className={`flex rounded-[10px] overflow-hidden transition-shadow duration-200
                          ${open
