@@ -7,7 +7,7 @@ export function Logo() {
       {/* PNG logo — transparan arka plan, mavi+turuncu pin+sepet */}
       <div className="w-[44px] h-[44px] flex-shrink-0 drop-shadow-lg">
         <Image
-          src="/images/Gemini_Generated_Image_corr9wcorr9wcorr.png"
+          src="/images/logo.png"
           alt="AlışverişNoktan Logo"
           width={44}
           height={44}
