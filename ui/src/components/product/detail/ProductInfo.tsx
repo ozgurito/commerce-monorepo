@@ -183,6 +183,13 @@ export function ProductInfo({ product }: Props) {
           {product.name}
         </h1>
 
+        {/* Model kodu */}
+        {product.sku && (
+          <p className="text-[11px] text-gray-400 mt-1 font-mono">
+            Model No: <span className="text-gray-500 font-semibold">{product.sku}</span>
+          </p>
+        )}
+
         {/* Materyal rozetleri */}
         {(product.material || product.fitType) && (
           <div className="flex flex-wrap gap-2 mt-2">

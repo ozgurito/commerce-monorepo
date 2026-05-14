@@ -137,9 +137,17 @@ function ProductRow({
           </div>
         </td>
 
-        {/* SKU */}
-        <td className="px-4 py-3 text-gray-500 font-mono text-xs" onClick={e => e.stopPropagation()}>
-          {p.sku}
+        {/* Model No (SKU) */}
+        <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
+          {p.sku ? (
+            <span className="inline-block font-mono text-[11px] font-semibold text-navy-dark
+                             bg-navy-dark/5 border border-navy-dark/10 rounded-lg px-2 py-0.5
+                             max-w-[130px] truncate" title={p.sku}>
+              {p.sku}
+            </span>
+          ) : (
+            <span className="text-gray-300 text-xs">—</span>
+          )}
         </td>
 
         {/* Price */}
@@ -279,6 +287,7 @@ export default function AdminUrunlerPage() {
     queryFn: categoriesApi.getAll,
   })
 
+  // Düz liste — sayfalı
   const { data, isLoading } = useQuery({
     queryKey: ['admin', 'products', page, debouncedKeyword, categoryId],
     queryFn: () => {
@@ -287,6 +296,17 @@ export default function AdminUrunlerPage() {
       }
       return adminApi.getProducts(page, 20, debouncedKeyword || undefined)
     },
+  })
+
+  // Gruplu görünüm — tüm ürünleri tek seferde çek (arama yoksa, admin için makul)
+  const { data: allData, isLoading: allLoading } = useQuery({
+    queryKey: ['admin', 'products', 'all', categoryId],
+    queryFn: () => {
+      if (categoryId) return adminApi.getProducts(0, 1000, undefined, Number(categoryId))
+      return adminApi.getProducts(0, 1000)
+    },
+    enabled: viewMode === 'grouped' && !debouncedKeyword,
+    staleTime: 30_000,
   })
 
   const deleteMutation = useMutation({
@@ -336,9 +356,13 @@ export default function AdminUrunlerPage() {
     toggleMutation.mutate({ id, patch })
   }
 
-  /* Group by category for grouped view */
-  const grouped = viewMode === 'grouped' && !debouncedKeyword
-    ? products.reduce<Record<string, ProductDto[]>>((acc, p) => {
+  /* Group by category — allData kullan (tüm ürünler), arama varsa products kullan */
+  const groupSource = (viewMode === 'grouped' && !debouncedKeyword)
+    ? (allData?.content ?? [])
+    : products
+
+  const grouped = (viewMode === 'grouped' && !debouncedKeyword)
+    ? groupSource.reduce<Record<string, ProductDto[]>>((acc, p) => {
         const cat = p.categoryName || 'Kategori Yok'
         if (!acc[cat]) acc[cat] = []
         acc[cat].push(p)
@@ -346,11 +370,15 @@ export default function AdminUrunlerPage() {
       }, {})
     : null
 
+  const isGroupedLoading = viewMode === 'grouped' && !debouncedKeyword
+    ? allLoading
+    : isLoading
+
   const tableHeader = (
     <thead className="border-b border-gray-100 bg-gray-50">
       <tr>
         <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 uppercase">Ürün</th>
-        <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase">SKU</th>
+        <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase">Model No (SKU)</th>
         <th className="text-right px-4 py-3 text-xs font-bold text-gray-500 uppercase">Fiyat</th>
         <th className="text-right px-4 py-3 text-xs font-bold text-gray-500 uppercase">Stok</th>
         <th className="text-center px-4 py-3 text-xs font-bold text-gray-500 uppercase">Aktif</th>
@@ -471,11 +499,11 @@ export default function AdminUrunlerPage() {
 
       {/* Table */}
       <div className="bg-white rounded-2xl border border-gray-100 overflow-x-auto">
-        {isLoading ? (
+        {isGroupedLoading ? (
           <div className="flex justify-center py-16">
             <Loader2 size={24} className="text-orange animate-spin" />
           </div>
-        ) : products.length === 0 ? (
+        ) : groupSource.length === 0 && products.length === 0 ? (
           <div className="py-16 text-center">
             <Package size={32} className="text-gray-300 mx-auto mb-3" />
             <p className="text-gray-400">Ürün bulunamadı</p>

@@ -13,19 +13,62 @@ interface Props {
 
 const SIZE_ORDER = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL']
 
-// colorHex DB'de null olduğunda renk adına göre fallback
+// colorHex DB'de null olduğunda renk adına göre fallback (Turkish-aware)
 const COLOR_MAP: Record<string, string> = {
-  'siyah': '#111111', 'beyaz': '#FFFFFF', 'lacivert': '#1A2B5E',
-  'kırmızı': '#EF4444', 'mavi': '#3B82F6', 'yeşil': '#22C55E',
-  'gri': '#9CA3AF', 'bej': '#D4B896', 'kahve': '#92400E',
-  'kahverengi': '#7C4A2A', 'pembe': '#EC4899', 'haki': '#8B8B5A',
-  'ekru': '#F5F0E1', 'sarı': '#EAB308', 'turuncu': '#F97316',
-  'mor': '#A855F7', 'bordo': '#881337', 'antrasit': '#374151',
+  // Temel renkler
+  'siyah':           '#1a1a1a',
+  'beyaz':           '#FFFFFF',
+  'gri':             '#9ca3af',
+  'mavi':            '#3b82f6',
+  'kırmızı':         '#ef4444',
+  'kirmizi':         '#ef4444',
+  'mor':             '#8b5cf6',
+  'pembe':           '#f472b6',
+  'yeşil':           '#22c55e',
+  'yesil':           '#22c55e',
+  'lacivert':        '#1e3a5f',
+  'kahverengi':      '#92400e',
+  'kahve':           '#92400e',
+  'bej':             '#d4b896',
+  'bordo':           '#7f1d1d',
+  'sarı':            '#facc15',
+  'sari':            '#facc15',
+  'ekru':            '#f5f0e8',
+  'haki':            '#78716c',
+  'turuncu':         '#f97316',
+  'antrasit':        '#374151',
+  // Özel tonlar
+  'koyu yeşil':      '#14532d',
+  'koyu yesil':      '#14532d',
+  'saks mavisi':     '#4682b4',
+  'saks mavi':       '#4682b4',
+  'bebe mavisi':     '#a8d8ea',
+  'bebe mavi':       '#a8d8ea',
+  'indigo mavi':     '#4f46e5',
+  'i̇ndigo mavi':    '#4f46e5',
+  'çok renkli':      '#ff6b6b',
+  'cok renkli':      '#ff6b6b',
+  // Kombinler
+  'siyah-beyaz':     '#555555',
+  'beyaz-siyah':     '#555555',
+  'kırmızı-siyah':   '#7f1d1d',
+  'lacivert-siyah':  '#1e3a5f',
+  'sarı-siyah':      '#854d0e',
+}
+
+// Açık renk tespiti — bu renkler için koyu kenarlık kullan
+function isLightHex(hex: string): boolean {
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  return (r * 299 + g * 587 + b * 114) / 1000 > 200
 }
 
 function resolveColorHex(hex: string | null | undefined, name: string | null | undefined): string {
   if (hex && hex !== '#cccccc') return hex
-  const key = (name ?? '').toLowerCase().trim()
+  const key = (name ?? '')
+    .replace(/İ/g, 'i').replace(/I/g, 'ı')
+    .toLowerCase().trim()
   return COLOR_MAP[key] ?? '#cccccc'
 }
 
@@ -85,6 +128,7 @@ export function VariantSelector({ variants, selections, onSelect, errorGroups = 
                 /* ── Renk grubu → dairesel swatch ── */
                 if (isColorGroup) {
                   const hex = resolveColorHex(v.colorHex, v.color)
+                  const light = isLightHex(hex)
                   return (
                     <button
                       key={v.id}
@@ -105,7 +149,11 @@ export function VariantSelector({ variants, selections, onSelect, errorGroups = 
                       >
                         <span
                           className="w-8 h-8 rounded-full block"
-                          style={{ backgroundColor: hex }}
+                          style={{
+                            backgroundColor: hex,
+                            // Açık renkler (beyaz, ekru, bebe mavisi vb.) için görünür kenarlık
+                            border: light ? '1.5px solid #d1d5db' : 'none',
+                          }}
                         />
                         {/* Çapraz çizgi — sadece gerçekten pasif ise */}
                         {isDisabled && (
