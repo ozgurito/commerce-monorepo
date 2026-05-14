@@ -22,7 +22,19 @@ export function CategoryNav() {
     staleTime: 5 * 60 * 1000,
   })
 
+  // Backend yüklenene kadar gösterilecek hardcoded fallback kategoriler
+  const FALLBACK_CATS: CategoryDto[] = [
+    { id: 1, name: 'T-Shirt',    slug: 't-shirt',    parentId: null, isActive: true, imageUrl: null, description: null, displayOrder: 0, createdAt: '' },
+    { id: 2, name: 'Hoodie',     slug: 'hoodie',     parentId: null, isActive: true, imageUrl: null, description: null, displayOrder: 1, createdAt: '' },
+    { id: 3, name: 'Sweatshirt', slug: 'sweatshirt', parentId: null, isActive: true, imageUrl: null, description: null, displayOrder: 2, createdAt: '' },
+    { id: 4, name: 'Eşofman',    slug: 'esofman',    parentId: null, isActive: true, imageUrl: null, description: null, displayOrder: 3, createdAt: '' },
+    { id: 5, name: 'Şort',       slug: 'sort',       parentId: null, isActive: true, imageUrl: null, description: null, displayOrder: 4, createdAt: '' },
+  ]
+
   const rootCats = categories.filter((c: CategoryDto) => c.parentId === null && c.isActive)
+  // Gerçek data gelene kadar fallback kullan
+  const displayCats = rootCats.length > 0 ? rootCats : FALLBACK_CATS
+
   const subMap: Record<number, CategoryDto[]> = {}
   categories.forEach((c: CategoryDto) => {
     if (c.parentId !== null) {
@@ -54,7 +66,7 @@ export function CategoryNav() {
     if (closeTimer.current) clearTimeout(closeTimer.current)
   }, [])
 
-  const activeCategory = rootCats.find((c: CategoryDto) => c.slug === openSlug)
+  const activeCategory = displayCats.find((c: CategoryDto) => c.slug === openSlug)
 
   return (
     /* IMPORTANT: nav must be `relative` so absolute children position relative to it.
@@ -92,7 +104,7 @@ export function CategoryNav() {
         </div>
 
         {/* Root kategoriler */}
-        {rootCats.slice(0, 8).map((cat: CategoryDto) => {
+        {displayCats.slice(0, 8).map((cat: CategoryDto) => {
           const isActive = pathname.startsWith(`/kategori/${cat.slug}`)
           const isOpen = openSlug === cat.slug
 
@@ -166,7 +178,7 @@ export function CategoryNav() {
           onMouseLeave={closeAll}
         >
           <AllCategoriesMenu
-            rootCats={rootCats}
+            rootCats={displayCats}
             subMap={subMap}
             onClose={() => setAllOpen(false)}
           />

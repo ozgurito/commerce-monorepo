@@ -112,10 +112,78 @@ export default function OdemePage() {
     )
   }
 
+  if (!token && !cartLoading) {
+    // Giriş yapmamış → giriş yap
+    return (
+      <div className="max-w-[520px] mx-auto px-5 py-20 text-center">
+        <div className="w-20 h-20 rounded-full bg-orange/10 flex items-center justify-center mx-auto mb-6">
+          <AlertTriangle size={36} className="text-orange" />
+        </div>
+        <h2 className="text-xl font-extrabold text-navy-dark mb-2">Ödeme için giriş yapın</h2>
+        <p className="text-gray-500 text-sm mb-8">Siparişinizi tamamlamak için hesabınıza giriş yapmanız gerekiyor.</p>
+        <a href="/giris" className="inline-flex items-center gap-2 bg-orange hover:bg-orange-dark text-white
+                   font-bold px-8 py-3.5 rounded-2xl transition-colors text-sm">
+          Giriş Yap
+        </a>
+      </div>
+    )
+  }
+
   if (!cart || cart.items.length === 0) {
     return (
-      <div className="max-w-[1280px] mx-auto px-5 py-10 text-center">
-        <p className="text-gray-500 text-lg">Sepetiniz boş.</p>
+      <div className="max-w-[520px] mx-auto px-5 py-20 text-center">
+        {/* Sepet illustrasyon */}
+        <div className="w-28 h-28 rounded-full bg-gray-50 border-2 border-dashed border-gray-200
+                        flex items-center justify-center mx-auto mb-6">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="56" height="56" fill="none">
+            <path d="M8 8h4l6 28h28l6-16H16" stroke="#e5e7eb" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+            <circle cx="26" cy="52" r="3" fill="#e5e7eb"/>
+            <circle cx="42" cy="52" r="3" fill="#e5e7eb"/>
+            <path d="M28 24l4-4 4 4M32 20v12" stroke="#f97316" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </div>
+
+        <h2 className="text-xl font-extrabold text-navy-dark mb-2">Sepetiniz boş</h2>
+        <p className="text-gray-400 text-sm mb-8 leading-relaxed">
+          Sepetinizde henüz ürün bulunmuyor.<br/>
+          Dilediğiniz ürünleri ekleyip alışverişe devam edebilirsiniz.
+        </p>
+
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <a
+            href="/urunler"
+            className="inline-flex items-center justify-center gap-2 bg-orange hover:bg-orange-dark
+                       text-white font-bold px-8 py-3.5 rounded-2xl transition-colors text-sm
+                       shadow-lg shadow-orange/20"
+          >
+            🛍️ Alışverişe Başla
+          </a>
+          <a
+            href="/"
+            className="inline-flex items-center justify-center gap-2 border-2 border-gray-200
+                       text-gray-600 hover:border-navy-dark hover:text-navy-dark
+                       font-semibold px-6 py-3.5 rounded-2xl transition-colors text-sm"
+          >
+            Ana Sayfa
+          </a>
+        </div>
+
+        {/* Önerilen kategoriler */}
+        <div className="mt-12 pt-8 border-t border-gray-100">
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Popüler Kategoriler</p>
+          <div className="flex flex-wrap justify-center gap-2">
+            {['T-Shirt', 'Hoodie', 'Sweatshirt', 'Eşofman', 'Şort'].map(cat => (
+              <a
+                key={cat}
+                href={`/kategori/${cat.toLowerCase().replace('ş', 's').replace('ı', 'i')}`}
+                className="px-4 py-2 bg-gray-50 hover:bg-orange/10 hover:text-orange
+                           text-gray-600 text-sm font-semibold rounded-full transition-colors"
+              >
+                {cat}
+              </a>
+            ))}
+          </div>
+        </div>
       </div>
     )
   }

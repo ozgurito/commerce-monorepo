@@ -13,8 +13,8 @@ const CONTACT_INFO = [
   {
     icon: Phone,
     label: 'Telefon',
-    value: '0850 123 45 67',
-    href: 'tel:+908501234567',
+    value: '0541 877 16 35',
+    href: 'tel:+905418771635',
     note: 'Pazartesi – Cumartesi, 09:00 – 18:00',
   },
   {
@@ -28,7 +28,7 @@ const CONTACT_INFO = [
     icon: MessageCircle,
     label: 'Canlı Destek',
     value: 'WhatsApp ile yazın',
-    href: 'https://wa.me/908501234567',
+    href: 'https://wa.me/905418771635',
     note: 'Hızlı yanıt için tercih edin',
   },
   {
