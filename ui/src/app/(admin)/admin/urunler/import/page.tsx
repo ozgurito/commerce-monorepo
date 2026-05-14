@@ -36,7 +36,116 @@ const COL = {
   GORSEL_5:    16,
 }
 
-/* Kategori isim normalizasyonu: "Büyük Beden X" → "X" */
+/* ── Renk adı → canonical isim eşlemesi ──────────────────────────── */
+// Tüm büyük/küçük harf varyantları, sayı sonekleri ve bilinen takma adlar
+const COLOR_NAME_MAP: Record<string, string> = {
+  // Siyah
+  'siyah': 'Siyah', 'si̇yah': 'Siyah',
+  // Beyaz
+  'beyaz': 'Beyaz',
+  // Gri
+  'gri': 'Gri',
+  // Mavi
+  'mavi': 'Mavi',
+  // Kırmızı
+  'kırmızı': 'Kırmızı', 'kirmizi': 'Kırmızı',
+  // Mor
+  'mor': 'Mor',
+  // Pembe
+  'pembe': 'Pembe',
+  // Yeşil
+  'yeşil': 'Yeşil', 'yesil': 'Yeşil',
+  // Lacivert
+  'lacivert': 'Lacivert',
+  // Kahverengi
+  'kahverengi': 'Kahverengi',
+  // Bej/Beige
+  'bej': 'Bej',
+  // Bordo
+  'bordo': 'Bordo',
+  // Sarı
+  'sarı': 'Sarı', 'sari': 'Sarı',
+  // Ekru
+  'ekru': 'Ekru',
+  // Haki
+  'haki': 'Haki',
+  // Turuncu
+  'turuncu': 'Turuncu',
+  // Antrasit
+  'antrasit': 'Antrasit',
+  // Koyu Yeşil
+  'koyu yeşil': 'Koyu Yeşil', 'koyu yesil': 'Koyu Yeşil',
+  // Saks Mavisi
+  'saks mavi': 'Saks Mavisi', 'saks mavisi': 'Saks Mavisi',
+  // Bebe Mavisi
+  'bebe mavisi': 'Bebe Mavisi', 'bebe mavi': 'Bebe Mavisi',
+  // İndigo Mavi
+  'indigo mavi': 'İndigo Mavi', 'i̇ndigo mavi': 'İndigo Mavi',
+  // Çok Renkli
+  'çok renkli': 'Çok Renkli', 'cok renkli': 'Çok Renkli',
+  // Kombinler — her iki sıralamayı aynı isime normalize et
+  'siyah-beyaz': 'Siyah-Beyaz', 'beyaz-siyah': 'Siyah-Beyaz',
+  'kırmızı-siyah': 'Kırmızı-Siyah', 'siyah-kırmızı': 'Kırmızı-Siyah',
+  'lacivert-siyah': 'Lacivert-Siyah', 'siyah-lacivert': 'Lacivert-Siyah',
+  'sarı-siyah': 'Sarı-Siyah', 'siyah-sarı': 'Sarı-Siyah',
+}
+
+/* ── Canonical renk adı → hex renk kodu ─────────────────────────── */
+const COLOR_HEX_MAP: Record<string, string> = {
+  'Siyah':           '#1a1a1a',
+  'Beyaz':           '#FFFFFF',
+  'Gri':             '#9ca3af',
+  'Mavi':            '#3b82f6',
+  'Kırmızı':         '#ef4444',
+  'Mor':             '#8b5cf6',
+  'Pembe':           '#f472b6',
+  'Yeşil':           '#22c55e',
+  'Lacivert':        '#1e3a5f',
+  'Kahverengi':      '#92400e',
+  'Bej':             '#d4b896',
+  'Bordo':           '#7f1d1d',
+  'Sarı':            '#facc15',
+  'Ekru':            '#f5f0e8',
+  'Haki':            '#78716c',
+  'Turuncu':         '#f97316',
+  'Antrasit':        '#374151',
+  'Koyu Yeşil':      '#14532d',
+  'Saks Mavisi':     '#4682B4',
+  'Bebe Mavisi':     '#a8d8ea',
+  'İndigo Mavi':     '#4f46e5',
+  'Çok Renkli':      '#ff6b6b',
+  'Siyah-Beyaz':     '#888888',
+  'Kırmızı-Siyah':   '#7f1d1d',
+  'Lacivert-Siyah':  '#1e3a5f',
+  'Sarı-Siyah':      '#854d0e',
+}
+
+/**
+ * Renk adını normalize eder:
+ * 1. Baştaki/sondaki boşlukları siler
+ * 2. Sondaki rakam(lar)ı siler (Beyaz1→Beyaz, Gri111→Gri, Bebe Mavisi2→Bebe Mavisi)
+ * 3. Turkish-aware lowercase ile arama tablosuna bakar
+ * 4. Bulunamazsa başlığı büyük harfe çevrilmiş hâliyle döner
+ */
+function normalizeColor(raw: string): string {
+  const trimmed = raw.trim()
+  // Sondaki rakamları sil
+  const withoutDigits = trimmed.replace(/\d+$/, '').trim()
+  if (!withoutDigits) return trimmed
+
+  // Turkish lowercase (İ→i, I→ı gibi problemleri aşmak için)
+  const lower = withoutDigits
+    .replace(/İ/g, 'i')
+    .replace(/I/g, 'ı')
+    .toLowerCase()
+
+  if (COLOR_NAME_MAP[lower]) return COLOR_NAME_MAP[lower]
+
+  // Bulunamadıysa — ilk harfi büyük, kalanı küçük
+  return withoutDigits.charAt(0).toUpperCase() + withoutDigits.slice(1)
+}
+
+/* Kategori normalizasyonu */
 function normalizeCategoryName(raw: string): string {
   return raw
     .replace(/büyük beden\s*/i, '')
@@ -53,19 +162,23 @@ function normalizeGender(raw: string): string {
   return 'Unisex'
 }
 
+interface ParsedColor {
+  name: string
+  hex?: string
+}
+
 interface ParsedProduct {
   modelKodu: string
   name: string
   description: string
   price: number
-  comparePrice?: number
   stock: number
-  sku: string
+  sku: string        // = modelKodu (benzersiz grup kimliği)
   categoryName: string
   gender: string
   images: string[]
   sizes: string[]
-  colors: { name: string }[]
+  colors: ParsedColor[]
   isActive: boolean
 }
 
@@ -96,8 +209,6 @@ function parseExcel(rows: unknown[][]): ParsedProduct[] {
     if (!name) return
 
     const price = parseFloat(String(first[COL.SATIS_FIYAT] ?? '0')) || 0
-
-    // Stok: ilk satırın değeri (Excel'de her variant için aynı genellikle)
     const totalStock = parseInt(String(first[COL.STOK] ?? '1000')) || 1000
 
     // Görseller — tüm satırlarda tarayıp dolu URL'leri topla (dedupe)
@@ -110,19 +221,24 @@ function parseExcel(rows: unknown[][]): ParsedProduct[] {
     }
     const images = [...imageSet].slice(0, 8)
 
-    // Unique bedenler
+    // Bedenler — unique
     const sizes = [...new Set(
       groupRows
         .map(r => String((r as unknown[])[COL.BEDEN] ?? '').trim())
         .filter(Boolean)
     )]
 
-    // Unique renkler
-    const colors = [...new Set(
-      groupRows
-        .map(r => String((r as unknown[])[COL.RENK] ?? '').trim())
-        .filter(Boolean)
-    )].map(name => ({ name }))
+    // Renkler — normalize et + deduplicate
+    const colorMap = new Map<string, ParsedColor>()
+    for (const r of groupRows) {
+      const raw = String((r as unknown[])[COL.RENK] ?? '').trim()
+      if (!raw) continue
+      const name = normalizeColor(raw)
+      if (!colorMap.has(name)) {
+        colorMap.set(name, { name, hex: COLOR_HEX_MAP[name] })
+      }
+    }
+    const colors = [...colorMap.values()]
 
     const rawCategory = String(first[COL.KATEGORI] ?? '').trim()
     const rawGender   = String(first[COL.CINSIYET] ?? '').trim()
@@ -132,9 +248,9 @@ function parseExcel(rows: unknown[][]): ParsedProduct[] {
       name,
       description: String(first[COL.ACIKLAMA] ?? '').trim() || name,
       price,
-      comparePrice: undefined,
       stock: totalStock,
-      sku: String(first[COL.BARKOD] ?? modelKodu).trim(),
+      // SKU = Model Kodu (ürün grup kimliği, barkod değil!)
+      sku: modelKodu,
       categoryName: normalizeCategoryName(rawCategory),
       gender: normalizeGender(rawGender),
       images,
@@ -211,14 +327,13 @@ export default function ImportPage() {
           ?? categories.find(c => catNorm.includes(c.name.toLowerCase()))
         const categoryId = cat?.id ?? categories[0]?.id ?? 1
 
-        // Ürün oluştur
+        // Ürün oluştur — SKU = modelKodu
         const product = await adminApi.createProduct({
           name: p.name,
           description: p.description.length >= 10 ? p.description : p.name + ' — detaylı açıklama ekleyin',
           price: p.price,
-          comparePrice: p.comparePrice,
           stock: p.stock,
-          sku: p.sku,
+          sku: p.sku,          // = modelKodu
           categoryId,
           gender: p.gender || undefined,
           isActive: p.isActive,
@@ -243,13 +358,14 @@ export default function ImportPage() {
           } catch { /* devam */ }
         }
 
-        // Renk varyantları
+        // Renk varyantları — normalize isim + hex renk kodu ile
         for (const color of p.colors) {
           try {
             await adminApi.createVariant(product.id, {
               variantType: 'COLOR',
               name: color.name,
               color: color.name,
+              colorHex: color.hex,
               stock: 0,
             })
           } catch { /* devam */ }
@@ -276,6 +392,11 @@ export default function ImportPage() {
   const successCount = results.filter(r => r.status === 'success').length
   const errorCount = results.filter(r => r.status === 'error').length
 
+  // Önizleme istatistikleri
+  const totalColors   = parsed ? new Set(parsed.flatMap(p => p.colors.map(c => c.name))).size : 0
+  const totalSizes    = parsed ? new Set(parsed.flatMap(p => p.sizes)).size : 0
+  const totalVariants = parsed ? parsed.reduce((s, p) => s + p.sizes.length + p.colors.length, 0) : 0
+
   return (
     <div className="max-w-[860px] space-y-6">
       {/* Başlık */}
@@ -297,10 +418,11 @@ export default function ImportPage() {
         <p className="text-xs text-blue-600 leading-relaxed">
           Trendyol Satıcı Paneli → Ürün Yönetimi → Excel İndir (.xlsx) formatı.
           Her satır beden/renk varyantı, <strong>Model Kodu</strong> ile gruplanır.
-          Görsel URL&apos;leri, bedenler ve renkler otomatik eşlenir.
+          Renkler otomatik normalize edilir (büyük/küçük harf, sayı sonekleri giderilir).
+          Renk hex kodları otomatik atanır.
         </p>
         <div className="mt-2 flex flex-wrap gap-2">
-          {['Ürün Adı', 'Fiyat', 'Stok', 'Kategori', 'Görseller (5 adet)', 'Bedenler', 'Renkler', 'Cinsiyet', 'Marka'].map(f => (
+          {['Model Kodu (SKU)', 'Ürün Adı', 'Fiyat', 'Stok', 'Kategori', 'Görseller (5)', 'Bedenler', 'Renkler + Hex', 'Cinsiyet'].map(f => (
             <span key={f} className="text-[10px] font-semibold bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full">
               {f}
             </span>
@@ -335,7 +457,7 @@ export default function ImportPage() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="font-extrabold text-navy-dark">Dosya Analizi Tamamlandı</h2>
-              <p className="text-xs text-gray-400 mt-0.5">{parsed.length} benzersiz ürün bulundu</p>
+              <p className="text-xs text-gray-400 mt-0.5">{parsed.length} benzersiz ürün (model kodu) bulundu</p>
             </div>
             <button
               onClick={() => { setParsed(null); setResults([]) }}
@@ -345,45 +467,84 @@ export default function ImportPage() {
             </button>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
-            <div className="bg-orange/5 rounded-xl p-4 text-center">
+          {/* İstatistik kartları */}
+          <div className="grid grid-cols-4 gap-3">
+            <div className="bg-orange/5 rounded-xl p-3 text-center">
               <p className="text-2xl font-extrabold text-orange">{parsed.length}</p>
-              <p className="text-xs text-gray-500 mt-1">Benzersiz Ürün</p>
+              <p className="text-[11px] text-gray-500 mt-0.5">Ürün</p>
             </div>
-            <div className="bg-gray-50 rounded-xl p-4 text-center">
-              <p className="text-2xl font-extrabold text-navy-dark">
-                {parsed.reduce((s, p) => s + p.sizes.length, 0)}
-              </p>
-              <p className="text-xs text-gray-500 mt-1">Beden Varyantı</p>
+            <div className="bg-gray-50 rounded-xl p-3 text-center">
+              <p className="text-2xl font-extrabold text-navy-dark">{totalColors}</p>
+              <p className="text-[11px] text-gray-500 mt-0.5">Renk (normalize)</p>
             </div>
-            <div className="bg-gray-50 rounded-xl p-4 text-center">
+            <div className="bg-gray-50 rounded-xl p-3 text-center">
+              <p className="text-2xl font-extrabold text-navy-dark">{totalSizes}</p>
+              <p className="text-[11px] text-gray-500 mt-0.5">Beden Tipi</p>
+            </div>
+            <div className="bg-gray-50 rounded-xl p-3 text-center">
               <p className="text-2xl font-extrabold text-navy-dark">
                 {parsed.reduce((s, p) => s + p.images.length, 0)}
               </p>
-              <p className="text-xs text-gray-500 mt-1">Görsel URL</p>
+              <p className="text-[11px] text-gray-500 mt-0.5">Görsel URL</p>
             </div>
           </div>
 
-          {/* İlk 5 ürün önizlemesi */}
+          {/* İlk 8 ürün önizlemesi */}
           <div className="space-y-2">
-            <p className="text-xs font-bold text-gray-500 uppercase">İlk 5 Ürün</p>
-            {parsed.slice(0, 5).map((p) => (
+            <p className="text-xs font-bold text-gray-500 uppercase">Önizleme (ilk 8 ürün)</p>
+            {parsed.slice(0, 8).map((p) => (
               <div key={p.modelKodu} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl text-xs">
-                {p.images[0] && (
+                {p.images[0] ? (
                   <img src={p.images[0]} alt="" className="w-10 h-10 object-cover rounded-lg flex-shrink-0" />
+                ) : (
+                  <div className="w-10 h-10 rounded-lg bg-orange/10 flex items-center justify-center flex-shrink-0
+                                  text-sm font-bold text-orange">
+                    {p.name.charAt(0).toUpperCase()}
+                  </div>
                 )}
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-gray-800 truncate">{p.name}</p>
-                  <p className="text-gray-400">
-                    {p.price}₺ · {p.sizes.join(', ')} · {p.images.length} görsel
-                  </p>
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                    <span className="text-gray-500">{p.price}₺</span>
+                    <span className="text-gray-300">·</span>
+                    <span className="text-gray-500">{p.sizes.join(', ')}</span>
+                    <span className="text-gray-300">·</span>
+                    {/* Renk swatches */}
+                    <span className="flex items-center gap-0.5">
+                      {p.colors.slice(0, 6).map(c => (
+                        <span
+                          key={c.name}
+                          title={c.name}
+                          className="w-3.5 h-3.5 rounded-full border border-gray-200 inline-block"
+                          style={{ backgroundColor: c.hex ?? '#ccc' }}
+                        />
+                      ))}
+                      {p.colors.length > 6 && (
+                        <span className="text-gray-400 text-[10px] ml-1">+{p.colors.length - 6}</span>
+                      )}
+                    </span>
+                  </div>
                 </div>
+                <span className="text-gray-400 font-mono text-[10px] flex-shrink-0 max-w-[100px] truncate">
+                  {p.modelKodu}
+                </span>
                 <ChevronRight size={14} className="text-gray-300 flex-shrink-0" />
               </div>
             ))}
-            {parsed.length > 5 && (
-              <p className="text-xs text-gray-400 text-center">+{parsed.length - 5} ürün daha…</p>
+            {parsed.length > 8 && (
+              <p className="text-xs text-gray-400 text-center">+{parsed.length - 8} ürün daha…</p>
             )}
+          </div>
+
+          {/* Normalizasyon özeti */}
+          <div className="bg-green-50 border border-green-100 rounded-xl p-3">
+            <p className="text-xs font-bold text-green-700 mb-1">✓ Otomatik Normalizasyon</p>
+            <p className="text-[11px] text-green-600 leading-relaxed">
+              Renkler normalize edildi: büyük/küçük harf tutarsızlıkları giderildi (SİYAH→Siyah, GRİ→Gri),
+              sayı sonekleri kaldırıldı (Beyaz1/2/3→Beyaz, Bebe Mavisi2→Bebe Mavisi),
+              tekrar eden renkler birleştirildi.
+              Toplam <strong>{totalVariants}</strong> varyant oluşturulacak.
+            </p>
           </div>
 
           <button
@@ -444,8 +605,8 @@ export default function ImportPage() {
                   ${r.status === 'success' ? 'bg-green-50' : r.status === 'error' ? 'bg-red-50' : 'bg-gray-50'}`}
               >
                 {r.status === 'success' && <CheckCircle2 size={14} className="text-green-500 flex-shrink-0" />}
-                {r.status === 'error' && <XCircle size={14} className="text-red-400 flex-shrink-0" />}
-                {r.status === 'pending' && <Loader2 size={14} className="text-gray-300 flex-shrink-0 animate-spin" />}
+                {r.status === 'error'   && <XCircle      size={14} className="text-red-400 flex-shrink-0" />}
+                {r.status === 'pending' && <Loader2      size={14} className="text-gray-300 flex-shrink-0 animate-spin" />}
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-gray-700 truncate">{r.name}</p>
                   {r.message && <p className="text-red-400 truncate">{r.message}</p>}
