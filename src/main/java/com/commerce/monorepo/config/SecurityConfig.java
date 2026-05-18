@@ -94,7 +94,12 @@ public class SecurityConfig {
         cfg.setAllowedOriginPatterns(List.of(
             "http://localhost:*",
             "http://127.0.0.1:*",
-            "https://*.yourdomain.com"
+            "https://*.vercel.app",
+            "https://alisverisnoktan.vercel.app",
+            "https://alısverisnoktan.com",
+            "https://www.alısverisnoktan.com",
+            "https://alisverisnoktan.com",
+            "https://www.alisverisnoktan.com"
         ));
         cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         cfg.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With", "Accept", "Origin"));
