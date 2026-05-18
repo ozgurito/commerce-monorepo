@@ -9,11 +9,14 @@ FROM pg_constraint c
 JOIN pg_attribute a
   ON a.attrelid = c.conrelid AND a.attnum = ANY (c.conkey)
 JOIN pg_class pkcl ON pkcl.oid = c.confrelid
+JOIN pg_class child_cl ON child_cl.oid = c.conrelid
+JOIN pg_namespace child_ns ON child_ns.oid = child_cl.relnamespace
 JOIN pg_attribute pka
   ON pka.attrelid = c.confrelid AND pka.attnum = ANY (c.confkey)
 WHERE c.contype = 'f'
   AND pkcl.relname = 'users'
-  AND pka.attname = 'id';
+  AND pka.attname = 'id'
+  AND child_ns.nspname NOT IN ('auth', 'storage', 'realtime');
 
 DO $$
 DECLARE r RECORD;
