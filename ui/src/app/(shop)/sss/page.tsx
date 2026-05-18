@@ -28,7 +28,7 @@ const SSS_ITEMS = [
   },
   {
     q: 'Hangi ödeme yöntemlerini kabul ediyorsunuz?',
-    a: 'Kredi kartı (tek çekim veya taksitli), banka/kredi kartı ile 3D Secure, havale/EFT ve kapıda ödeme seçeneklerini kabul ediyoruz. Tüm kredi kartı işlemleri İyzico güvencesiyle gerçekleştirilmektedir.',
+    a: 'Kredi kartı (tek çekim veya taksitli), banka/kredi kartı ile 3D Secure ve havale/EFT seçeneklerini kabul ediyoruz. Tüm kredi kartı işlemleri İyzico güvencesiyle gerçekleştirilmektedir.',
   },
   {
     q: 'Siparişimi nasıl takip ederim?',

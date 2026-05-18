@@ -1,5 +1,5 @@
 'use client'
-import { CreditCard, Building2, Truck } from 'lucide-react'
+import { CreditCard, Building2 } from 'lucide-react'
 import type { PaymentMethod } from '@/domains/orders/orders.types'
 
 const OPTIONS: {
@@ -21,12 +21,6 @@ const OPTIONS: {
     label: 'Havale / EFT',
     desc: 'Banka hesabımıza transfer yapın, sipariş onaylansın',
     Icon: Building2,
-  },
-  {
-    value: 'CASH_ON_DELIVERY',
-    label: 'Kapıda Ödeme',
-    desc: 'Nakit veya kartla kapıda ödeyin (+15₺ hizmet bedeli)',
-    Icon: Truck,
   },
 ]
 

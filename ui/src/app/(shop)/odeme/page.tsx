@@ -85,11 +85,9 @@ export default function OdemePage() {
 
       if (paymentMethod === 'CREDIT_CARD') {
         router.push(`/odeme/iyzico?orderId=${order.id}`)
-      } else if (paymentMethod === 'BANK_TRANSFER') {
-        router.push(`/odeme/havale?orderId=${order.id}`)
       } else {
-        // CASH_ON_DELIVERY
-        router.push(`/odeme/cod?orderId=${order.id}`)
+        // BANK_TRANSFER
+        router.push(`/odeme/havale?orderId=${order.id}`)
       }
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })
