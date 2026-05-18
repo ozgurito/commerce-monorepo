@@ -221,18 +221,27 @@ public class OrderService {
     }
 
     public OrderDto updateStatus(Long orderId, OrderStatus newStatus) {
-        Order order = orderRepository.findById(orderId)
+        // JOIN FETCH ile items + user birlikte yükle — lazy init hatasını önler
+        Order order = orderRepository.findByIdWithItems(orderId)
                 .orElseThrow(() -> new BaseException(ErrorCode.ORDER_NOT_FOUND));
+
+        // user ayrıca lazy — Id üzerinden yeterli
+        if (order.getUser() == null) {
+            throw new BaseException(ErrorCode.ORDER_NOT_FOUND);
+        }
 
         validateStatusTransition(order.getStatus(), newStatus);
 
         order.setStatus(newStatus);
         Order savedOrder = orderRepository.save(order);
-        
-        // Durum güncelleme emaili
+
+        // DTO'yu transaction içindeyken üret
+        OrderDto dto = mapToDto(savedOrder);
+
+        // Async email — DTO'dan türetilmiş değerleri kullan (entity değil)
         emailService.sendOrderStatusUpdateEmail(savedOrder);
-        
-        return mapToDto(savedOrder);
+
+        return dto;
     }
 
     @Transactional
