@@ -87,7 +87,9 @@ export function CategoryNav() {
           className="relative flex-shrink-0 h-full flex items-center"
           onMouseEnter={openAll}
         >
-          <button
+          <Link
+            href="/urunler"
+            onClick={closeAll}
             className={`flex items-center gap-1.5 h-full px-3 text-[13px] font-bold
                         whitespace-nowrap border-b-2 transition-all select-none
                         ${allOpen
@@ -100,7 +102,7 @@ export function CategoryNav() {
               size={11}
               className={`transition-transform duration-200 ${allOpen ? 'rotate-180' : ''}`}
             />
-          </button>
+          </Link>
         </div>
 
         {/* Root kategoriler */}

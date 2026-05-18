@@ -38,9 +38,10 @@ export default function AdminSiparislerPage() {
     onError: () => toast.error('Güncelleme başarısız'),
   })
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error } = useQuery({
     queryKey: ['admin', 'orders', page, statusFilter],
     queryFn: () => adminApi.getOrders(page, 20, statusFilter || undefined),
+    retry: 1,
   })
 
   const orders = data?.content ?? []
@@ -66,6 +67,16 @@ export default function AdminSiparislerPage() {
         {isLoading ? (
           <div className="flex justify-center py-16">
             <Loader2 size={24} className="text-orange animate-spin" />
+          </div>
+        ) : isError ? (
+          <div className="py-16 text-center">
+            <ShoppingBag size={32} className="text-red-300 mx-auto mb-3" />
+            <p className="text-red-500 font-semibold">Siparişler yüklenemedi</p>
+            <p className="text-xs text-gray-400 mt-1">
+              {(error as { response?: { data?: { message?: string }; status?: number } })?.response?.data?.message
+                ?? (error as Error)?.message
+                ?? 'Sunucu hatası — backend loglarını kontrol edin'}
+            </p>
           </div>
         ) : orders.length === 0 ? (
           <div className="py-16 text-center">

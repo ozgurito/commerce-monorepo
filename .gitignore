@@ -47,3 +47,18 @@ application-prod.properties
 # Frontend
 ui/.env.local
 ui/node_modules/
+ui/src.zip
+ui/convert-images.js
+ui/convert_images.js
+
+# Temporary session/handoff files
+CLAUDE_*.md
+LLM_*.md
+OPUS_*.md
+UIUX_*.md
+UI_HANDOFF.md
+PROJE_DURUM.md
+full_uiux_audit.md
+mockup.html
+synthetic-*.md
+*.xlsx

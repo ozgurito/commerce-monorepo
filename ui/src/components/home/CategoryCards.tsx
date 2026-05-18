@@ -10,23 +10,10 @@ const CATEGORY_CARDS = [
     desc: 'Oversized\'dan slim fite her tarz',
     cta: 'Keşfet',
     href: '/kategori/tshirt',
-    // Lifestyle model — çok daha çekici
-    image: '/images/cat-header-tshirt.png',
-    imageAlt: 'Kadın model tişört',
+    image: '/images/categories/tshirt-vitrin.webp',
+    imageAlt: 'Tişört koleksiyonu',
     imagePos: 'object-center object-top',
     overlay: 'from-[#1a2a3a]/80 via-[#1a2a3a]/40 to-[#1a2a3a]/05',
-  },
-  {
-    slug: 'hoodie',
-    eyebrow: 'Hoodie',
-    title: 'Konforlu\nHoodie\'ler',
-    desc: 'Urban & street style',
-    cta: 'İncele',
-    href: '/kategori/hoodie',
-    image: '/images/cat-header-hoodie.png',
-    imageAlt: 'Hoodie koleksiyonu',
-    imagePos: 'object-center',
-    overlay: 'from-[#0d1a40]/80 via-[#0d1a40]/40 to-[#0d1a40]/05',
   },
   {
     slug: 'sweatshirt',
@@ -35,22 +22,20 @@ const CATEGORY_CARDS = [
     desc: 'Her renk her mevsim',
     cta: 'Gör',
     href: '/kategori/sweatshirt',
-    // Yeni görsel — renkli sweatshirt'ler askıda
-    image: '/images/cat-header-sweatshirt.png',
+    image: '/images/categories/sweatshirt-vitrin.webp',
     imageAlt: 'Sweatshirt koleksiyonu',
     imagePos: 'object-center',
     overlay: 'from-[#0a1a0a]/80 via-[#0a1a0a]/40 to-[#0a1a0a]/05',
   },
   {
-    slug: 'tank-top',
-    eyebrow: 'Tank Top',
-    title: 'Yazlık\nTank Top',
-    desc: 'Pastel renkler, serin kumaş',
+    slug: 'esofman',
+    eyebrow: 'Eşofman',
+    title: 'Spor &\nRahatlık',
+    desc: 'Evde veya sporda şıklık',
     cta: 'Alışveriş',
-    href: '/kategori/tank-top',
-    // Yeni görsel — 5 pastel tank top
-    image: '/images/cat-header-tanktop.png',
-    imageAlt: 'Tank top koleksiyonu',
+    href: '/kategori/esofman',
+    image: '/images/categories/esofman-vitrin.webp',
+    imageAlt: 'Eşofman koleksiyonu',
     imagePos: 'object-center',
     overlay: 'from-[#2a0a1a]/75 via-[#2a0a1a]/35 to-[#2a0a1a]/05',
   },
@@ -75,14 +60,14 @@ export function CategoryCards() {
           </Link>
         </div>
 
-        {/* 4 kart — mobilde 2×2, desktopta 4'lü */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* 3 kart — mobilde 1, desktopta 3'lü */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {CATEGORY_CARDS.map((card) => (
             <Link
               key={card.slug}
               href={card.href}
-              className="relative overflow-hidden rounded-2xl h-[200px] sm:h-[230px]
-                         flex flex-col justify-between p-4
+              className="relative overflow-hidden rounded-2xl h-[220px] sm:h-[280px]
+                         flex flex-col justify-between p-5
                          group hover:shadow-2xl hover:-translate-y-1 transition-all duration-300"
             >
               {/* Full-bleed arka plan */}

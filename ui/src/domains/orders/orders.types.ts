@@ -25,8 +25,11 @@ export interface OrderItemDto {
   id: number
   productId: number
   productName: string
+  imageUrl?: string | null
   variantId: number | null
   variantName: string | null
+  size?: string | null
+  color?: string | null
   quantity: number
   unitPrice: number
   totalPrice: number

@@ -90,6 +90,7 @@ export function CartItem({ item }: Props) {
         {/* Name */}
         <Link
           href={`/urunler/${item.productSlug}`}
+          title={item.productName}
           className="text-sm font-semibold text-gray-800 line-clamp-2 leading-snug
                      hover:text-orange transition-colors"
         >
@@ -98,23 +99,40 @@ export function CartItem({ item }: Props) {
 
         {/* Variant + color/size badges */}
         <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-          {item.variantName && (
-            <span className="inline-block text-[10px] bg-gray-100 text-gray-600 font-medium
-                             px-2 py-0.5 rounded-full">
-              {item.variantName}
-            </span>
-          )}
-          {item.color && item.color !== item.variantName && (
-            <span className="inline-block text-[10px] bg-gray-100 text-gray-600 font-medium
-                             px-2 py-0.5 rounded-full">
-              {item.color}
-            </span>
-          )}
-          {item.size && item.size !== item.variantName && (
-            <span className="inline-block text-[10px] bg-gray-100 text-gray-600 font-medium
-                             px-2 py-0.5 rounded-full">
-              Beden: {item.size}
-            </span>
+          {/* If both color and size exist separately, show them individually.
+              Otherwise fall back to the combined variantName chip. */}
+          {item.color && item.size ? (
+            <>
+              <span className="inline-block text-[10px] bg-gray-100 text-gray-600 font-medium
+                               px-2 py-0.5 rounded-full">
+                {item.color}
+              </span>
+              <span className="inline-block text-[10px] bg-gray-100 text-gray-600 font-medium
+                               px-2 py-0.5 rounded-full">
+                Beden: {item.size}
+              </span>
+            </>
+          ) : (
+            <>
+              {item.variantName && (
+                <span className="inline-block text-[10px] bg-gray-100 text-gray-600 font-medium
+                                 px-2 py-0.5 rounded-full">
+                  {item.variantName}
+                </span>
+              )}
+              {item.color && !item.variantName && (
+                <span className="inline-block text-[10px] bg-gray-100 text-gray-600 font-medium
+                                 px-2 py-0.5 rounded-full">
+                  {item.color}
+                </span>
+              )}
+              {item.size && !item.variantName && (
+                <span className="inline-block text-[10px] bg-gray-100 text-gray-600 font-medium
+                                 px-2 py-0.5 rounded-full">
+                  Beden: {item.size}
+                </span>
+              )}
+            </>
           )}
         </div>
 

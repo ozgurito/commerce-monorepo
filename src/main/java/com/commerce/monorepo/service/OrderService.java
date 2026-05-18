@@ -5,6 +5,7 @@ import com.commerce.monorepo.entity.*;
 import com.commerce.monorepo.exception.BaseException;
 import com.commerce.monorepo.exception.ErrorCode;
 import com.commerce.monorepo.repository.OrderRepository;
+import com.commerce.monorepo.repository.ProductImageRepository;
 import com.commerce.monorepo.repository.ProductRepository;
 import com.commerce.monorepo.repository.ProductVariantRepository;
 import com.commerce.monorepo.repository.UserRepository;
@@ -36,6 +37,7 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
     private final ProductVariantRepository productVariantRepository;
+    private final ProductImageRepository productImageRepository;
     private final UserRepository userRepository;
     private final EmailService emailService;
     private final CouponService couponService;
@@ -324,6 +326,7 @@ public class OrderService {
         dto.setTotal(order.getTotal());
         dto.setStatus(order.getStatus());
         dto.setPaymentStatus(order.getPaymentStatus());
+        dto.setPaymentMethod(order.getPaymentMethod());
         dto.setPaymentId(order.getIyzicoPaymentId());
         dto.setShippingAddress(order.getShippingAddress());
         dto.setBillingAddress(order.getBillingAddress());
@@ -332,11 +335,28 @@ public class OrderService {
         dto.setCreatedAt(order.getCreatedAt());
         dto.setUpdatedAt(order.getUpdatedAt());
 
-        // N+1 düzeltmesi: Tüm variant ID'leri bir kerede yükle
+        // N+1 önleme: tüm product ID'leri toplayıp tek sorguda görsel + variant çek
+        List<Long> productIds = order.getItems().stream()
+                .map(item -> item.getProduct().getId())
+                .collect(Collectors.toList());
         List<Long> variantIds = order.getItems().stream()
                 .map(OrderItem::getProductVariantId)
                 .filter(id -> id != null)
                 .collect(Collectors.toList());
+
+        // productId → birincil görsel URL (repository üzerinden güvenli fetch)
+        Map<Long, String> imageMap = new java.util.HashMap<>();
+        for (Long pid : productIds) {
+            List<ProductImage> imgs = productImageRepository.findByProductIdOrderByDisplayOrder(pid);
+            if (!imgs.isEmpty()) {
+                imgs.stream()
+                    .filter(img -> Boolean.TRUE.equals(img.getIsPrimary()))
+                    .findFirst()
+                    .or(() -> imgs.stream().findFirst())
+                    .ifPresent(img -> imageMap.put(pid, img.getImageUrl()));
+            }
+        }
+
         Map<Long, ProductVariant> variantMap = productVariantRepository.findAllById(variantIds)
                 .stream()
                 .collect(Collectors.toMap(ProductVariant::getId, v -> v));
@@ -350,6 +370,7 @@ public class OrderService {
                     itemDto.setQuantity(item.getQuantity());
                     itemDto.setUnitPrice(item.getUnitPrice());
                     itemDto.setTotalPrice(item.getTotalPrice());
+                    itemDto.setImageUrl(imageMap.get(item.getProduct().getId()));
 
                     if (item.getProductVariantId() != null) {
                         ProductVariant variant = variantMap.get(item.getProductVariantId());

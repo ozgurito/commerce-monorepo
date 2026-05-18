@@ -7,36 +7,45 @@ interface Chip {
   params: Record<string, string | undefined>
 }
 
+// Tüm hero-tetikleyici parametreler — her chip bunların hepsini sıfırlar, sadece kendisini set eder
+const RESET: Record<string, undefined> = {
+  indirim: undefined,
+  yeni: undefined,
+  sortBy: undefined,
+  sortDir: undefined,
+  minPrice: undefined,
+}
+
 const CHIPS: Chip[] = [
   {
     id: 'indirim',
     label: 'Flaş Ürünler',
     icon: '⚡',
-    params: { indirim: 'true', sortBy: undefined, sortDir: undefined },
+    params: { ...RESET, indirim: 'true' },
   },
   {
     id: 'yeni',
     label: 'Yeni Gelenler',
     icon: '🆕',
-    params: { yeni: 'true', indirim: undefined },
+    params: { ...RESET, yeni: 'true' },
   },
   {
     id: 'puan',
     label: 'Yüksek Puanlı',
     icon: '⭐',
-    params: { sortBy: 'averageRating', sortDir: 'DESC', indirim: undefined, yeni: undefined },
+    params: { ...RESET, sortBy: 'averageRating', sortDir: 'DESC' },
   },
   {
     id: 'kargo',
     label: 'Kargo Bedava',
     icon: '📦',
-    params: { minPrice: '150', indirim: undefined, yeni: undefined },
+    params: { ...RESET, minPrice: '150' },
   },
   {
     id: 'coksatan',
     label: 'En Çok Satan',
     icon: '🔥',
-    params: { sortBy: 'totalReviews', sortDir: 'DESC', indirim: undefined, yeni: undefined },
+    params: { ...RESET, sortBy: 'totalReviews', sortDir: 'DESC' },
   },
 ]
 

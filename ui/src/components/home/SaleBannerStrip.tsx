@@ -25,7 +25,7 @@ export function SaleBannerStrip() {
           >
             <div className="absolute inset-0">
               <Image
-                src="/images/sale-banner-indirim.png"
+                src="/images/sale-banner-indirim.webp"
                 alt="İndirimli ürünler"
                 fill
                 sizes="(min-width: 640px) 50vw, 100vw"
@@ -49,7 +49,7 @@ export function SaleBannerStrip() {
           <div className="relative rounded-2xl h-[140px] flex items-center px-6 overflow-hidden">
             <div className="absolute inset-0">
               <Image
-                src="/images/sale-banner-guven.png"
+                src="/images/sale-banner-guven.webp"
                 alt=""
                 fill
                 sizes="(min-width: 640px) 50vw, 100vw"

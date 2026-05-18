@@ -1,7 +1,7 @@
 const WHATSAPP_NUMBER = '905418771635'
 const WHATSAPP_MESSAGE = 'Merhaba! AlışverişNoktan hakkında bilgi almak istiyorum.'
 
-export default function WhatsAppButton() {
+export function WhatsAppButton() {
   const href = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`
 
   return (

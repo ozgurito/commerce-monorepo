@@ -12,6 +12,7 @@ const SORT_OPTIONS = [
 
 interface Props {
   total: number
+  isLoading?: boolean
   sortBy?: string
   sortDirection?: string
   onSortChange: (sortBy: string, sortDirection: string) => void
@@ -21,7 +22,7 @@ interface Props {
 }
 
 export function SortBar({
-  total, sortBy, sortDirection, onSortChange, onFilterOpen,
+  total, isLoading = false, sortBy, sortDirection, onSortChange, onFilterOpen,
   view = 'grid', onViewChange,
 }: Props) {
   const [dropdownOpen, setDropdownOpen] = useState(false)
@@ -46,13 +47,21 @@ export function SortBar({
             <SlidersHorizontal size={15} />
             Filtrele
           </button>
-          <p className="text-sm text-gray-500 hidden sm:block">
-            <span className="font-extrabold text-navy-dark">{total.toLocaleString('tr-TR')}</span>
-            {' '}ürün listeleniyor
-          </p>
-          <p className="text-sm font-bold text-navy-dark sm:hidden">
-            {total.toLocaleString('tr-TR')} ürün
-          </p>
+          {isLoading ? (
+            <div className="h-4 w-36 bg-gray-200 rounded-full animate-pulse hidden sm:block" />
+          ) : (
+            <p className="text-sm text-gray-500 hidden sm:block">
+              <span className="font-extrabold text-navy-dark">{total.toLocaleString('tr-TR')}</span>
+              {' '}ürün listeleniyor
+            </p>
+          )}
+          {isLoading ? (
+            <div className="h-4 w-16 bg-gray-200 rounded-full animate-pulse sm:hidden" />
+          ) : (
+            <p className="text-sm font-bold text-navy-dark sm:hidden">
+              {total.toLocaleString('tr-TR')} ürün
+            </p>
+          )}
         </div>
 
         {/* Right: view toggle + sort */}

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import Image from 'next/image'
 import { ChevronRight, Phone, Mail, MapPin, Clock, MessageCircle } from 'lucide-react'
 import { ContactForm } from './ContactForm'
 
@@ -34,7 +35,7 @@ const CONTACT_INFO = [
   {
     icon: MapPin,
     label: 'Adres',
-    value: 'İstanbul, Türkiye',
+    value: 'İzmir, Türkiye',
     href: null,
     note: 'Merkez ofis (randevusuz kabul yapılmaz)',
   },
@@ -50,17 +51,29 @@ export default function IletisimPage() {
   return (
     <div>
       {/* Hero */}
-      <div className="bg-gradient-to-r from-navy-dark to-navy py-10 px-4 sm:px-6 lg:px-10 xl:px-14">
-        <nav className="flex items-center gap-1 text-xs text-white/50 mb-4">
-          <Link href="/" className="hover:text-white transition-colors">Ana Sayfa</Link>
-          <ChevronRight size={12} />
-          <span className="text-white/80">İletişim</span>
-        </nav>
-        <h1 className="text-3xl font-extrabold text-white mb-2">İletişim</h1>
-        <p className="text-white/70 text-sm max-w-xl">
-          Size en hızlı şekilde yardımcı olmak için buradayız.
-          Aşağıdaki formu doldurun veya doğrudan ulaşın.
-        </p>
+      <div className="relative overflow-hidden py-12 px-4 sm:px-6 lg:px-10 xl:px-14 min-h-[280px]">
+        <Image 
+          src="/images/headers/contact-header.webp" 
+          alt="İletişim" 
+          fill 
+          priority 
+          className="object-cover object-center" 
+          sizes="100vw" 
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
+        
+        <div className="relative z-10">
+          <nav className="flex items-center gap-1 text-xs text-white/70 mb-4">
+            <Link href="/" className="hover:text-white transition-colors">Ana Sayfa</Link>
+            <ChevronRight size={12} />
+            <span className="text-white font-semibold">İletişim</span>
+          </nav>
+          <h1 className="text-4xl font-extrabold text-white mb-3 drop-shadow-lg">İletişim</h1>
+          <p className="text-white/80 text-sm max-w-xl drop-shadow">
+            Size en hızlı şekilde yardımcı olmak için buradayız.
+            Aşağıdaki formu doldurun veya doğrudan ulaşın.
+          </p>
+        </div>
       </div>
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-10 py-12">

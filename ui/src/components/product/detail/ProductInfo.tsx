@@ -1,7 +1,7 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Heart, ShoppingBag, Star, Minus, Plus, Truck, RotateCcw, Shield, Share2, Check, ShoppingCart, Zap } from 'lucide-react'
+import { Heart, ShoppingBag, Star, Minus, Plus, Truck, RotateCcw, Shield, Share2, Check, ShoppingCart, Zap, Clock, MapPin } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useRouter } from 'next/navigation'
 import { cartApi } from '@/domains/cart/cart.api'
@@ -16,6 +16,42 @@ import { useRecentlyViewed } from '@/hooks/useRecentlyViewed'
 import type { ProductDetailDto, ProductVariantDto } from '@/domains/products/products.types'
 
 // FREE_SHIPPING_THRESHOLD utils/format.ts'den import ediliyor
+
+/* ── Kargo tahmini hesaplayıcı ── */
+const TR_DAYS = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi']
+const TR_MONTHS = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara']
+
+function addBusinessDays(date: Date, days: number): Date {
+  const result = new Date(date)
+  let added = 0
+  while (added < days) {
+    result.setDate(result.getDate() + 1)
+    const day = result.getDay()
+    if (day !== 0 && day !== 6) added++ // 0=Pazar, 6=Cumartesi atla
+  }
+  return result
+}
+
+function getShippingEstimate() {
+  const now = new Date()
+  const hour = now.getHours()
+  const cutoffHour = 14
+  const isBeforeCutoff = hour < cutoffHour
+
+  // Kargo başlangıç günü: saat 14 öncesiyse bugün, sonrasıysa yarın iş günü
+  const shipDay = isBeforeCutoff ? new Date(now) : addBusinessDays(now, 1)
+  const minDelivery = addBusinessDays(shipDay, 1)
+  const maxDelivery = addBusinessDays(shipDay, 3)
+
+  const fmt = (d: Date) => `${TR_DAYS[d.getDay()]} ${d.getDate()} ${TR_MONTHS[d.getMonth()]}`
+
+  return {
+    isBeforeCutoff,
+    minLabel: fmt(minDelivery),
+    maxLabel: fmt(maxDelivery),
+    sameMinMax: minDelivery.toDateString() === maxDelivery.toDateString(),
+  }
+}
 
 interface Props {
   product: ProductDetailDto
@@ -67,10 +103,22 @@ export function ProductInfo({ product }: Props) {
     : 0
   const savings = hasDiscount ? product.comparePrice! - product.price : 0
 
-  // Stok: beden varyantı seçildiyse onun stoğu, yoksa ürün stoğu
+  // Stok: Seçili Beden ve Renk kombinasyonuna uygun varyantı bulmaya çalış
   const selectedSize = selections['Beden'] ?? null
   const selectedColor = selections['Renk'] ?? null
-  const activeVariant = selectedSize ?? selectedColor ?? null
+  
+  // Kombinasyon arayışı: Hem seçili beden hem de seçili renkle eşleşen bir varyant var mı?
+  let activeVariant = null
+  if (product.variants?.length) {
+    if (selectedSize && selectedColor) {
+      activeVariant = product.variants.find(v => v.size === selectedSize.size && v.color === selectedColor.color)
+    }
+    // Kombinasyon bulunamadıysa (veya sadece biri seçiliyse) seçili olanı kullan
+    if (!activeVariant) {
+      activeVariant = selectedSize ?? selectedColor ?? null
+    }
+  }
+
   // Stok her zaman ürün seviyesinden — varyant stoğu 0 olsa bile ürünün stoğu geçerli
   // (Beden varyantları admin panelinden stock:0 oluşturulsa da ürünün kendisi stokluysa göster)
   const effectiveStock = product.stock
@@ -117,13 +165,19 @@ export function ProductInfo({ product }: Props) {
 
     // Beden varsa beden seçimi zorunlu
     if (groups['Beden']?.length && !selections['Beden']) missing.push('Beden')
-    // Renk tek grup ise renk seçimi zorunlu
-    if (!groups['Beden']?.length && groups['Renk']?.length && !selections['Renk']) missing.push('Renk')
+    // Renk grubu varsa (COMBINED veya tek renk) renk seçimi zorunlu
+    if (groups['Renk']?.length && !selections['Renk']) missing.push('Renk')
 
     if (missing.length > 0) {
       setErrorGroups(missing)
       variantRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       toast.error(`Lütfen ${missing.join(' ve ')} seçin`)
+      return
+    }
+
+    // Seçili kombine varyantın stoğu yoksa engelle
+    if (activeVariant && activeVariant.stock === 0) {
+      toast.error('Seçili beden/renk kombinasyonu stokta kalmadı')
       return
     }
 
@@ -137,12 +191,18 @@ export function ProductInfo({ product }: Props) {
     const groups = groupVariants(product.variants ?? [])
     const missing: string[] = []
     if (groups['Beden']?.length && !selections['Beden']) missing.push('Beden')
-    if (!groups['Beden']?.length && groups['Renk']?.length && !selections['Renk']) missing.push('Renk')
+    if (groups['Renk']?.length && !selections['Renk']) missing.push('Renk')
 
     if (missing.length > 0) {
       setErrorGroups(missing)
       variantRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       toast.error(`Lütfen ${missing.join(' ve ')} seçin`)
+      return
+    }
+
+    // Seçili kombine varyantın stoğu yoksa engelle
+    if (activeVariant && activeVariant.stock === 0) {
+      toast.error('Seçili beden/renk kombinasyonu stokta kalmadı')
       return
     }
 
@@ -432,6 +492,43 @@ export function ProductInfo({ product }: Props) {
             <span className="text-[10px] text-gray-400">{sub}</span>
           </div>
         ))}
+      </div>
+
+      {/* Kargo Tahmini */}
+      {!isOutOfStock && (() => {
+        const { isBeforeCutoff, minLabel, maxLabel, sameMinMax } = getShippingEstimate()
+        return (
+          <div className="flex items-start gap-3 bg-emerald-50 border border-emerald-100 rounded-xl p-3.5">
+            <Truck size={18} className="text-emerald-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-bold text-emerald-700">
+                  {isBeforeCutoff ? '🚀 Bugün kargolanır' : '📦 Yarın kargolanır'}
+                </p>
+                {isBeforeCutoff && (
+                  <span className="flex items-center gap-1 text-[10px] text-emerald-500 font-semibold flex-shrink-0">
+                    <Clock size={10} />
+                    14:00'e kadar
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-emerald-600 mt-0.5">
+                Tahmini teslimat:{' '}
+                <strong>
+                  {sameMinMax ? minLabel : `${minLabel} – ${maxLabel}`}
+                </strong>
+              </p>
+              <div className="flex items-center gap-1 mt-1.5 text-[10px] text-gray-400">
+                <MapPin size={10} />
+                <span>Türkiye geneli (Yurt içi kargo)</span>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
+      <div id="debug-variants" className="hidden">
+        {JSON.stringify(product.variants)}
       </div>
 
       {/* Model No — müşteri servis referansı için (WhatsApp sorguları) */}

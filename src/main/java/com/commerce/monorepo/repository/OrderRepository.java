@@ -39,4 +39,18 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query(value = "SELECT DISTINCT o FROM Order o LEFT JOIN FETCH o.user LEFT JOIN FETCH o.items item LEFT JOIN FETCH item.product WHERE o.status = :status ORDER BY o.createdAt DESC",
            countQuery = "SELECT COUNT(DISTINCT o) FROM Order o WHERE o.status = :status")
     Page<Order> findByStatusWithUserAndItems(OrderStatus status, Pageable pageable);
+
+    @Query(value = """
+        SELECT
+            YEAR(o.created_at)  AS year,
+            MONTH(o.created_at) AS month,
+            COUNT(o.id)         AS orderCount,
+            COALESCE(SUM(o.total_amount), 0) AS revenue
+        FROM orders o
+        WHERE o.status NOT IN ('CANCELLED', 'REFUNDED')
+          AND o.created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
+        GROUP BY YEAR(o.created_at), MONTH(o.created_at)
+        ORDER BY year ASC, month ASC
+        """, nativeQuery = true)
+    java.util.List<Object[]> findMonthlyStats();
 }

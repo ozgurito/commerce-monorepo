@@ -130,7 +130,7 @@ function ProductRow({
                 </div>
               )}
               <div>
-                <p className="font-semibold text-navy-dark truncate max-w-[200px]">{p.name}</p>
+                <p className="font-semibold text-navy-dark truncate max-w-[200px]" title={p.name}>{p.name}</p>
                 <p className="text-xs text-gray-400">{p.categoryName}</p>
               </div>
             </div>

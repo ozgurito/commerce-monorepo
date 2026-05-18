@@ -2,6 +2,7 @@ package com.commerce.monorepo.controller;
 
 import com.commerce.monorepo.dto.DashboardStatsDto;
 import com.commerce.monorepo.dto.LowStockAlertDto;
+import com.commerce.monorepo.dto.MonthlyStatDto;
 import com.commerce.monorepo.dto.OrderDto;
 import com.commerce.monorepo.entity.OrderStatus;
 import com.commerce.monorepo.ratelimit.RateLimit;
@@ -50,6 +51,12 @@ public class AdminController {
     @RateLimit(key = "admin:stats", limit = 20, windowSeconds = 60)
     public DashboardStatsDto getDashboardStats() {
         return adminService.getDashboardStats();
+    }
+
+    @GetMapping("/stats/monthly")
+    @RateLimit(key = "admin:stats:monthly", limit = 20, windowSeconds = 60)
+    public ResponseEntity<List<MonthlyStatDto>> getMonthlyStats() {
+        return ResponseEntity.ok(adminService.getMonthlyStats());
     }
 
     // ========== SCHEDULED TASKS ==========

@@ -1,6 +1,7 @@
 package com.commerce.monorepo.service;
 
 import com.commerce.monorepo.dto.DashboardStatsDto;
+import com.commerce.monorepo.dto.MonthlyStatDto;
 import com.commerce.monorepo.dto.OrderDto;
 import com.commerce.monorepo.exception.BaseException;
 import com.commerce.monorepo.exception.ErrorCode;
@@ -20,6 +21,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -87,6 +91,21 @@ public class AdminService {
         } catch (Exception e) {
             log.error("Dashboard stats error: {}", e.getMessage());
             return DashboardStatsDto.empty();
+        }
+    }
+
+    public List<MonthlyStatDto> getMonthlyStats() {
+        try {
+            List<Object[]> rows = orderRepository.findMonthlyStats();
+            return rows.stream().map(row -> new MonthlyStatDto(
+                ((Number) row[0]).intValue(),
+                ((Number) row[1]).intValue(),
+                ((Number) row[2]).longValue(),
+                new BigDecimal(row[3].toString())
+            )).collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("Monthly stats error: {}", e.getMessage());
+            return Collections.emptyList();
         }
     }
 

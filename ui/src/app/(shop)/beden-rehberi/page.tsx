@@ -110,7 +110,7 @@ export default function BedenRehberiPage() {
                 <td className="px-4 py-3 text-gray-700">{row.bel}</td>
                 <td className="px-4 py-3 text-gray-700">{row.kalca}</td>
                 {'boy' in row && hasKolonu && (
-                  <td className="px-4 py-3 text-gray-700">{row.boy}</td>
+                  <td className="px-4 py-3 text-gray-700">{String(row.boy)}</td>
                 )}
               </tr>
             ))}

@@ -157,6 +157,12 @@ export function ProductCard({ product, priority = false }: Props) {
               Tükendi
             </span>
           )}
+          {!isOutOfStock && product.stock > 0 && product.stock <= 5 && (
+            <span className="bg-red-500/90 backdrop-blur-sm text-white text-[10px]
+                             font-extrabold px-2 py-0.5 rounded-lg shadow-sm animate-pulse">
+              Son {product.stock} ürün!
+            </span>
+          )}
           {!hasDiscount && !isOutOfStock && product.totalReviews === 0 && (
             <span className="bg-navy text-white text-[10px] font-extrabold
                              px-2 py-0.5 rounded-lg shadow-sm">

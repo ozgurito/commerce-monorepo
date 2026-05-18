@@ -1,7 +1,12 @@
 'use client'
 import { useState } from 'react'
 import Link from 'next/link'
-import { ChevronRight } from 'lucide-react'
+import Image from 'next/image'
+import { ChevronRight, Tag, Zap, Star } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { productsApi } from '@/domains/products/products.api'
+import { QUERY_KEYS } from '@/lib/query-keys'
+import { formatPrice } from '@/utils/format'
 import type { CategoryDto } from '@/domains/categories/categories.types'
 
 interface Props {
@@ -29,19 +34,36 @@ export function AllCategoriesMenu({ rootCats, subMap, onClose }: Props) {
     'bg-yellow-100 text-yellow-700',
   ]
 
+  // Hovered kategori için öne çıkan ürünleri getir
+  const { data: products, isLoading: productsLoading } = useQuery({
+    queryKey: QUERY_KEYS.products.list({
+      categoryId: hoveredId ?? 0,
+      size: 8,
+      sortBy: 'createdAt',
+      sortDirection: 'DESC',
+    }),
+    queryFn: () =>
+      productsApi.getList({
+        categoryId: hoveredId!,
+        size: 8,
+        sortBy: 'createdAt',
+        sortDirection: 'DESC',
+      }),
+    staleTime: 5 * 60 * 1000,
+    enabled: hoveredId !== null,
+  })
+  const productList = products?.content ?? []
+
   return (
     <div className="bg-white shadow-[0_12px_48px_rgba(0,0,0,.18)] border-t border-gray-100">
-      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10 xl:px-14 flex"
-           style={{ minHeight: 320 }}>
+      <div className="w-full px-4 sm:px-6 lg:px-10 xl:px-14 flex gap-0 items-stretch">
 
-        {/* Left: root categories list */}
+        {/* ── Sol: Kök kategori listesi ── */}
         <div className="w-[220px] flex-shrink-0 border-r border-gray-100 py-3">
-          <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]
-                        px-4 py-1.5">
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-4 py-1.5">
             Tüm Kategoriler
           </p>
 
-          {/* "All products" shortcut */}
           <Link
             href="/urunler"
             onClick={onClose}
@@ -69,21 +91,19 @@ export function AllCategoriesMenu({ rootCats, subMap, onClose }: Props) {
                 </span>
                 <span className="truncate">{cat.name}</span>
               </div>
-              <ChevronRight
-                size={13}
-                className={hoveredId === cat.id ? 'text-orange' : 'text-gray-300'}
-              />
+              <ChevronRight size={13} className={hoveredId === cat.id ? 'text-orange' : 'text-gray-300'} />
             </button>
           ))}
         </div>
 
-        {/* Right: subcategories */}
+        {/* ── Sağ: Geniş içerik paneli ── */}
         <div className="flex-1 py-5 px-6">
           {hoveredCat && (
             <>
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-[11px] font-extrabold text-gray-400 uppercase tracking-[0.15em]">
-                  {hoveredCat.name}
+              {/* Başlık + tümünü gör */}
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-[10px] font-extrabold text-gray-400 uppercase tracking-[0.15em]">
+                  {hoveredCat.name} Kategorisi
                 </p>
                 <Link
                   href={`/kategori/${hoveredCat.slug}`}
@@ -94,36 +114,87 @@ export function AllCategoriesMenu({ rootCats, subMap, onClose }: Props) {
                 </Link>
               </div>
 
-              {subs.length > 0 ? (
-                <div className="grid grid-cols-3 gap-x-4 gap-y-0.5">
+              {/* Alt kategoriler (varsa) */}
+              {subs.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mb-3">
                   {subs.map((sub) => (
                     <Link
                       key={sub.id}
                       href={`/kategori/${sub.slug}`}
                       onClick={onClose}
-                      className="flex items-center gap-2 px-3 py-2.5 text-[13px] text-gray-600
-                                 hover:bg-orange-50 hover:text-orange rounded-xl transition-colors
-                                 font-medium group"
+                      className="px-3 py-1 text-[12px] font-medium text-gray-600 bg-gray-100
+                                 hover:bg-orange-50 hover:text-orange rounded-full transition-colors"
                     >
-                      <span className="w-1 h-1 rounded-full bg-gray-300 group-hover:bg-orange
-                                       flex-shrink-0 transition-colors" />
                       {sub.name}
                     </Link>
                   ))}
                 </div>
-              ) : (
-                <Link
-                  href={`/kategori/${hoveredCat.slug}`}
-                  onClick={onClose}
-                  className="inline-flex items-center gap-2 mt-2 px-5 py-2.5 bg-orange text-white
-                             rounded-xl text-sm font-bold hover:bg-orange-dark transition-colors"
-                >
-                  {hoveredCat.name} Kategorisine Git →
-                </Link>
               )}
+
+              {/* Ürünler */}
+              <div className="border-t border-gray-100 pt-3">
+                <p className="text-[10px] font-extrabold text-gray-400 uppercase tracking-[0.15em] mb-3">
+                  Öne Çıkanlar
+                </p>
+                {productsLoading ? (
+                  <div className="grid grid-cols-4 gap-3">
+                    {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <div className="w-10 h-10 rounded-lg bg-gray-100 flex-shrink-0 animate-pulse" />
+                        <div className="flex-1">
+                          <div className="h-2.5 bg-gray-100 rounded animate-pulse mb-1 w-4/5" />
+                          <div className="h-2.5 bg-gray-100 rounded animate-pulse w-2/5" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : productList.length > 0 ? (
+                  <div className="grid grid-cols-4 gap-x-3 gap-y-2">
+                    {productList.map((product) => (
+                      <Link
+                        key={product.id}
+                        href={`/urunler/${product.slug}`}
+                        onClick={onClose}
+                        className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-gray-50
+                                   transition-colors group"
+                      >
+                        <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0
+                                        border border-gray-100 group-hover:border-orange/40 transition-colors">
+                          {product.imageUrl ? (
+                            <Image
+                              src={product.imageUrl}
+                              alt={product.name}
+                              width={40}
+                              height={40}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center
+                                            bg-gradient-to-br from-[#0d1a40] to-[#1a3a8f]">
+                              <span className="text-sm font-extrabold text-white/90">
+                                {product.name.charAt(0)}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[11px] font-semibold text-gray-700 truncate leading-tight
+                                         group-hover:text-orange transition-colors">
+                            {product.name}
+                          </p>
+                          <p className="text-[11px] font-extrabold text-orange mt-0.5">
+                            {formatPrice(product.price)}
+                          </p>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
             </>
           )}
         </div>
+
       </div>
     </div>
   )

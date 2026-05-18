@@ -19,3 +19,10 @@ export interface LowStockAlertDto {
   sku: string
   currentStock: number
 }
+
+export interface MonthlyStatDto {
+  year: number
+  month: number
+  orderCount: number
+  revenue: number
+}

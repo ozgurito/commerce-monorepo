@@ -52,6 +52,15 @@ const GRADIENT_PAIRS = [
   { from: 'from-teal-500',   to: 'to-cyan-600',    light: 'bg-teal-50',   text: 'text-teal-700' },
 ]
 
+const CAT_BANNERS: Record<string, string> = {
+  'tshirt': '/images/headers/tshirt-header.webp',
+  't-shirt': '/images/headers/tshirt-header.webp',
+  'hoodie': '/images/headers/sweatshirt-header.webp',
+  'sweatshirt': '/images/headers/sweatshirt-header.webp',
+  'esofman': '/images/headers/esofman-header.webp',
+  'eşofman': '/images/headers/esofman-header.webp',
+}
+
 export default async function KategoriPage(
   { params }: { params: Promise<{ slug: string }> }
 ) {
@@ -67,6 +76,8 @@ export default async function KategoriPage(
 
   const colorIdx = category.id % GRADIENT_PAIRS.length
   const colors = GRADIENT_PAIRS[colorIdx]
+  
+  const headerBanner = CAT_BANNERS[category.slug.toLowerCase()] || category.imageUrl;
 
   return (
     <div>
@@ -74,10 +85,10 @@ export default async function KategoriPage(
       <div className="relative overflow-hidden py-12 px-4 sm:px-6 lg:px-10 xl:px-14"
            style={{ minHeight: 200 }}>
         {/* Background: görsel varsa full-bleed, yoksa gradient */}
-        {category.imageUrl ? (
+        {headerBanner ? (
           <>
             <Image
-              src={category.imageUrl}
+              src={headerBanner}
               alt={category.name}
               fill
               sizes="100vw"
@@ -85,14 +96,14 @@ export default async function KategoriPage(
               priority
             />
             {/* Soldan koyu overlay — metin okunabilirliği (hafif, görsel baskın kalacak) */}
-            <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/40 to-black/10" />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
           </>
         ) : (
           <div className={`absolute inset-0 bg-gradient-to-r ${colors.from} ${colors.to}`} />
         )}
 
         {/* Dekoratif daireler (görsel yokken) */}
-        {!category.imageUrl && (
+        {!headerBanner && (
           <div className="absolute inset-0 pointer-events-none overflow-hidden">
             <div className="absolute -right-8 -top-8 w-48 h-48 rounded-full bg-white/8" />
             <div className="absolute right-16 bottom-4 w-28 h-28 rounded-full bg-white/5" />

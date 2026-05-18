@@ -1,5 +1,5 @@
 'use client'
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Loader2, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
@@ -10,6 +10,7 @@ import type { BankTransferInitResponse } from '@/domains/payments/payments.types
 function HavaleContent() {
   const searchParams = useSearchParams()
   const orderId = searchParams.get('orderId')
+  const calledRef = useRef(false)
 
   const [info, setInfo] = useState<BankTransferInitResponse | null>(null)
   const [error, setError] = useState<string | null>(
@@ -18,7 +19,8 @@ function HavaleContent() {
   const [loading, setLoading] = useState(!!orderId)
 
   useEffect(() => {
-    if (!orderId) return
+    if (!orderId || calledRef.current) return
+    calledRef.current = true
 
     paymentsApi
       .bankTransferInit({ orderId: Number(orderId) })

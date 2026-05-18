@@ -20,12 +20,14 @@ const CATEGORY_THEMES = [
 
 // Kategori bubble'ları için özel kare ikonlar (DB image_url'dan bağımsız)
 const BUBBLE_ICONS: Record<string, string> = {
-  'tshirt':     '/images/cat-icon-tshirt.png',
-  't-shirt':    '/images/cat-icon-tshirt.png',
-  'hoodie':     '/images/cat-icon-hoodie.png',
-  'sweatshirt': '/images/cat-icon-sweatshirt.png',
-  'tank-top':   '/images/cat-icon-tanktop.png',
-  'tanktop':    '/images/cat-icon-tanktop.png',
+  'tshirt':     '/images/categories/tshirt-icon.webp',
+  't-shirt':    '/images/categories/tshirt-icon.webp',
+  'hoodie':     '/images/categories/sweatshirt-icon.webp',
+  'sweatshirt': '/images/categories/sweatshirt-icon.webp',
+  'esofman':    '/images/categories/esofman-icon.webp',
+  'eşofman':    '/images/categories/esofman-icon.webp',
+  'tank-top':   '/images/cat-icon-tanktop.webp',
+  'tanktop':    '/images/cat-icon-tanktop.webp',
 }
 
 export function CategoryBubbles() {

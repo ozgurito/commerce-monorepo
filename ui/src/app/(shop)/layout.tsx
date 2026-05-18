@@ -6,6 +6,7 @@ import { CategoryNav } from '@/components/layout/CategoryNav/CategoryNav'
 import { Footer } from '@/components/layout/Footer/Footer'
 import { CartDrawer } from '@/components/cart/CartDrawer'
 import { CartSync } from '@/components/cart/CartSync'
+import { MobileBottomNav } from '@/components/layout/MobileBottomNav'
 import { useUIStore } from '@/store/ui.store'
 
 // Ağır modal — dinamik import ile yükle
@@ -22,10 +23,11 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
       <TopBar />
       <Header />
       <CategoryNav />
-      <main className="flex-1 bg-gray-50">{children}</main>
+      <main className="flex-1 bg-gray-50 pb-16 md:pb-0">{children}</main>
       <Footer />
       <CartDrawer />
       <CartSync />
+      <MobileBottomNav />
 
       {/* Auth modal — global, header'daki "Giriş Yap" tetikler */}
       {authModalOpen && (

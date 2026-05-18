@@ -1,5 +1,5 @@
 'use client'
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Loader2, AlertCircle } from 'lucide-react'
 import { paymentsApi } from '@/domains/payments/payments.api'
@@ -8,12 +8,14 @@ function CodContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const orderId = searchParams.get('orderId')
+  const calledRef = useRef(false)          // StrictMode ve refresh'te çift tetiklenmeyi engelle
   const [error, setError] = useState<string | null>(
     !orderId ? 'Geçersiz sipariş.' : null
   )
 
   useEffect(() => {
-    if (!orderId) return
+    if (!orderId || calledRef.current) return
+    calledRef.current = true              // İlk çağrı sonrası kilitle
 
     paymentsApi
       .codConfirm({ orderId: Number(orderId) })

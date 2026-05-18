@@ -3,28 +3,29 @@ import Image from 'next/image'
 
 export function Logo() {
   return (
-    <Link href="/" className="flex items-center gap-2.5 flex-shrink-0 group">
-      {/* PNG logo — transparan arka plan, mavi+turuncu pin+sepet */}
-      <div className="w-[44px] h-[44px] flex-shrink-0 drop-shadow-lg">
+    <Link href="/" className="flex items-center gap-3 flex-shrink-0 group">
+      {/* Kendi Logonuz - Etrafındaki kareli zemini gizlemek için şık bir "Rozet" içine alındı */}
+      <div className="relative w-11 h-11 flex-shrink-0 bg-white rounded-full flex items-center justify-center shadow-[0_4px_15px_rgba(0,0,0,0.2)] border-2 border-white/10 overflow-hidden transform group-hover:scale-105 transition-transform duration-300">
         <Image
-          src="/images/logo.png"
+          src="/images/logo.webp"
           alt="AlışverişNoktan Logo"
           width={44}
           height={44}
-          className="object-contain w-full h-full"
+          className="object-contain w-[90%] h-[90%] mix-blend-multiply"
           priority
           unoptimized
         />
       </div>
 
-      {/* Wordmark */}
-      <div className="flex items-baseline leading-none">
-        <span className="text-[18px] font-black text-white tracking-tight group-hover:text-white/90 transition-colors">
+      {/* Modern Wordmark */}
+      <div className="flex items-baseline leading-none tracking-tight">
+        <span className="text-[22px] font-extrabold text-white group-hover:text-white/90 transition-colors">
           Alışveriş
         </span>
-        <span className="text-[18px] font-black text-orange tracking-tight group-hover:text-orange/90 transition-colors">
+        <span className="text-[22px] font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-orange to-[#ff5722] ml-[1px]">
           Noktan
         </span>
+        <div className="w-1.5 h-1.5 bg-orange rounded-full ml-1 mb-0.5 group-hover:scale-150 transition-transform" />
       </div>
     </Link>
   )

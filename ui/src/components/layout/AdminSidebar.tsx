@@ -40,7 +40,7 @@ export function AdminSidebar() {
       {/* Logo */}
       <div className="px-5 py-4 border-b border-white/10">
         <Link href="/admin" className="flex items-center gap-2.5">
-          <img src="/images/logo.png" alt="Logo" className="w-9 h-9 object-contain flex-shrink-0" />
+          <img src="/images/logo.webp" alt="Logo" className="w-9 h-9 object-contain flex-shrink-0" />
           <div className="leading-tight">
             <span className="text-white font-extrabold text-base">Alışveriş</span>
             <span className="text-orange font-extrabold text-base">Noktan</span>

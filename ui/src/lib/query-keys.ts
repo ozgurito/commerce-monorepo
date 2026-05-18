@@ -26,8 +26,9 @@ export const QUERY_KEYS = {
   addresses: { all: ['addresses'] as const },
   reviews:   { product: (id: number) => ['reviews', 'product', id] as const },
   admin: {
-    stats:    ['admin', 'stats'] as const,
-    orders:   ['admin', 'orders'] as const,
-    lowStock: ['admin', 'low-stock'] as const,
+    stats:         ['admin', 'stats'] as const,
+    monthlyStats:  ['admin', 'stats', 'monthly'] as const,
+    orders:        ['admin', 'orders'] as const,
+    lowStock:      ['admin', 'low-stock'] as const,
   },
 } as const

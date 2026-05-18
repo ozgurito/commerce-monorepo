@@ -23,12 +23,12 @@ export function HeaderActions() {
       {isAuthenticated ? (
         <Link href="/hesabim/favorilerim" className={iconBtn}>
           <Heart size={23} strokeWidth={1.8} />
-          <span>Favorilerim</span>
+          <span className="hidden sm:block">Favorilerim</span>
         </Link>
       ) : (
         <button onClick={() => openAuthModal('login')} className={iconBtn}>
           <Heart size={23} strokeWidth={1.8} />
-          <span>Favorilerim</span>
+          <span className="hidden sm:block">Favorilerim</span>
         </button>
       )}
 
@@ -45,7 +45,7 @@ export function HeaderActions() {
             </span>
           )}
         </div>
-        <span>Sepetim</span>
+        <span className="hidden sm:block">Sepetim</span>
       </button>
 
       {/* Kullanıcı / Giriş Yap */}

@@ -1,6 +1,8 @@
+'use client'
+import { useState } from 'react'
 import Link from 'next/link'
+import { ChevronDown, Mail, Phone, MapPin } from 'lucide-react'
 import { Logo } from '../Header/Logo'
-import { Mail, Phone, MapPin } from 'lucide-react'
 
 // Lucide yeni sürümünde sosyal medya ikonları kaldırıldı — inline SVG kullanıyoruz
 const SocialIcons = {
@@ -33,10 +35,9 @@ const SOCIALS = [
   { Icon: SocialIcons.Youtube,   href: '#', label: 'YouTube' },
 ]
 
-const FOOTER_LINKS = {
+const FOOTER_LINKS: Record<string, { label: string; href: string }[]> = {
   'Kurumsal': [
     { label: 'Hakkımızda', href: '/hakkimizda' },
-    { label: 'Kariyer', href: '/kariyer' },
     { label: 'Basın', href: '/basin' },
     { label: 'İletişim', href: '/iletisim' },
   ],
@@ -60,13 +61,59 @@ const FOOTER_LINKS = {
   ],
 }
 
+function FooterAccordionColumn({
+  title,
+  links,
+}: {
+  title: string
+  links: { label: string; href: string }[]
+}) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <div className="border-b border-white/10 md:border-none">
+      {/* Mobil: tıklanabilir başlık | Masaüstü: statik başlık */}
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between py-3 md:py-0 md:cursor-default md:pointer-events-none"
+      >
+        <h4 className="text-sm font-bold text-white">{title}</h4>
+        <ChevronDown
+          size={16}
+          className={`text-white/50 transition-transform duration-200 md:hidden
+                      ${open ? 'rotate-180' : 'rotate-0'}`}
+        />
+      </button>
+
+      {/* Link listesi — mobilde collapse, masaüstünde her zaman açık */}
+      <ul
+        className={`space-y-2 overflow-hidden transition-all duration-300
+                    md:!max-h-none md:!opacity-100 md:mt-4
+                    ${open ? 'max-h-60 opacity-100 pb-3' : 'max-h-0 opacity-0 md:opacity-100'}`}
+      >
+        {links.map((link) => (
+          <li key={link.href}>
+            <Link
+              href={link.href}
+              className="text-sm text-white/55 hover:text-white transition-colors"
+            >
+              {link.label}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
 export function Footer() {
   return (
     <footer className="bg-navy-dark text-white mt-auto">
       <div className="max-w-[1280px] mx-auto px-5 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-0 md:gap-8">
           {/* Brand column */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 pb-6 md:pb-0 border-b border-white/10 md:border-none mb-4 md:mb-0">
             <Logo />
             <p className="mt-4 text-sm text-white/60 leading-relaxed max-w-[280px]">
               Türkiye&apos;nin en sevilen giyim mağazası. Kaliteli ürünler, uygun fiyatlar ve hızlı teslimat.
@@ -82,7 +129,7 @@ export function Footer() {
               </div>
               <div className="flex items-start gap-2 text-sm text-white/60">
                 <MapPin size={14} className="text-orange flex-shrink-0 mt-0.5" />
-                İstanbul, Türkiye
+                İzmir, Türkiye
               </div>
             </div>
             <div className="flex items-center gap-3 mt-5">
@@ -100,24 +147,12 @@ export function Footer() {
             </div>
           </div>
 
-          {/* Link columns */}
-          {Object.entries(FOOTER_LINKS).map(([title, links]) => (
-            <div key={title}>
-              <h4 className="text-sm font-bold text-white mb-4">{title}</h4>
-              <ul className="space-y-2">
-                {links.map((link) => (
-                  <li key={link.href}>
-                    <Link
-                      href={link.href}
-                      className="text-sm text-white/55 hover:text-white transition-colors"
-                    >
-                      {link.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+          {/* Link kolonları — mobilde accordion, masaüstünde statik */}
+          <div className="lg:col-span-4 grid grid-cols-1 md:grid-cols-4 gap-0 md:gap-6">
+            {Object.entries(FOOTER_LINKS).map(([title, links]) => (
+              <FooterAccordionColumn key={title} title={title} links={links} />
+            ))}
+          </div>
         </div>
 
         {/* Payment badges + copyright */}

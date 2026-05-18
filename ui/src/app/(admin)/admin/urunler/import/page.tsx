@@ -37,53 +37,29 @@ const COL = {
 }
 
 /* ── Renk adı → canonical isim eşlemesi ──────────────────────────── */
-// Tüm büyük/küçük harf varyantları, sayı sonekleri ve bilinen takma adlar
 const COLOR_NAME_MAP: Record<string, string> = {
-  // Siyah
   'siyah': 'Siyah', 'si̇yah': 'Siyah',
-  // Beyaz
   'beyaz': 'Beyaz',
-  // Gri
   'gri': 'Gri',
-  // Mavi
   'mavi': 'Mavi',
-  // Kırmızı
   'kırmızı': 'Kırmızı', 'kirmizi': 'Kırmızı',
-  // Mor
   'mor': 'Mor',
-  // Pembe
   'pembe': 'Pembe',
-  // Yeşil
   'yeşil': 'Yeşil', 'yesil': 'Yeşil',
-  // Lacivert
   'lacivert': 'Lacivert',
-  // Kahverengi
   'kahverengi': 'Kahverengi',
-  // Bej/Beige
   'bej': 'Bej',
-  // Bordo
   'bordo': 'Bordo',
-  // Sarı
   'sarı': 'Sarı', 'sari': 'Sarı',
-  // Ekru
   'ekru': 'Ekru',
-  // Haki
   'haki': 'Haki',
-  // Turuncu
   'turuncu': 'Turuncu',
-  // Antrasit
   'antrasit': 'Antrasit',
-  // Koyu Yeşil
   'koyu yeşil': 'Koyu Yeşil', 'koyu yesil': 'Koyu Yeşil',
-  // Saks Mavisi
   'saks mavi': 'Saks Mavisi', 'saks mavisi': 'Saks Mavisi',
-  // Bebe Mavisi
   'bebe mavisi': 'Bebe Mavisi', 'bebe mavi': 'Bebe Mavisi',
-  // İndigo Mavi
   'indigo mavi': 'İndigo Mavi', 'i̇ndigo mavi': 'İndigo Mavi',
-  // Çok Renkli
   'çok renkli': 'Çok Renkli', 'cok renkli': 'Çok Renkli',
-  // Kombinler — her iki sıralamayı aynı isime normalize et
   'siyah-beyaz': 'Siyah-Beyaz', 'beyaz-siyah': 'Siyah-Beyaz',
   'kırmızı-siyah': 'Kırmızı-Siyah', 'siyah-kırmızı': 'Kırmızı-Siyah',
   'lacivert-siyah': 'Lacivert-Siyah', 'siyah-lacivert': 'Lacivert-Siyah',
@@ -120,32 +96,17 @@ const COLOR_HEX_MAP: Record<string, string> = {
   'Sarı-Siyah':      '#854d0e',
 }
 
-/**
- * Renk adını normalize eder:
- * 1. Baştaki/sondaki boşlukları siler
- * 2. Sondaki rakam(lar)ı siler (Beyaz1→Beyaz, Gri111→Gri, Bebe Mavisi2→Bebe Mavisi)
- * 3. Turkish-aware lowercase ile arama tablosuna bakar
- * 4. Bulunamazsa başlığı büyük harfe çevrilmiş hâliyle döner
- */
 function normalizeColor(raw: string): string {
   const trimmed = raw.trim()
-  // Sondaki rakamları sil
   const withoutDigits = trimmed.replace(/\d+$/, '').trim()
   if (!withoutDigits) return trimmed
-
-  // Turkish lowercase (İ→i, I→ı gibi problemleri aşmak için)
   const lower = withoutDigits
-    .replace(/İ/g, 'i')
-    .replace(/I/g, 'ı')
+    .replace(/İ/g, 'i').replace(/I/g, 'ı')
     .toLowerCase()
-
   if (COLOR_NAME_MAP[lower]) return COLOR_NAME_MAP[lower]
-
-  // Bulunamadıysa — ilk harfi büyük, kalanı küçük
   return withoutDigits.charAt(0).toUpperCase() + withoutDigits.slice(1)
 }
 
-/* Kategori normalizasyonu */
 function normalizeCategoryName(raw: string): string {
   return raw
     .replace(/büyük beden\s*/i, '')
@@ -155,40 +116,59 @@ function normalizeCategoryName(raw: string): string {
     .trim()
 }
 
-/* Cinsiyet normalizasyonu */
 function normalizeGender(raw: string): string {
   if (/kadın|kız/i.test(raw)) return 'Kadın'
   if (/erkek/i.test(raw)) return 'Erkek'
   return 'Unisex'
 }
 
-interface ParsedColor {
-  name: string
-  hex?: string
+/* ── Veri tipleri ──────────────────────────────────────────────────── */
+
+/**
+ * Tek bir kombinasyon SKU.
+ * Excel'deki her satır = 1 ParsedVariant.
+ * color ve size AYNI objede tutulur — asla ayrılmaz.
+ */
+interface ParsedVariant {
+  barkod:   string
+  renk:     string        // normalize edilmiş renk adı (örn: "Lacivert")
+  beden:    string        // beden değeri (örn: "M")
+  stock:    number
+  colorHex: string | undefined
+  /** Görüntülenecek birleşik ad: "Lacivert - M" */
+  label:    string
 }
 
 interface ParsedProduct {
-  modelKodu: string
-  name: string
-  description: string
-  price: number
-  stock: number
-  sku: string        // = modelKodu (benzersiz grup kimliği)
+  modelKodu:    string
+  name:         string
+  description:  string
+  price:        number
+  stock:        number
+  sku:          string
   categoryName: string
-  gender: string
-  images: string[]
-  sizes: string[]
-  colors: ParsedColor[]
-  isActive: boolean
+  gender:       string
+  images:       string[]
+  /** Her satır = 1 kombinasyon varyantı */
+  variants:     ParsedVariant[]
+  isActive:     boolean
 }
 
 interface ImportResult {
   modelKodu: string
-  name: string
-  status: 'success' | 'error' | 'pending'
-  message?: string
+  name:      string
+  status:    'success' | 'error' | 'pending'
+  message?:  string
 }
 
+/* ── Excel parse — TEK KOMBINASYON MANTIGI ──────────────────────────
+ *
+ * Her Excel satırı, aynı anda hem renk hem beden içerir.
+ * Bu fonksiyon renk/beden listelerini AYRI DİZİLERE KOYMAZ.
+ * Bunun yerine her satırdan 1 ParsedVariant üretir:
+ *   { renk: "Lacivert", beden: "M", barkod: "BAR001", ... }
+ *
+ * ──────────────────────────────────────────────────────────────────── */
 function parseExcel(rows: unknown[][]): ParsedProduct[] {
   // Model kodu ile grupla
   const groups = new Map<string, unknown[][]>()
@@ -209,9 +189,8 @@ function parseExcel(rows: unknown[][]): ParsedProduct[] {
     if (!name) return
 
     const price = parseFloat(String(first[COL.SATIS_FIYAT] ?? '0')) || 0
-    const totalStock = parseInt(String(first[COL.STOK] ?? '1000')) || 1000
 
-    // Görseller — tüm satırlarda tarayıp dolu URL'leri topla (dedupe)
+    // Görseller — tüm satırlarda dolu URL'leri topla (dedupe)
     const imageSet = new Set<string>()
     for (const r of groupRows) {
       for (const idx of [COL.GORSEL_1, COL.GORSEL_2, COL.GORSEL_3, COL.GORSEL_4, COL.GORSEL_5]) {
@@ -221,24 +200,28 @@ function parseExcel(rows: unknown[][]): ParsedProduct[] {
     }
     const images = [...imageSet].slice(0, 8)
 
-    // Bedenler — unique
-    const sizes = [...new Set(
-      groupRows
-        .map(r => String((r as unknown[])[COL.BEDEN] ?? '').trim())
-        .filter(Boolean)
-    )]
+    // ── KOMBİNASYON VARYANTLARI: her satır = 1 variant ──────────────
+    // Renk ve beden AYNI satırdan, AYNI variant objesine yazılır.
+    // Hiçbir zaman sizes[] + colors[] şeklinde ayrılmaz.
+    const variants: ParsedVariant[] = groupRows.map(r => {
+      const rawRenk  = String((r as unknown[])[COL.RENK]   ?? '').trim()
+      const rawBeden = String((r as unknown[])[COL.BEDEN]  ?? '').trim()
+      const barkod   = String((r as unknown[])[COL.BARKOD] ?? '').trim()
+      const stock    = parseInt(String((r as unknown[])[COL.STOK] ?? '0')) || 0
 
-    // Renkler — normalize et + deduplicate
-    const colorMap = new Map<string, ParsedColor>()
-    for (const r of groupRows) {
-      const raw = String((r as unknown[])[COL.RENK] ?? '').trim()
-      if (!raw) continue
-      const name = normalizeColor(raw)
-      if (!colorMap.has(name)) {
-        colorMap.set(name, { name, hex: COLOR_HEX_MAP[name] })
-      }
-    }
-    const colors = [...colorMap.values()]
+      const renk     = rawRenk ? normalizeColor(rawRenk) : ''
+      const colorHex = renk ? (COLOR_HEX_MAP[renk] ?? undefined) : undefined
+
+      // "Lacivert - M"  |  "Lacivert"  |  "M"  |  "Standart"
+      const label = renk && rawBeden
+        ? `${renk} - ${rawBeden}`
+        : renk || rawBeden || 'Standart'
+
+      return { barkod, renk, beden: rawBeden, stock, colorHex, label }
+    })
+
+    // Toplam stok = varyant stoklarının toplamı (sıfırdan küçük olamaz)
+    const totalStock = Math.max(variants.reduce((s, v) => s + v.stock, 0), 0)
 
     const rawCategory = String(first[COL.KATEGORI] ?? '').trim()
     const rawGender   = String(first[COL.CINSIYET] ?? '').trim()
@@ -249,13 +232,11 @@ function parseExcel(rows: unknown[][]): ParsedProduct[] {
       description: String(first[COL.ACIKLAMA] ?? '').trim() || name,
       price,
       stock: totalStock,
-      // SKU = Model Kodu (ürün grup kimliği, barkod değil!)
       sku: modelKodu,
       categoryName: normalizeCategoryName(rawCategory),
       gender: normalizeGender(rawGender),
       images,
-      sizes,
-      colors,
+      variants,
       isActive: true,
     })
   })
@@ -263,14 +244,15 @@ function parseExcel(rows: unknown[][]): ParsedProduct[] {
   return products
 }
 
+/* ── Bileşen ──────────────────────────────────────────────────────── */
 export default function ImportPage() {
   const fileRef = useRef<HTMLInputElement>(null)
-  const [dragOver, setDragOver] = useState(false)
-  const [parsed, setParsed] = useState<ParsedProduct[] | null>(null)
-  const [results, setResults] = useState<ImportResult[]>([])
+  const [dragOver, setDragOver]   = useState(false)
+  const [parsed, setParsed]       = useState<ParsedProduct[] | null>(null)
+  const [results, setResults]     = useState<ImportResult[]>([])
   const [importing, setImporting] = useState(false)
-  const [done, setDone] = useState(false)
-  const [progress, setProgress] = useState(0)
+  const [done, setDone]           = useState(false)
+  const [progress, setProgress]   = useState(0)
 
   const { data: categories = [] } = useQuery({
     queryKey: ['categories'],
@@ -285,8 +267,8 @@ export default function ImportPage() {
     try {
       const { read, utils } = await import('xlsx')
       const buf = await file.arrayBuffer()
-      const wb = read(buf)
-      const ws = wb.Sheets[wb.SheetNames[0]]
+      const wb  = read(buf)
+      const ws  = wb.Sheets[wb.SheetNames[0]]
       const rows = utils.sheet_to_json<unknown[]>(ws, { header: 1 })
       const products = parseExcel(rows)
       setParsed(products)
@@ -306,6 +288,13 @@ export default function ImportPage() {
     if (file) handleFile(file)
   }
 
+  /* ── İÇE AKTARMA: TEK KOMBİNASYON MANTIGI ──────────────────────────
+   *
+   * Her ParsedVariant için TEK BİR adminApi.createVariant çağrısı yapılır.
+   * color ve size AYNI request objesine yazılır.
+   * SIZE döngüsü + COLOR döngüsü YOKTUR.
+   *
+   * ─────────────────────────────────────────────────────────────────── */
   const startImport = async () => {
     if (!parsed?.length) return
     setImporting(true)
@@ -320,53 +309,49 @@ export default function ImportPage() {
     for (let i = 0; i < parsed.length; i++) {
       const p = parsed[i]
       try {
-        // Kategori eşleştir — tam eşleşme yoksa içerme ile dene
+        // Kategori eşleştir
         const catNorm = p.categoryName.toLowerCase()
         const cat = categories.find(c => c.name.toLowerCase() === catNorm)
           ?? categories.find(c => c.name.toLowerCase().includes(catNorm))
           ?? categories.find(c => catNorm.includes(c.name.toLowerCase()))
         const categoryId = cat?.id ?? categories[0]?.id ?? 1
 
-        // Ürün oluştur — SKU = modelKodu
+        // Ürünü oluştur
         const product = await adminApi.createProduct({
-          name: p.name,
-          description: p.description.length >= 10 ? p.description : p.name + ' — detaylı açıklama ekleyin',
-          price: p.price,
-          stock: p.stock,
-          sku: p.sku,          // = modelKodu
+          name:        p.name,
+          description: p.description.length >= 10
+            ? p.description
+            : p.name + ' — detaylı açıklama ekleyin',
+          price:       p.price,
+          stock:       p.stock,
+          sku:         p.sku,
           categoryId,
-          gender: p.gender || undefined,
-          isActive: p.isActive,
+          gender:      p.gender || undefined,
+          isActive:    p.isActive,
         })
 
-        // Görseller — ilkini primary yap
+        // Görseller
         for (let imgIdx = 0; imgIdx < p.images.length; imgIdx++) {
           try {
             await adminApi.addProductImage(product.id, p.images[imgIdx], imgIdx === 0)
           } catch { /* görsel hataları sessizce atla */ }
         }
 
-        // Beden varyantları
-        for (const size of p.sizes) {
+        // ── KOMBİNASYON VARYANTLARl ────────────────────────────────
+        // Her variant = 1 createVariant çağrısı.
+        // color ve size AYNI objeye, AYNI anda gönderilir.
+        // ÖRN: { variantType:'color-size', name:'Lacivert - M',
+        //         color:'Lacivert', size:'M', sku:'BAR001', stock:10 }
+        for (const v of p.variants) {
           try {
             await adminApi.createVariant(product.id, {
-              variantType: 'SIZE',
-              name: size,
-              size,
-              stock: Math.floor(p.stock / Math.max(p.sizes.length, 1)),
-            })
-          } catch { /* devam */ }
-        }
-
-        // Renk varyantları — normalize isim + hex renk kodu ile
-        for (const color of p.colors) {
-          try {
-            await adminApi.createVariant(product.id, {
-              variantType: 'COLOR',
-              name: color.name,
-              color: color.name,
-              colorHex: color.hex,
-              stock: 0,
+              variantType: 'COMBINED',
+              name:        v.label,
+              color:       v.renk   || undefined,
+              colorHex:    v.colorHex,
+              size:        v.beden  || undefined,
+              ...(v.barkod ? { sku: v.barkod } : {}),
+              stock:       v.stock,
             })
           } catch { /* devam */ }
         }
@@ -385,17 +370,14 @@ export default function ImportPage() {
     setImporting(false)
     setDone(true)
     const successCount = res.filter(r => r.status === 'success').length
-    const failCount = res.filter(r => r.status === 'error').length
+    const failCount    = res.filter(r => r.status === 'error').length
     toast.success(`İçe aktarma tamamlandı: ${successCount} başarılı, ${failCount} hatalı`)
   }
 
-  const successCount = results.filter(r => r.status === 'success').length
-  const errorCount = results.filter(r => r.status === 'error').length
-
-  // Önizleme istatistikleri
-  const totalColors   = parsed ? new Set(parsed.flatMap(p => p.colors.map(c => c.name))).size : 0
-  const totalSizes    = parsed ? new Set(parsed.flatMap(p => p.sizes)).size : 0
-  const totalVariants = parsed ? parsed.reduce((s, p) => s + p.sizes.length + p.colors.length, 0) : 0
+  const successCount   = results.filter(r => r.status === 'success').length
+  const errorCount     = results.filter(r => r.status === 'error').length
+  const totalVariants  = parsed ? parsed.reduce((s, p) => s + p.variants.length, 0) : 0
+  const totalImages    = parsed ? parsed.reduce((s, p) => s + p.images.length, 0) : 0
 
   return (
     <div className="max-w-[860px] space-y-6">
@@ -417,12 +399,12 @@ export default function ImportPage() {
         </p>
         <p className="text-xs text-blue-600 leading-relaxed">
           Trendyol Satıcı Paneli → Ürün Yönetimi → Excel İndir (.xlsx) formatı.
-          Her satır beden/renk varyantı, <strong>Model Kodu</strong> ile gruplanır.
-          Renkler otomatik normalize edilir (büyük/küçük harf, sayı sonekleri giderilir).
-          Renk hex kodları otomatik atanır.
+          Her satır bir <strong>Kombine SKU</strong> (renk + beden birlikte).
+          Aynı Model Kodu altındaki satırlar tek ürün altında gruplanır.
         </p>
         <div className="mt-2 flex flex-wrap gap-2">
-          {['Model Kodu (SKU)', 'Ürün Adı', 'Fiyat', 'Stok', 'Kategori', 'Görseller (5)', 'Bedenler', 'Renkler + Hex', 'Cinsiyet'].map(f => (
+          {['Model Kodu (SKU)', 'Ürün Adı', 'Fiyat', 'Stok', 'Kategori',
+            'Görseller (5)', 'Renk + Beden (Kombine)', 'Cinsiyet'].map(f => (
             <span key={f} className="text-[10px] font-semibold bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full">
               {f}
             </span>
@@ -474,18 +456,18 @@ export default function ImportPage() {
               <p className="text-[11px] text-gray-500 mt-0.5">Ürün</p>
             </div>
             <div className="bg-gray-50 rounded-xl p-3 text-center">
-              <p className="text-2xl font-extrabold text-navy-dark">{totalColors}</p>
-              <p className="text-[11px] text-gray-500 mt-0.5">Renk (normalize)</p>
+              <p className="text-2xl font-extrabold text-navy-dark">{totalVariants}</p>
+              <p className="text-[11px] text-gray-500 mt-0.5">Kombine SKU</p>
             </div>
             <div className="bg-gray-50 rounded-xl p-3 text-center">
-              <p className="text-2xl font-extrabold text-navy-dark">{totalSizes}</p>
-              <p className="text-[11px] text-gray-500 mt-0.5">Beden Tipi</p>
+              <p className="text-2xl font-extrabold text-navy-dark">{totalImages}</p>
+              <p className="text-[11px] text-gray-500 mt-0.5">Görsel URL</p>
             </div>
             <div className="bg-gray-50 rounded-xl p-3 text-center">
               <p className="text-2xl font-extrabold text-navy-dark">
-                {parsed.reduce((s, p) => s + p.images.length, 0)}
+                {new Set(parsed.flatMap(p => p.variants.map(v => v.renk)).filter(Boolean)).size}
               </p>
-              <p className="text-[11px] text-gray-500 mt-0.5">Görsel URL</p>
+              <p className="text-[11px] text-gray-500 mt-0.5">Renk (unique)</p>
             </div>
           </div>
 
@@ -507,21 +489,24 @@ export default function ImportPage() {
                   <div className="flex items-center gap-2 mt-1 flex-wrap">
                     <span className="text-gray-500">{p.price}₺</span>
                     <span className="text-gray-300">·</span>
-                    <span className="text-gray-500">{p.sizes.join(', ')}</span>
+                    <span className="text-gray-500">{p.variants.length} SKU</span>
                     <span className="text-gray-300">·</span>
-                    {/* Renk swatches */}
+                    {/* Renk swatches (ilk 6 unique renk) */}
                     <span className="flex items-center gap-0.5">
-                      {p.colors.slice(0, 6).map(c => (
-                        <span
-                          key={c.name}
-                          title={c.name}
-                          className="w-3.5 h-3.5 rounded-full border border-gray-200 inline-block"
-                          style={{ backgroundColor: c.hex ?? '#ccc' }}
-                        />
-                      ))}
-                      {p.colors.length > 6 && (
-                        <span className="text-gray-400 text-[10px] ml-1">+{p.colors.length - 6}</span>
-                      )}
+                      {[...new Map(p.variants.filter(v => v.renk).map(v => [v.renk, v])).values()]
+                        .slice(0, 6)
+                        .map(v => (
+                          <span
+                            key={v.renk}
+                            title={v.renk}
+                            className="w-3.5 h-3.5 rounded-full border border-gray-200 inline-block"
+                            style={{ backgroundColor: v.colorHex ?? '#ccc' }}
+                          />
+                        ))}
+                    </span>
+                    <span className="text-gray-500 truncate max-w-[120px]">
+                      {p.variants.slice(0, 2).map(v => v.label).join(', ')}
+                      {p.variants.length > 2 && ` +${p.variants.length - 2}`}
                     </span>
                   </div>
                 </div>
@@ -538,12 +523,11 @@ export default function ImportPage() {
 
           {/* Normalizasyon özeti */}
           <div className="bg-green-50 border border-green-100 rounded-xl p-3">
-            <p className="text-xs font-bold text-green-700 mb-1">✓ Otomatik Normalizasyon</p>
+            <p className="text-xs font-bold text-green-700 mb-1">✓ Kombine SKU Modu</p>
             <p className="text-[11px] text-green-600 leading-relaxed">
-              Renkler normalize edildi: büyük/küçük harf tutarsızlıkları giderildi (SİYAH→Siyah, GRİ→Gri),
-              sayı sonekleri kaldırıldı (Beyaz1/2/3→Beyaz, Bebe Mavisi2→Bebe Mavisi),
-              tekrar eden renkler birleştirildi.
-              Toplam <strong>{totalVariants}</strong> varyant oluşturulacak.
+              Her Excel satırı = 1 kombinasyon SKU (renk + beden birlikte aynı varyant).
+              Renkler normalize edildi (büyük/küçük harf, sayı sonekleri giderildi).
+              Toplam <strong>{totalVariants}</strong> kombine varyant oluşturulacak.
             </p>
           </div>
 
@@ -553,7 +537,7 @@ export default function ImportPage() {
                        text-white font-bold py-3 rounded-xl transition-colors text-sm"
           >
             <Upload size={16} />
-            {parsed.length} Ürünü İçe Aktar
+            {parsed.length} Ürünü İçe Aktar ({totalVariants} SKU)
           </button>
         </div>
       )}
@@ -573,7 +557,6 @@ export default function ImportPage() {
             )}
           </div>
 
-          {/* Progress bar */}
           {importing && (
             <div className="w-full bg-gray-100 rounded-full h-2">
               <div
@@ -583,7 +566,6 @@ export default function ImportPage() {
             </div>
           )}
 
-          {/* Sonuç özeti */}
           {done && (
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-green-50 rounded-xl p-4 text-center">
@@ -597,7 +579,6 @@ export default function ImportPage() {
             </div>
           )}
 
-          {/* Ürün listesi */}
           <div className="max-h-96 overflow-y-auto space-y-1.5">
             {results.map((r) => (
               <div key={r.modelKodu}

@@ -1,5 +1,5 @@
 import apiClient from '@/lib/api-client'
-import type { DashboardStatsDto, LowStockAlertDto } from './admin.types'
+import type { DashboardStatsDto, LowStockAlertDto, MonthlyStatDto } from './admin.types'
 import type { OrderDto } from '@/domains/orders/orders.types'
 import type { OrderStatus } from '@/domains/orders/orders.types'
 import type { ProductDto, ProductDetailDto, ProductVariantDto } from '@/domains/products/products.types'
@@ -94,11 +94,12 @@ export interface CreateCouponRequest {
 }
 
 export interface CreateVariantRequest {
-  variantType: 'SIZE' | 'COLOR'
+  variantType: 'SIZE' | 'COLOR' | 'COMBINED'
   name: string       // @NotBlank — backend field adı
-  size?: string      // SIZE varyantı için
-  color?: string     // COLOR varyantı için
+  size?: string      // SIZE veya COMBINED varyantı için
+  color?: string     // COLOR veya COMBINED varyantı için
   colorHex?: string
+  sku?: string       // COMBINED: Excel barkod değeri
   stock: number      // @NotNull — default 0
 }
 
@@ -111,6 +112,11 @@ export const adminApi = {
 
   getLowStock: async (): Promise<LowStockAlertDto[]> => {
     const { data } = await apiClient.get('/api/products/low-stock')
+    return data
+  },
+
+  getMonthlyStats: async (): Promise<MonthlyStatDto[]> => {
+    const { data } = await apiClient.get('/api/admin/stats/monthly')
     return data
   },
 
@@ -128,7 +134,7 @@ export const adminApi = {
   },
 
   updateOrderStatus: async (id: number, status: OrderStatus): Promise<OrderDto> => {
-    const { data } = await apiClient.put(`/api/orders/${id}/status`, { status })
+    const { data } = await apiClient.put(`/api/orders/${id}/status`, null, { params: { status } })
     return data
   },
 

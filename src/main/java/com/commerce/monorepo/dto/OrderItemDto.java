@@ -13,8 +13,9 @@ public class OrderItemDto {
     private Long id;
     private Long productId;
     private String productName;
+    private String imageUrl;     // Ürün ana görseli
     private Long variantId;
-    private String variantName;  // "M - Mavi" gibi
+    private String variantName;  // "Lacivert - M" gibi
     private String size;
     private String color;
     private Integer quantity;

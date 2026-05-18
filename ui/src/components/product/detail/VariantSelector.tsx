@@ -75,13 +75,33 @@ function resolveColorHex(hex: string | null | undefined, name: string | null | u
 function groupVariants(variants: ProductVariantDto[] | null | undefined) {
   const groups: Record<string, ProductVariantDto[]> = {}
   if (!variants) return groups
+
+  const seenSizes = new Set<string>()
+  const seenColors = new Set<string>()
+
   for (const v of variants) {
-    // Hem size hem color varsa iki gruba da ekle (nadir ama olabilir)
-    const key = v.size ? 'Beden' : v.color ? 'Renk' : (v.variantType ?? 'Seçenek')
-    if (!groups[key]) groups[key] = []
-    groups[key].push(v)
+    // Hem Beden hem Renk varsa (Claude'un yeni sistemi), ikisine de bağımsız olarak ekle (Unique kontrolü ile)
+    if (v.size && !seenSizes.has(v.size)) {
+      if (!groups['Beden']) groups['Beden'] = []
+      groups['Beden'].push(v)
+      seenSizes.add(v.size)
+    }
+    
+    if (v.color && !seenColors.has(v.color)) {
+      if (!groups['Renk']) groups['Renk'] = []
+      groups['Renk'].push(v)
+      seenColors.add(v.color)
+    }
+    
+    // Ne size ne color yoksa (standart tekil seçenek)
+    if (!v.size && !v.color) {
+      const key = v.variantType ?? 'Seçenek'
+      if (!groups[key]) groups[key] = []
+      groups[key].push(v)
+    }
   }
-  // Beden grubunu standar sırayla sırala
+
+  // Beden grubunu standart sıraya göre diz
   if (groups['Beden']) {
     groups['Beden'] = groups['Beden'].sort(
       (a, b) => SIZE_ORDER.indexOf(a.size ?? '') - SIZE_ORDER.indexOf(b.size ?? '')
@@ -112,7 +132,9 @@ export function VariantSelector({ variants, selections, onSelect, errorGroups = 
               </p>
               {selectedInGroup && (
                 <span className="text-sm text-gray-500 font-medium">
-                  — {selectedInGroup.size ?? selectedInGroup.color ?? selectedInGroup.name}
+                  — {groupName === 'Beden'
+                      ? (selectedInGroup.size ?? selectedInGroup.name)
+                      : (selectedInGroup.color ?? selectedInGroup.name)}
                 </span>
               )}
             </div>
@@ -121,9 +143,33 @@ export function VariantSelector({ variants, selections, onSelect, errorGroups = 
               {items.map((v) => {
                 const isSelected = selectedInGroup?.id === v.id
                 const isColorGroup = groupName === 'Renk'
-                // Stok varyant seviyesinde takip edilmiyor — sadece isActive: false ise disabled
-                // (Beden tükendiyse admin manuel olarak o bedeni pasife alır)
-                const isDisabled = !v.isActive
+
+                // Stok kontrolü: COMBINED varyantlarda seçili renk/bedene göre çapraz kontrol
+                let stockEmpty = false
+                if (groupName === 'Beden') {
+                  const selColor = selections['Renk']
+                  if (selColor?.color) {
+                    // Renk seçiliyse: sadece o renk+beden kombosunu kontrol et
+                    const combo = safeVariants.find(sv => sv.size === v.size && sv.color === selColor.color)
+                    stockEmpty = combo !== undefined && combo.stock === 0
+                  } else {
+                    // Renk seçili değilse: bu bedende hiç stok var mı?
+                    stockEmpty = safeVariants.filter(sv => sv.size === v.size).every(sv => sv.stock === 0)
+                  }
+                } else if (groupName === 'Renk') {
+                  const selSize = selections['Beden']
+                  if (selSize?.size) {
+                    // Beden seçiliyse: sadece o beden+renk kombosunu kontrol et
+                    const combo = safeVariants.find(sv => sv.color === v.color && sv.size === selSize.size)
+                    stockEmpty = combo !== undefined && combo.stock === 0
+                  } else {
+                    // Beden seçili değilse: bu renkte hiç stok var mı?
+                    stockEmpty = safeVariants.filter(sv => sv.color === v.color).every(sv => sv.stock === 0)
+                  }
+                } else {
+                  stockEmpty = v.stock === 0
+                }
+                const isDisabled = !v.isActive || stockEmpty
 
                 /* ── Renk grubu → dairesel swatch ── */
                 if (isColorGroup) {
@@ -180,7 +226,7 @@ export function VariantSelector({ variants, selections, onSelect, errorGroups = 
                     type="button"
                     onClick={() => !isDisabled && onSelect(groupName, v)}
                     disabled={isDisabled}
-                    title={isDisabled ? 'Tükendi' : undefined}
+                    title={isDisabled ? (stockEmpty ? 'Tükendi' : 'Pasif') : undefined}
                     className={`min-w-[48px] h-10 px-3 rounded-xl border-2 text-sm font-bold
                                 transition-all relative
                                 ${isSelected

@@ -55,10 +55,11 @@ export function ProductsView({ defaultCategoryId }: Props = {}) {
     keyword, categoryId, minPrice, maxPrice,
     colors: colors.length ? colors : undefined,
     sizes:  sizes.length  ? sizes  : undefined,
-    sortBy, sortDirection: sortDir as 'ASC' | 'DESC',
+    // "Yeni Gelenler" seçiliyse createdAt DESC sırala; aksi halde URL'deki sortBy/sortDir kullan
+    sortBy:        yeni ? 'createdAt' : sortBy,
+    sortDirection: yeni ? 'DESC'      : sortDir as 'ASC' | 'DESC',
     size: PAGE_SIZE, page,
     ...(indirim && { inStockOnly: false }),
-    ...(yeni    && { featured: true }),
   }
 
   const { data, isLoading } = useQuery({
@@ -149,6 +150,7 @@ export function ProductsView({ defaultCategoryId }: Props = {}) {
 
         <SortBar
           total={total}
+          isLoading={isLoading}
           sortBy={sortBy}
           sortDirection={sortDir}
           onSortChange={handleSortChange}

@@ -54,9 +54,13 @@ export default function UrunDuzenlemePage({ params }: Props) {
   const [newColorHex, setNewColorHex] = useState('#000000')
   // Lightbox state
   const [zoomedIdx, setZoomedIdx] = useState<number | null>(null)
-  // Galeri sırası (drag-to-reorder)
   const [imgOrder, setImgOrder] = useState<ProductImageDto[]>([])
   const reorderTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Kombinasyon varyant form stateleri
+  const [newSizeName, setNewSizeName] = useState('')
+  const [newVariantSku, setNewVariantSku] = useState('')
+  const [newVariantStock, setNewVariantStock] = useState<number>(100)
 
   useEffect(() => {
     params.then(({ id }) => setProductId(Number(id)))
@@ -245,26 +249,24 @@ export default function UrunDuzenlemePage({ params }: Props) {
     }, 500)
   }, [productId])
 
-  const handleSizeToggle = (size: string) => {
-    const existing = sizeVariants.find((v) => v.size === size)
-    if (existing) {
-      deleteVariantMutation.mutate(existing.id)
-    } else {
-      // Varyant stoğunu ürün stoğuna eşitle — CartService / OrderService variant.stock'u kontrol ediyor
-      createVariantMutation.mutate({ variantType: 'SIZE', name: size, size, stock: product?.stock ?? 100 })
-    }
-  }
+  const combinedVariants = product?.variants ?? []
 
-  const handleAddColor = () => {
-    if (!newColorName.trim()) { toast.error('Renk adı girin'); return }
+  const handleAddVariant = () => {
+    if (!newColorName.trim() && !newSizeName.trim()) { toast.error('Renk veya Beden girin'); return }
+    const variantName = [newColorName.trim(), newSizeName.trim()].filter(Boolean).join(' - ')
     createVariantMutation.mutate({
-      variantType: 'COLOR',
-      name: newColorName.trim(),
-      color: newColorName.trim(),
-      colorHex: newColorHex,
-      stock: 0,
+      variantType: 'COMBINED',
+      name: variantName,
+      color: newColorName.trim() || undefined,
+      size: newSizeName.trim() || undefined,
+      colorHex: newColorHex || undefined,
+      sku: newVariantSku.trim() || undefined,
+      stock: newVariantStock,
     })
     setNewColorName('')
+    setNewSizeName('')
+    setNewVariantSku('')
+    setNewVariantStock(100)
     setNewColorHex('#000000')
   }
 
@@ -387,7 +389,7 @@ export default function UrunDuzenlemePage({ params }: Props) {
                   <input {...register('stock')} type="number" min="0" className={inputCls()} />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-600 mb-1">SKU</label>
+                  <label className="block text-xs font-bold text-gray-600 mb-1">Model Kodu (Parent SKU)</label>
                   <input {...register('sku')} className={inputCls()} />
                 </div>
               </div>
@@ -587,174 +589,129 @@ export default function UrunDuzenlemePage({ params }: Props) {
               )}
             </div>
 
-            {/* Beden Yönetimi */}
+            {/* Varyant Yönetimi (Kombinasyon) */}
             <div className="bg-white rounded-2xl border border-gray-100 p-6">
               <div className="flex items-center justify-between mb-1">
-                <h2 className="font-bold text-navy-dark">Bedenler</h2>
-                <span className="text-xs text-gray-400">Stok sipariş gelince otomatik düşer</span>
+                <h2 className="font-bold text-navy-dark">Varyantlar (SKU)</h2>
+                <span className="text-xs text-gray-400">Ürünün satılabilir alt birimleri</span>
               </div>
               <p className="text-xs text-gray-400 mb-4">
-                Aktif bedene tıklayarak kaldırabilirsiniz. Stok alanını düzenleyip Enter&apos;a basın.
+                Her bir renk ve beden kombinasyonu için bir varyant oluşturmalısınız (Örn: Lacivert - M). 
               </p>
 
-              {/* Mevcut bedenler — stoklu tablo */}
-              {sizeVariants.length > 0 && (
-                <div className="mb-4 rounded-xl border border-gray-100 overflow-hidden">
+              {/* Mevcut Varyantlar Tablosu */}
+              {combinedVariants.length > 0 && (
+                <div className="mb-5 rounded-xl border border-gray-100 overflow-x-auto">
                   <table className="w-full text-sm">
-                    <thead className="bg-gray-50 border-b border-gray-100">
+                    <thead className="bg-gray-50 border-b border-gray-100 whitespace-nowrap">
                       <tr>
+                        <th className="text-left px-3 py-2 text-xs font-bold text-gray-500">Varyant Adı</th>
+                        <th className="text-left px-3 py-2 text-xs font-bold text-gray-500">Renk</th>
                         <th className="text-left px-3 py-2 text-xs font-bold text-gray-500">Beden</th>
-                        <th className="text-center px-3 py-2 text-xs font-bold text-gray-500">Stok</th>
+                        <th className="text-left px-3 py-2 text-xs font-bold text-gray-500">Barkod (SKU)</th>
+                        <th className="text-center px-3 py-2 text-xs font-bold text-gray-500 w-24">Stok</th>
                         <th className="w-8" />
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
-                      {SIZES.filter(s => sizeVariants.some(v => v.size === s)).map((size) => {
-                        const variant = sizeVariants.find((v) => v.size === size)!
-                        return (
-                          <tr key={size} className="hover:bg-gray-50">
-                            <td className="px-3 py-2 font-bold text-navy-dark">{size}</td>
-                            <td className="px-3 py-2 text-center">
-                              <input
-                                type="number"
-                                min={0}
-                                defaultValue={variant.stock}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    const val = parseInt((e.target as HTMLInputElement).value)
-                                    if (!isNaN(val) && val >= 0) {
-                                      updateVariantMutation.mutate({ variantId: variant.id, stock: val })
-                                    }
-                                  }
-                                }}
-                                onBlur={(e) => {
-                                  const val = parseInt(e.target.value)
-                                  if (!isNaN(val) && val >= 0 && val !== variant.stock) {
-                                    updateVariantMutation.mutate({ variantId: variant.id, stock: val })
-                                  }
-                                }}
-                                className="w-20 text-center border border-gray-200 rounded-lg px-2 py-1
-                                           text-sm focus:outline-none focus:border-orange focus:ring-1
-                                           focus:ring-orange/20"
-                              />
-                            </td>
-                            <td className="px-3 py-2 text-right">
-                              <button
-                                type="button"
-                                onClick={() => deleteVariantMutation.mutate(variant.id)}
-                                disabled={deleteVariantMutation.isPending}
-                                className="text-gray-300 hover:text-red-500 transition-colors disabled:opacity-50"
-                                title="Bedeni kaldır"
-                              >
-                                <X size={14} />
-                              </button>
-                            </td>
-                          </tr>
-                        )
-                      })}
+                      {combinedVariants.map((variant) => (
+                        <tr key={variant.id} className="hover:bg-gray-50">
+                          <td className="px-3 py-2 font-bold text-navy-dark">{variant.name}</td>
+                          <td className="px-3 py-2 text-gray-600">
+                            <div className="flex items-center gap-1.5">
+                              {variant.colorHex && (
+                                <span className="w-3 h-3 rounded-full border border-gray-300" style={{ backgroundColor: variant.colorHex }} />
+                              )}
+                              {variant.color || '-'}
+                            </div>
+                          </td>
+                          <td className="px-3 py-2 text-gray-600 font-medium">{variant.size || '-'}</td>
+                          <td className="px-3 py-2 text-gray-400 font-mono text-xs">{variant.sku || '-'}</td>
+                          <td className="px-3 py-2 text-center">
+                            <input
+                              type="number"
+                              min={0}
+                              defaultValue={variant.stock}
+                              onBlur={(e) => {
+                                const val = parseInt(e.target.value)
+                                if (!isNaN(val) && val >= 0 && val !== variant.stock) {
+                                  updateVariantMutation.mutate({ variantId: variant.id, stock: val })
+                                }
+                              }}
+                              className="w-16 text-center border border-gray-200 rounded-lg px-2 py-1 text-sm focus:border-orange focus:ring-1 focus:ring-orange/20"
+                            />
+                          </td>
+                          <td className="px-3 py-2 text-right">
+                            <button
+                              type="button"
+                              onClick={() => deleteVariantMutation.mutate(variant.id)}
+                              className="text-gray-300 hover:text-red-500 transition-colors"
+                            >
+                              <X size={14} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>
               )}
 
-              {/* Beden ekle */}
-              <div className="flex flex-wrap gap-2">
-                {SIZES.filter(s => !sizeVariants.some(v => v.size === s)).map((size) => (
-                  <button
-                    key={size}
-                    type="button"
-                    onClick={() => handleSizeToggle(size)}
-                    disabled={createVariantMutation.isPending}
-                    className="px-4 py-2 rounded-xl text-sm font-bold border-2 border-dashed border-gray-200
-                               text-gray-400 hover:border-orange hover:text-orange transition-all
-                               disabled:opacity-50"
-                  >
-                    + {size}
-                  </button>
-                ))}
-                {SIZES.every(s => sizeVariants.some(v => v.size === s)) && (
-                  <p className="text-xs text-gray-400 italic">Tüm bedenler eklendi</p>
-                )}
-              </div>
-            </div>
-
-            {/* Renk Yönetimi */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-6">
-              <h2 className="font-bold text-navy-dark mb-1">Renkler</h2>
-              <p className="text-xs text-gray-400 mb-4">
-                Renk adı girin, renk kutusundan hex seçin, Ekle&apos;ye basın
-              </p>
-
-              {/* Mevcut renkler */}
-              {colorVariants.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {colorVariants.map((v) => (
-                    <div
-                      key={v.id}
-                      className="flex items-center gap-2 px-3 py-2 rounded-xl border border-gray-200
-                                 bg-gray-50 text-sm group/chip"
+              {/* Yeni Varyant Ekleme Formu */}
+              <div className="bg-gray-50/50 p-4 rounded-xl border border-gray-100">
+                <h3 className="text-xs font-bold text-gray-700 mb-3">Yeni Varyant Ekle</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 items-end">
+                  <div className="col-span-1">
+                    <label className="block text-[10px] font-bold text-gray-500 mb-1">Renk</label>
+                    <input
+                      type="text"
+                      placeholder="Lacivert"
+                      value={newColorName}
+                      onChange={(e) => setNewColorName(e.target.value)}
+                      className={inputCls()}
+                    />
+                  </div>
+                  <div className="col-span-1">
+                    <label className="block text-[10px] font-bold text-gray-500 mb-1">Beden</label>
+                    <input
+                      type="text"
+                      placeholder="M"
+                      value={newSizeName}
+                      onChange={(e) => setNewSizeName(e.target.value)}
+                      className={inputCls()}
+                    />
+                  </div>
+                  <div className="col-span-1">
+                    <label className="block text-[10px] font-bold text-gray-500 mb-1">Barkod (Opsiyonel)</label>
+                    <input
+                      type="text"
+                      placeholder="SKU-123"
+                      value={newVariantSku}
+                      onChange={(e) => setNewVariantSku(e.target.value)}
+                      className={inputCls()}
+                    />
+                  </div>
+                  <div className="col-span-1">
+                    <label className="block text-[10px] font-bold text-gray-500 mb-1">Stok</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={newVariantStock}
+                      onChange={(e) => setNewVariantStock(parseInt(e.target.value) || 0)}
+                      className={inputCls()}
+                    />
+                  </div>
+                  <div className="col-span-1">
+                    <button
+                      type="button"
+                      onClick={handleAddVariant}
+                      disabled={createVariantMutation.isPending}
+                      className="w-full h-[42px] flex items-center justify-center gap-1.5 bg-navy-dark hover:bg-navy text-white font-bold rounded-xl text-xs transition-colors"
                     >
-                      {/* Renk circle */}
-                      <span
-                        className="w-5 h-5 rounded-full border border-gray-300 flex-shrink-0 shadow-sm"
-                        style={{ backgroundColor: v.colorHex ?? '#cccccc' }}
-                        title={v.colorHex ?? 'Renk belirsiz'}
-                      />
-                      <span className="text-gray-700 font-semibold">{v.color}</span>
-                      {v.colorHex && (
-                        <span className="text-[10px] text-gray-400 font-mono">{v.colorHex}</span>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => deleteVariantMutation.mutate(v.id)}
-                        disabled={deleteVariantMutation.isPending}
-                        className="text-gray-300 hover:text-red-500 disabled:opacity-50
-                                   transition-colors ml-0.5"
-                      >
-                        <X size={13} />
-                      </button>
-                    </div>
-                  ))}
+                      <Plus size={14} /> Ekle
+                    </button>
+                  </div>
                 </div>
-              )}
-
-              {/* Yeni renk ekle */}
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={newColorName}
-                  onChange={(e) => setNewColorName(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddColor())}
-                  placeholder="Renk adı (örn. Lacivert)"
-                  className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm
-                             focus:outline-none focus:ring-1 focus:border-orange focus:ring-orange/20
-                             transition-colors"
-                />
-                <div className="relative">
-                  <input
-                    type="color"
-                    value={newColorHex}
-                    onChange={(e) => setNewColorHex(e.target.value)}
-                    className="w-11 h-11 rounded-xl border border-gray-200 cursor-pointer p-1
-                               appearance-none"
-                    title="Renk seç"
-                  />
-                  {/* Preview label */}
-                  <span className="absolute -bottom-4 left-1/2 -translate-x-1/2 text-[9px]
-                                   text-gray-400 font-mono whitespace-nowrap">
-                    {newColorHex}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleAddColor}
-                  disabled={createVariantMutation.isPending || !newColorName.trim()}
-                  className="flex items-center gap-1.5 bg-orange hover:bg-orange-dark text-white
-                             font-bold px-4 py-2.5 rounded-xl text-sm disabled:opacity-60
-                             transition-colors"
-                >
-                  <Plus size={14} /> Ekle
-                </button>
               </div>
             </div>
           </div>
