@@ -74,7 +74,7 @@ export function CategoryNav() {
        direct children of nav (NOT inside the overflow-x-auto inner div) so they are
        never clipped. */
     <nav
-      className="bg-white border-b border-gray-100 sticky top-[68px] z-[200] relative"
+      className="bg-white border-b border-gray-100 relative md:sticky md:top-[68px] z-[200]"
       onMouseLeave={closeAll}
       onMouseEnter={cancelClose}
     >
