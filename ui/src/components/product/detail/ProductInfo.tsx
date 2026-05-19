@@ -294,7 +294,7 @@ export function ProductInfo({ product }: Props) {
       {/* Price section */}
       <div className="bg-gray-50 rounded-2xl p-4 space-y-1">
         <div className="flex items-end gap-3">
-          <span className="text-[2rem] font-extrabold text-orange leading-none">
+          <span className="text-2xl sm:text-[2rem] font-extrabold text-orange leading-none">
             {formatPrice(displayPrice)}
           </span>
           {hasDiscount && (
@@ -479,7 +479,7 @@ export function ProductInfo({ product }: Props) {
       )}
 
       {/* Trust badges */}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
         {[
           { icon: Shield,    label: 'Güvenli Ödeme', sub: '256-bit SSL' },
           { icon: RotateCcw, label: '30 Gün İade',    sub: 'Ücretsiz' },

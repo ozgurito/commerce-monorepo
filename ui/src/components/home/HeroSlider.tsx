@@ -64,7 +64,7 @@ export function HeroSlider() {
   return (
     <div
       className="relative overflow-hidden"
-      style={{ height: 'clamp(420px, 58vw, 620px)' }}
+      style={{ height: 'clamp(260px, 55vw, 620px)' }}
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
@@ -78,7 +78,7 @@ export function HeroSlider() {
             src={s.image}
             alt={s.imageAlt}
             fill
-            sizes="100vw"
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 100vw, 1280px"
             className={`object-cover ${s.imagePos}`}
             priority={i === 0}
           />

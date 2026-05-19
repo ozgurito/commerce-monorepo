@@ -233,7 +233,7 @@ export function FilterSidebar({ filters, onFilterChange, onReset, isOpen, onClos
 
           {/* Renk */}
           <FilterSection title="Renk" count={filters.colors.length}>
-            <div className="grid grid-cols-5 gap-x-2 gap-y-3">
+            <div className="grid grid-cols-4 sm:grid-cols-5 gap-x-2 gap-y-3">
               {COLORS.map(({ label, hex }) => {
                 const active = filters.colors.includes(label)
                 return (

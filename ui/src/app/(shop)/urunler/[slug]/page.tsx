@@ -52,7 +52,7 @@ export default async function UrunDetayPage(
     <div className="max-w-[1280px] mx-auto px-5 py-6">
       <Breadcrumb categoryId={product.categoryId} productName={product.name} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8 lg:gap-10 lg:items-start">
 
         {/* Sol: Galeri + Açıklama + Detaylar */}
         <div className="space-y-6">

@@ -47,7 +47,7 @@ function AddressFormModal({ defaultValues, onSubmit, onCancel, isLoading, submit
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40" onClick={onCancel} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-[520px] max-h-[90vh] overflow-y-auto p-6">
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-[95vw] sm:max-w-[520px] max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <button
           onClick={onCancel}
           className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100"
@@ -63,7 +63,7 @@ function AddressFormModal({ defaultValues, onSubmit, onCancel, isLoading, submit
             {errors.title && <p className="text-xs text-red-500 mt-1">{errors.title.message}</p>}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-bold text-gray-600 mb-1">Ad Soyad *</label>
               <input {...register('fullName')} className={inputCls(!!errors.fullName)} />
@@ -76,7 +76,7 @@ function AddressFormModal({ defaultValues, onSubmit, onCancel, isLoading, submit
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-bold text-gray-600 mb-1">Şehir *</label>
               <input {...register('city')} placeholder="İstanbul" className={inputCls(!!errors.city)} />

@@ -102,7 +102,7 @@ export default function HesabimPage() {
         </div>
 
         {/* Stats row */}
-        <div className="grid grid-cols-3 gap-3 mt-5 border-t border-white/10 pt-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-5 border-t border-white/10 pt-4">
           {[
             { icon: Star,    label: 'Üye',        value: 'Premium' },
             { icon: Package, label: 'Gün Üye',    value: memberDays.toString() },

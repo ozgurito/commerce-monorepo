@@ -44,7 +44,7 @@ export function AuthModal({ defaultTab = 'login', onClose, onSuccess }: Props) {
       />
 
       {/* Modal */}
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-[420px] mx-4 p-6">
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-[90vw] sm:max-w-[420px] mx-4 p-4 sm:p-6">
         {/* Kapat butonu */}
         <button
           onClick={onClose}

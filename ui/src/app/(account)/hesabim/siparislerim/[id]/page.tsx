@@ -135,19 +135,19 @@ export default function SiparisDetayPage({ params }: Props) {
         <div className="bg-white rounded-2xl border border-gray-100 p-5">
           <h2 className="text-sm font-extrabold text-navy-dark mb-5">Sipariş Durumu</h2>
           <div className="relative">
-            {/* Track line */}
-            <div className="absolute top-5 left-5 right-5 h-0.5 bg-gray-100" />
+            {/* Track line — hidden on mobile, visible on sm+ */}
+            <div className="hidden sm:block absolute top-5 left-5 right-5 h-0.5 bg-gray-100" />
             <div
-              className="absolute top-5 left-5 h-0.5 bg-orange transition-all duration-700"
+              className="hidden sm:block absolute top-5 left-5 h-0.5 bg-orange transition-all duration-700"
               style={{ width: stepIdx >= 0 ? `${(stepIdx / (STEPS.length - 1)) * 90}%` : '0%' }}
             />
 
-            <div className="relative flex justify-between">
+            <div className="relative flex flex-col sm:flex-row sm:justify-between gap-3 sm:gap-0">
               {STEPS.map((step, i) => {
                 const done    = i <= stepIdx
                 const current = i === stepIdx
                 return (
-                  <div key={step.status} className="flex flex-col items-center gap-2">
+                  <div key={step.status} className="flex sm:flex-col flex-row items-center gap-2 sm:gap-2">
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center
                                     border-2 transition-all z-10 relative
                                     ${done

@@ -143,7 +143,8 @@ export function SearchBar() {
       {showDropdown && (
         <div className="absolute top-[calc(100%+6px)] left-0 right-0 bg-white rounded-2xl
                         shadow-[0_12px_48px_rgba(0,0,0,.18)] border border-gray-100 z-50
-                        overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+                        overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150
+                        max-h-[60vh] overflow-y-auto sm:max-h-none sm:overflow-visible">
 
           {/* ── Trending / recently viewed panel ── */}
           {showTrending && (

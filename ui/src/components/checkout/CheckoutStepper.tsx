@@ -29,7 +29,7 @@ export function CheckoutStepper({ current }: Props) {
                 {done ? <Check size={14} /> : i + 1}
               </div>
               <span
-                className={`mt-1.5 text-[11px] font-semibold whitespace-nowrap
+                className={`hidden sm:block mt-1.5 text-[11px] font-semibold whitespace-nowrap
                             ${active ? 'text-orange' : done ? 'text-green-600' : 'text-gray-400'}`}
               >
                 {label}
@@ -39,7 +39,7 @@ export function CheckoutStepper({ current }: Props) {
             {/* Connector */}
             {i < STEPS.length - 1 && (
               <div
-                className={`w-16 sm:w-24 h-0.5 mb-5 mx-1
+                className={`w-8 sm:w-16 md:w-24 h-0.5 mb-5 mx-1
                             ${i < current ? 'bg-green-400' : 'bg-gray-200'}`}
               />
             )}

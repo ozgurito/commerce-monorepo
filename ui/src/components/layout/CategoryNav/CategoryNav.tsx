@@ -175,7 +175,7 @@ export function CategoryNav() {
       {/* All-categories mega menu */}
       {allOpen && (
         <div
-          className="absolute top-full left-0 right-0 z-[300]"
+          className="hidden md:block absolute top-full left-0 right-0 z-[300]"
           onMouseEnter={cancelClose}
           onMouseLeave={closeAll}
         >
@@ -190,7 +190,7 @@ export function CategoryNav() {
       {/* Individual category mega menu */}
       {activeCategory && openSlug && !allOpen && (
         <div
-          className="absolute top-full left-0 right-0 z-[300]"
+          className="hidden md:block absolute top-full left-0 right-0 z-[300]"
           onMouseEnter={cancelClose}
           onMouseLeave={closeAll}
         >

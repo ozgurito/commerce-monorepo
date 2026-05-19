@@ -88,6 +88,7 @@ export function CategoryBubbles() {
                       fill
                       className="object-cover object-center"
                       sizes="(min-width: 1024px) 104px, (min-width: 640px) 88px, 72px"
+                      priority={i < 5}
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">

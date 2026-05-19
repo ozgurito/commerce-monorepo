@@ -28,8 +28,8 @@ function useCountdown(target: Date) {
 function Digit({ value, label }: { value: number; label: string }) {
   return (
     <div className="flex flex-col items-center">
-      <div className="w-10 h-10 bg-navy-dark rounded-lg flex items-center justify-center">
-        <span className="text-lg font-extrabold text-white tabular-nums">
+      <div className="w-8 h-8 sm:w-10 sm:h-10 bg-navy-dark rounded-lg flex items-center justify-center">
+        <span className="text-base sm:text-lg font-extrabold text-white tabular-nums">
           {String(value).padStart(2, '0')}
         </span>
       </div>
