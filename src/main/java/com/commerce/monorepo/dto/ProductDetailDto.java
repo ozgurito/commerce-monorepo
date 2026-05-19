@@ -1,6 +1,7 @@
 package com.commerce.monorepo.dto;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -35,6 +36,8 @@ public record ProductDetailDto(
     String season,
     String originCountry,
     String gender,
-    String ageGroup
+    String ageGroup,
+    Boolean isFlashDeal,
+    Instant flashDealEndsAt
 ) {}
 

@@ -47,6 +47,12 @@ public class ProductDto {
     @JsonProperty("featured")
     private Boolean featured;
 
+    @JsonProperty("flashDeal")
+    private Boolean flashDeal;
+
+    @JsonProperty("flashDealEndsAt")
+    private java.time.Instant flashDealEndsAt;
+
     @JsonProperty("categoryId")
     private Long categoryId;
 

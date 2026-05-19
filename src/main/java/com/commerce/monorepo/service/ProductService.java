@@ -130,7 +130,8 @@ public class ProductService {
                 product.getCreatedAt(), product.getUpdatedAt(),
                 product.getFitType(), product.getFabricComposition(), product.getCareInstructions(),
                 product.getModelInfo(), product.getSizeGuide(), product.getMaterial(),
-                product.getSeason(), product.getOriginCountry(), product.getGender(), product.getAgeGroup()
+                product.getSeason(), product.getOriginCountry(), product.getGender(), product.getAgeGroup(),
+                Boolean.TRUE.equals(product.getIsFlashDeal()), product.getFlashDealEndsAt()
         );
     }
 
@@ -210,6 +211,11 @@ public class ProductService {
 
         if (r.isActive() != null)   p.setIsActive(r.isActive());
         if (r.isFeatured() != null) p.setIsFeatured(r.isFeatured());
+        if (r.isFlashDeal() != null) {
+            p.setIsFlashDeal(r.isFlashDeal());
+            if (Boolean.FALSE.equals(r.isFlashDeal())) p.setFlashDealEndsAt(null);
+        }
+        if (r.flashDealEndsAt() != null) p.setFlashDealEndsAt(r.flashDealEndsAt());
 
         // Giyim spesifik alanlar
         if (r.fitType() != null) p.setFitType(r.fitType());
@@ -258,6 +264,14 @@ public class ProductService {
     @Transactional(readOnly = true)
     public List<ProductDto> getFeaturedProducts() {
         return repo.findByIsFeaturedTrueAndIsActiveTrue()
+                .stream()
+                .map(this::mapToDto)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ProductDto> getFlashDealProducts() {
+        return repo.findByIsFlashDealTrueAndIsActiveTrueAndFlashDealEndsAtAfter(java.time.Instant.now())
                 .stream()
                 .map(this::mapToDto)
                 .toList();
@@ -344,6 +358,8 @@ public class ProductService {
                 .sku(product.getSku())
                 .active(Boolean.TRUE.equals(product.getIsActive()))
                 .featured(Boolean.TRUE.equals(product.getIsFeatured()))
+                .flashDeal(Boolean.TRUE.equals(product.getIsFlashDeal()))
+                .flashDealEndsAt(product.getFlashDealEndsAt())
                 .categoryId(product.getCategory() != null ? product.getCategory().getId() : null)
                 .categoryName(product.getCategory() != null ? product.getCategory().getName() : null)
                 .imageUrl(resolvePrimaryImage(product))

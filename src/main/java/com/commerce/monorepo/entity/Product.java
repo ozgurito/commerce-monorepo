@@ -2,6 +2,7 @@ package com.commerce.monorepo.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import org.hibernate.annotations.BatchSize;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -73,7 +74,13 @@ public class Product extends BaseEntity {
     
     @Column(name = "is_featured")
     private Boolean isFeatured = false;
-    
+
+    @Column(name = "is_flash_deal")
+    private Boolean isFlashDeal = false;
+
+    @Column(name = "flash_deal_ends_at")
+    private java.time.Instant flashDealEndsAt;
+
     @Column(name = "allow_reviews")
     private Boolean allowReviews = true;
     
@@ -84,9 +91,11 @@ public class Product extends BaseEntity {
     private String metaDescription;
     
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    @BatchSize(size = 30)
     private List<ProductImage> images = new ArrayList<>();
-    
+
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    @BatchSize(size = 30)
     private List<ProductVariant> variants = new ArrayList<>();
     
     // ========== GİYİM SPESİFİK ALANLAR ==========

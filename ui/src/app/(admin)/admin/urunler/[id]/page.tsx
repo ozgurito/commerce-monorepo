@@ -26,6 +26,8 @@ const schema = z.object({
   sku:               z.string().min(1),
   categoryId:        z.string().min(1),
   featured:          z.boolean().optional(),
+  isFlashDeal:       z.boolean().optional(),
+  flashDealEndsAt:   z.string().optional(),
   isActive:          z.boolean().optional(),
   material:          z.string().optional(),
   fabricComposition: z.string().optional(),
@@ -33,6 +35,22 @@ const schema = z.object({
   fitType:           z.string().optional(),
   gender:            z.string().optional(),
   season:            z.string().optional(),
+}).superRefine((data, ctx) => {
+  if (data.isFlashDeal) {
+    if (!data.flashDealEndsAt) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Flaş Fırsat için bitiş tarihi zorunludur',
+        path: ['flashDealEndsAt'],
+      })
+    } else if (new Date(data.flashDealEndsAt) <= new Date()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Bitiş tarihi gelecekte olmalıdır',
+        path: ['flashDealEndsAt'],
+      })
+    }
+  }
 })
 type FormValues = z.infer<typeof schema>
 
@@ -77,7 +95,7 @@ export default function UrunDuzenlemePage({ params }: Props) {
     queryFn: categoriesApi.getAll,
   })
 
-  const { register, handleSubmit, reset } = useForm<FormValues>({
+  const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
   })
 
@@ -91,7 +109,11 @@ export default function UrunDuzenlemePage({ params }: Props) {
         stock:             String(product.stock),
         sku:               product.sku,
         categoryId:        String(product.categoryId),
-        featured:          product.isFeatured,
+        featured:          product.isFeatured ?? false,
+        isFlashDeal:       product.isFlashDeal ?? false,
+        flashDealEndsAt:   product.flashDealEndsAt
+          ? new Date(product.flashDealEndsAt).toISOString().slice(0, 16)
+          : '',
         isActive:          product.isActive,
         material:          product.material ?? '',
         fabricComposition: product.fabricComposition ?? '',
@@ -113,7 +135,11 @@ export default function UrunDuzenlemePage({ params }: Props) {
         stock:             Number(values.stock),
         sku:               values.sku,
         categoryId:        Number(values.categoryId),
-        featured:          values.featured,
+        isFeatured:        values.featured,
+        isFlashDeal:       values.isFlashDeal,
+        flashDealEndsAt:   values.isFlashDeal && values.flashDealEndsAt
+          ? new Date(values.flashDealEndsAt).toISOString()
+          : null,
         isActive:          values.isActive,
         material:          values.material || undefined,
         fabricComposition: values.fabricComposition || undefined,
@@ -775,7 +801,25 @@ export default function UrunDuzenlemePage({ params }: Props) {
                 <input {...register('featured')} type="checkbox" className="w-4 h-4 accent-orange" />
                 <span className="text-sm text-gray-600 font-medium">Öne Çıkan</span>
               </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input {...register('isFlashDeal')} type="checkbox" className="w-4 h-4 accent-orange" />
+                <span className="text-sm text-gray-600 font-medium">⚡ Flaş Fırsat</span>
+              </label>
             </div>
+            {watch('isFlashDeal') && (
+              <div className="mt-2">
+                <label className="text-xs text-gray-500 font-medium">Flaş Fırsat Bitiş Tarihi & Saati</label>
+                <input
+                  {...register('flashDealEndsAt')}
+                  type="datetime-local"
+                  className={`w-full border rounded-xl px-3 py-2 text-sm mt-1 focus:outline-none focus:ring-1 focus:ring-orange/20
+                    ${errors.flashDealEndsAt ? 'border-red-400 focus:border-red-400' : 'border-gray-200 focus:border-orange'}`}
+                />
+                {errors.flashDealEndsAt && (
+                  <p className="text-xs text-red-500 mt-1">{errors.flashDealEndsAt.message}</p>
+                )}
+              </div>
+            )}
 
             {/* Kaydet */}
             <button

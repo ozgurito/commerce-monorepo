@@ -178,7 +178,7 @@ function ProductRow({
           <input
             type="checkbox"
             checked={p.featured}
-            onChange={() => onToggle(p.id, { featured: !p.featured })}
+            onChange={() => onToggle(p.id, { isFeatured: !p.featured })}
             disabled={toggleIsPending}
             className="w-4 h-4 accent-orange cursor-pointer disabled:cursor-default"
           />

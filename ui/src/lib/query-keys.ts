@@ -5,7 +5,8 @@ export const QUERY_KEYS = {
     all:    ['products'] as const,
     list:   (p: Partial<ProductSearchRequest>) => ['products', 'list', p] as const,
     detail: (slug: string) => ['products', 'detail', slug] as const,
-    featured: ['products', 'featured'] as const,
+    featured:    ['products', 'featured'] as const,
+    flashDeals:  ['products', 'flash-deals'] as const,
   },
   categories: {
     all:  ['categories'] as const,

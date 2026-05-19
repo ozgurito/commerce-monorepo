@@ -9,6 +9,8 @@ export interface ProductDto {
   sku: string
   active: boolean
   featured: boolean
+  flashDeal?: boolean
+  flashDealEndsAt?: string | null
   categoryId: number
   categoryName: string
   imageUrl: string
@@ -62,6 +64,8 @@ export interface ProductDetailDto {
   sku: string
   isActive: boolean      // NOT "active"
   isFeatured: boolean    // NOT "featured"
+  isFlashDeal: boolean
+  flashDealEndsAt: string | null
   allowReviews: boolean
   categoryId: number
   categoryName: string

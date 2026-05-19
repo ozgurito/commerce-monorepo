@@ -93,11 +93,11 @@ export function SearchBar() {
                          ${open
                            ? 'shadow-[0_4px_24px_rgba(0,0,0,.35)]'
                            : 'shadow-[0_2px_12px_rgba(0,0,0,.2)]'}`}>
-          {/* Category selector */}
+          {/* Category selector — mobilde gizle */}
           <button
             type="button"
-            className="h-[46px] px-[14px] bg-white/10 text-white/80 text-[12px] font-semibold
-                       border-r border-white/15 cursor-default whitespace-nowrap flex items-center
+            className="hidden md:flex h-[46px] px-[14px] bg-white/10 text-white/80 text-[12px] font-semibold
+                       border-r border-white/15 cursor-default whitespace-nowrap items-center
                        gap-[5px] flex-shrink-0 hover:bg-white/15 transition-colors"
           >
             Tüm Kategoriler

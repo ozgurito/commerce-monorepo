@@ -12,6 +12,8 @@ public record ProductUpdateRequest(
         Long categoryId,
         Boolean isActive,
         Boolean isFeatured,
+        Boolean isFlashDeal,
+        java.time.Instant flashDealEndsAt,
         String fitType,
         String fabricComposition,
         String careInstructions,

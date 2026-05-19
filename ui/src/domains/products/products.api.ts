@@ -22,6 +22,11 @@ export const productsApi = {
     return data
   },
 
+  getFlashDeals: async (): Promise<ProductDto[]> => {
+    const { data } = await apiClient.get('/api/products/flash-deals')
+    return data
+  },
+
   quickSearch: async (q: string): Promise<ProductDto[]> => {
     const { data } = await apiClient.get('/api/products/search/quick', { params: { q } })
     return data

@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,6 +27,7 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     List<Product> findByIsActiveTrueOrderByCreatedAtDesc();
     Page<Product> findByIsActiveTrue(Pageable pageable);
     List<Product> findByIsFeaturedTrueAndIsActiveTrue();
+    List<Product> findByIsFlashDealTrueAndIsActiveTrueAndFlashDealEndsAtAfter(Instant now);
     Page<Product> findByCategoryIdAndIsActiveTrue(Long categoryId, Pageable pageable);
 
     boolean existsBySku(String sku);

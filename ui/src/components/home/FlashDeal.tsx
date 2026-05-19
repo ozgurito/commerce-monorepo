@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -8,12 +8,6 @@ import { productsApi } from '@/domains/products/products.api'
 import { QUERY_KEYS } from '@/lib/query-keys'
 import { formatPrice } from '@/utils/format'
 import type { ProductDto } from '@/domains/products/products.types'
-
-function getEndOfDay(): Date {
-  const d = new Date()
-  d.setHours(23, 59, 59, 0)
-  return d
-}
 
 function useCountdown(target: Date) {
   const [diff, setDiff] = useState(() => Math.max(0, target.getTime() - Date.now()))
@@ -93,16 +87,26 @@ function ProductCard({ product }: { product: ProductDto }) {
 }
 
 export function FlashDeal() {
-  const endOfDay = useState(getEndOfDay)[0]
-  const { h, m, s } = useCountdown(endOfDay)
-
-  const { data: featured = [] } = useQuery({
-    queryKey: QUERY_KEYS.products.featured,
-    queryFn: productsApi.getFeatured,
-    staleTime: 5 * 60 * 1000,
+  const { data: flashDeals = [] } = useQuery({
+    queryKey: QUERY_KEYS.products.flashDeals,
+    queryFn: productsApi.getFlashDeals,
+    staleTime: 60 * 1000, // 1 dk — bitiş saatine duyarlı, sık yenile
   })
 
-  if (featured.length === 0) return null
+  // En yakın biten ürünün bitiş saatini countdown için kullan
+  const countdownTarget = useMemo(() => {
+    if (flashDeals.length === 0) return new Date()
+    const sorted = [...flashDeals]
+      .filter(p => p.flashDealEndsAt)
+      .sort((a, b) =>
+        new Date(a.flashDealEndsAt!).getTime() - new Date(b.flashDealEndsAt!).getTime()
+      )
+    return sorted.length > 0 ? new Date(sorted[0].flashDealEndsAt!) : new Date()
+  }, [flashDeals])
+
+  const { h, m, s } = useCountdown(countdownTarget)
+
+  if (flashDeals.length === 0) return null
 
   return (
     <section className="py-10">
@@ -132,7 +136,7 @@ export function FlashDeal() {
 
         {/* Product row */}
         <div className="flex gap-4 overflow-x-auto scrollbar-none pb-2">
-          {featured.map((product) => (
+          {flashDeals.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
         </div>

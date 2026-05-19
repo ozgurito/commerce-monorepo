@@ -56,7 +56,9 @@ export interface CreateProductRequest {
   stock: number
   sku: string
   categoryId: number
-  featured?: boolean
+  isFeatured?: boolean
+  isFlashDeal?: boolean
+  flashDealEndsAt?: string | null
   isActive?: boolean
   material?: string
   fabricComposition?: string

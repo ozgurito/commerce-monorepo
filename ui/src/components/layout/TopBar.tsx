@@ -34,8 +34,8 @@ export function TopBar() {
         })}
       </div>
 
-      {/* Right links — Trendyol gibi sağ kenara yapışık */}
-      <div className="absolute right-0 top-0 bottom-0 flex items-center gap-3
+      {/* Right links — mobilde gizle (MobileBottomNav yeterli) */}
+      <div className="absolute right-0 top-0 bottom-0 hidden sm:flex items-center gap-3
                       px-4 sm:px-6 lg:px-10 xl:px-14 bg-navy-dark
                       before:content-[''] before:absolute before:left-0 before:top-0
                       before:bottom-0 before:w-10 before:bg-gradient-to-r

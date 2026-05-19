@@ -31,6 +31,11 @@ public class AssetController {
     @Value("${storage.s3.endpoint}")
     private String endpoint;
 
+    /** Cloudflare R2 public CDN URL. Set: S3_PUBLIC_URL env var.
+     *  If empty, falls back to endpoint/bucket/key (MinIO/local). */
+    @Value("${storage.s3.public-url:}")
+    private String publicUrl;
+
     public AssetController(S3Presigner presigner, StorageService storageService) {
         this.presigner = presigner;
         this.storageService = storageService;
@@ -44,7 +49,10 @@ public class AssetController {
     @PostMapping(path = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public UploadImageRes upload(@RequestPart("file") MultipartFile file) throws Exception {
         String key = storageService.put(file.getContentType(), file.getInputStream(), file.getSize());
-        String imageUrl = endpoint + "/" + bucket + "/" + key;
+        String base = (publicUrl != null && !publicUrl.isBlank())
+                ? publicUrl.stripTrailing()   // R2: https://pub-xxx.r2.dev/uploads/uuid
+                : endpoint + "/" + bucket;    // MinIO: http://localhost:9000/commerce-assets
+        String imageUrl = base + "/" + key;
         return new UploadImageRes(imageUrl, key);
     }
 

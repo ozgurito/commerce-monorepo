@@ -78,6 +78,12 @@ public class ProductController {
         return service.getFeaturedProducts();
     }
 
+    @GetMapping("/flash-deals")
+    @RateLimit(key = "product:flashdeals", limit = 60, windowSeconds = 60)
+    public List<ProductDto> getFlashDealProducts() {
+        return service.getFlashDealProducts();
+    }
+
     @GetMapping("/low-stock")
     @PreAuthorize("hasRole('ADMIN')")
     @RateLimit(key = "product:lowstock", limit = 10, windowSeconds = 60)
