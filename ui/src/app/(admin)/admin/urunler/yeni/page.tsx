@@ -55,7 +55,7 @@ export default function YeniUrunPage() {
         stock:             Number(values.stock),
         sku:               values.sku,
         categoryId:        Number(values.categoryId),
-        featured:          values.featured,
+        isFeatured:        values.featured,
         isActive:          values.isActive,
         material:          values.material || undefined,
         fabricComposition: values.fabricComposition || undefined,
