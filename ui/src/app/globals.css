@@ -43,6 +43,13 @@
   display: none;
 }
 
+@utility scrollbar-visible {
+  scrollbar-width: thin;
+  &::-webkit-scrollbar       { display: block; height: 4px; }
+  &::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 4px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -52,4 +59,10 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+}
+
+/* Mouse imlecinin input üzerinde kaybolmasını önle */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+textarea {
+  cursor: text;
 }

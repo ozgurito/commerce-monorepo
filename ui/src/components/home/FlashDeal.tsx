@@ -135,7 +135,7 @@ export function FlashDeal() {
         </div>
 
         {/* Product row */}
-        <div className="flex gap-4 overflow-x-auto scrollbar-none pb-2">
+        <div className="flex gap-4 overflow-x-auto scrollbar-none lg:scrollbar-visible pb-2 lg:max-w-[960px]">
           {flashDeals.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
