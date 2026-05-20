@@ -1,9 +1,9 @@
 'use client'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Zap } from 'lucide-react'
+import { Zap, ChevronLeft, ChevronRight } from 'lucide-react'
 import { productsApi } from '@/domains/products/products.api'
 import { QUERY_KEYS } from '@/lib/query-keys'
 import { formatPrice } from '@/utils/format'
@@ -86,14 +86,43 @@ function ProductCard({ product }: { product: ProductDto }) {
   )
 }
 
+const SCROLL_AMOUNT = 196 * 3 // 3 kart (180px + 16px gap)
+
 export function FlashDeal() {
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const [canScrollLeft, setCanScrollLeft]   = useState(false)
+  const [canScrollRight, setCanScrollRight] = useState(false)
+
   const { data: flashDeals = [] } = useQuery({
     queryKey: QUERY_KEYS.products.flashDeals,
     queryFn: productsApi.getFlashDeals,
-    staleTime: 60 * 1000, // 1 dk — bitiş saatine duyarlı, sık yenile
+    staleTime: 60 * 1000,
   })
 
-  // En yakın biten ürünün bitiş saatini countdown için kullan
+  // Scroll pozisyonunu takip et → ok butonlarını göster/gizle
+  const updateArrows = () => {
+    const el = scrollRef.current
+    if (!el) return
+    setCanScrollLeft(el.scrollLeft > 4)
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4)
+  }
+
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    updateArrows()
+    el.addEventListener('scroll', updateArrows, { passive: true })
+    window.addEventListener('resize', updateArrows)
+    return () => {
+      el.removeEventListener('scroll', updateArrows)
+      window.removeEventListener('resize', updateArrows)
+    }
+  }, [flashDeals])
+
+  const scroll = (dir: 'left' | 'right') => {
+    scrollRef.current?.scrollBy({ left: dir === 'left' ? -SCROLL_AMOUNT : SCROLL_AMOUNT, behavior: 'smooth' })
+  }
+
   const countdownTarget = useMemo(() => {
     if (flashDeals.length === 0) return new Date()
     const sorted = [...flashDeals]
@@ -126,16 +155,46 @@ export function FlashDeal() {
               <Digit value={s} label="SN" />
             </div>
           </div>
-          <Link
-            href="/urunler?indirim=true"
-            className="text-sm font-semibold text-orange hover:underline hidden sm:block"
-          >
-            Tümünü Gör →
-          </Link>
+
+          {/* Sağ taraf: ok butonları + tümünü gör */}
+          <div className="flex items-center gap-2">
+            {/* Ok butonları — yalnızca desktop + scroll varsa */}
+            <div className="hidden lg:flex items-center gap-1">
+              <button
+                onClick={() => scroll('left')}
+                disabled={!canScrollLeft}
+                aria-label="Önceki"
+                className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center
+                           text-gray-500 hover:bg-gray-50 hover:border-gray-300 transition-all
+                           disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <button
+                onClick={() => scroll('right')}
+                disabled={!canScrollRight}
+                aria-label="Sonraki"
+                className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center
+                           text-gray-500 hover:bg-gray-50 hover:border-gray-300 transition-all
+                           disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+            <Link
+              href="/urunler?indirim=true"
+              className="text-sm font-semibold text-orange hover:underline hidden sm:block"
+            >
+              Tümünü Gör →
+            </Link>
+          </div>
         </div>
 
         {/* Product row */}
-        <div className="flex gap-4 overflow-x-auto scrollbar-none lg:scrollbar-visible pb-2 lg:max-w-[960px]">
+        <div
+          ref={scrollRef}
+          className="flex gap-4 overflow-x-auto scrollbar-none pb-2 lg:max-w-[960px]"
+        >
           {flashDeals.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
