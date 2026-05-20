@@ -31,7 +31,7 @@ public class BankTransferPaymentService {
     @Value("${app.bank.account-holder:Your Store Ltd.}")
     private String accountHolder;
 
-    @Value("${app.bank.name:Türkiye İş Bankası}")
+    @Value("${app.bank.name:}")
     private String bankName;
 
     @Value("${app.bank.transfer-deadline-hours:48}")
