@@ -43,16 +43,22 @@ public class CartService {
         Product product = productRepository.findById(request.getProductId())
                 .orElseThrow(() -> new BaseException(ErrorCode.PRODUCT_NOT_FOUND));
 
-        // Variant kontrolü (opsiyonel - null, 0 veya negatif değerler variant olarak kabul edilmez)
+        // Variant kontrolü
         ProductVariant variant = null;
         if (request.getVariantId() != null && request.getVariantId() > 0) {
             variant = productVariantRepository.findById(request.getVariantId())
                     .orElseThrow(() -> new BaseException(ErrorCode.VARIANT_NOT_FOUND));
-            
+
             // Variant bu ürüne ait mi?
             if (!variant.getProduct().getId().equals(product.getId())) {
                 throw new BaseException(ErrorCode.VARIANT_NOT_FOUND);
             }
+        }
+
+        // Ürünün aktif varyantları varsa varyant seçimi zorunlu
+        boolean productHasVariants = productVariantRepository.existsByProductIdAndIsActiveTrue(product.getId());
+        if (productHasVariants && variant == null) {
+            throw new BaseException(ErrorCode.VARIANT_REQUIRED);
         }
 
         // Stok kontrolü:
@@ -186,7 +192,8 @@ public class CartService {
         dto.setUserId(cart.getUser().getId());
         dto.setStatus(cart.getStatus());
         dto.setTotalAmount(cart.getTotalAmount());
-        dto.setItemCount(cart.getItems().size());
+        // itemCount = toplam miktar (distinct item sayısı değil)
+        dto.setItemCount(cart.getItems().stream().mapToInt(com.commerce.monorepo.entity.CartItem::getQuantity).sum());
 
         dto.setItems(cart.getItems().stream()
                 .map(item -> {

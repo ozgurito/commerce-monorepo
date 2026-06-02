@@ -62,7 +62,7 @@ export function CartItem({ item }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedQty])
 
-  const maxQty = Math.min(item.availableStock, 10)
+  const maxQty = item.availableStock
   const colorClass = nameToColor(item.productName)
 
   return (

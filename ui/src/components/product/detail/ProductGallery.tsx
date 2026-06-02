@@ -24,9 +24,19 @@ export function ProductGallery({ images, productName, fallbackUrl }: Props) {
       : []
 
   const [activeIdx, setActiveIdx] = useState(0)
+  const [fading, setFading] = useState(false)
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null)
   const [hovered, setHovered] = useState(false)
   const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 })
+
+  const switchImage = (i: number) => {
+    if (i === activeIdx) return
+    setFading(true)
+    setTimeout(() => {
+      setActiveIdx(i)
+      setFading(false)
+    }, 160)
+  }
 
   const active = allImages[activeIdx]
 
@@ -75,8 +85,11 @@ export function ProductGallery({ images, productName, fallbackUrl }: Props) {
           style={{
             transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`,
             transform: hovered ? 'scale(2.2)' : 'scale(1)',
-            transition: hovered ? 'transform 0.08s ease-out' : 'transform 0.25s ease',
-            willChange: 'transform',
+            opacity: fading ? 0 : 1,
+            transition: fading
+              ? 'opacity 0.16s ease'
+              : 'opacity 0.16s ease, transform 0.08s ease-out',
+            willChange: 'transform, opacity',
           }}
         >
           <Image
@@ -85,7 +98,7 @@ export function ProductGallery({ images, productName, fallbackUrl }: Props) {
             fill
             priority
             sizes="(max-width:768px) 100vw, 50vw"
-            className="object-cover"
+            className="object-contain"
             draggable={false}
           />
         </div>
@@ -104,7 +117,7 @@ export function ProductGallery({ images, productName, fallbackUrl }: Props) {
           {allImages.map((img, i) => (
             <button
               key={img.id}
-              onClick={() => setActiveIdx(i)}
+              onClick={() => switchImage(i)}
               className={`flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition-all
                           ${i === activeIdx ? 'border-orange' : 'border-gray-200 hover:border-gray-300'}`}
             >

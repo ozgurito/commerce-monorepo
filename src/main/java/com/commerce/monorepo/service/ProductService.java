@@ -193,6 +193,10 @@ public class ProductService {
         }
         if (r.description() != null) p.setDescription(r.description());
         if (r.price() != null) p.setPrice(r.price());
+        // comparePrice: null gelirse değiştirme; 0 gelirse sıfırla (indirimi kaldır); >0 ise set et
+        if (r.comparePrice() != null) {
+            p.setComparePrice(r.comparePrice().compareTo(java.math.BigDecimal.ZERO) == 0 ? null : r.comparePrice());
+        }
         if (r.stock() != null) p.setStock(r.stock());
 
         if (r.sku() != null) {

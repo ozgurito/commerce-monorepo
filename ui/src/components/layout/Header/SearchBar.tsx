@@ -96,8 +96,9 @@ export function SearchBar() {
           {/* Category selector — mobilde gizle */}
           <button
             type="button"
+            onClick={() => router.push('/urunler')}
             className="hidden md:flex h-[46px] px-[14px] bg-white/10 text-white/80 text-[12px] font-semibold
-                       border-r border-white/15 cursor-default whitespace-nowrap items-center
+                       border-r border-white/15 cursor-pointer whitespace-nowrap items-center
                        gap-[5px] flex-shrink-0 hover:bg-white/15 transition-colors"
           >
             Tüm Kategoriler

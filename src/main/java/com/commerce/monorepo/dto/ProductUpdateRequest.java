@@ -7,6 +7,7 @@ public record ProductUpdateRequest(
         String name,
         String description,
         @DecimalMin(value = "0.00") BigDecimal price,
+        @DecimalMin(value = "0.00") BigDecimal comparePrice,
         @Min(0) Integer stock,
         String sku,
         Long categoryId,

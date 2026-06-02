@@ -11,6 +11,7 @@ import java.util.Optional;
 
 public interface ProductVariantRepository extends JpaRepository<ProductVariant, Long> {
     List<ProductVariant> findByProductIdAndIsActiveTrue(Long productId);
+    boolean existsByProductIdAndIsActiveTrue(Long productId);
     boolean existsBySku(String sku);
 
     @Query("SELECT pv FROM ProductVariant pv WHERE pv.id = :id AND pv.stock >= :quantity")

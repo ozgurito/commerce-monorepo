@@ -3,13 +3,13 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { AnimatePresence, motion } from 'framer-motion'
-import { X, ShoppingBag, Trash2, Clock } from 'lucide-react'
+import { X, ShoppingBag, Trash2, Clock, Truck } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { cartApi } from '@/domains/cart/cart.api'
 import { useCartStore } from '@/store/cart.store'
 import { useAuthStore } from '@/store/auth.store'
 import { useRecentlyViewed, type RecentItem } from '@/hooks/useRecentlyViewed'
-import { formatPrice } from '@/utils/format'
+import { formatPrice, FREE_SHIPPING_ITEM_COUNT, SHIPPING_COST } from '@/utils/format'
 import { QUERY_KEYS } from '@/lib/query-keys'
 import { CartItem } from './CartItem'
 import { CouponInput } from './CouponInput'
@@ -60,11 +60,14 @@ export function CartDrawer() {
 
   const items = cart?.items ?? []
   const isEmpty = items.length === 0
+  const totalQty = cart?.itemCount ?? 0   // backend: toplam miktar (2 adet = 2 sayılır)
   const subtotal = cart?.totalAmount ?? 0
   const discount = discountAmount ?? 0
   const discountedSubtotal = Math.max(0, subtotal - discount)
-  const shipping = discountedSubtotal >= 150 ? 0 : 29.90
+  const hasFreeShipping = totalQty >= FREE_SHIPPING_ITEM_COUNT
+  const shipping = hasFreeShipping ? 0 : SHIPPING_COST
   const grandTotal = discountedSubtotal + shipping
+  const itemsUntilFreeShipping = Math.max(0, FREE_SHIPPING_ITEM_COUNT - totalQty)
 
   return (
     <AnimatePresence>
@@ -97,9 +100,9 @@ export function CartDrawer() {
                 <ShoppingBag size={18} className="text-navy-dark" />
                 <h2 className="font-extrabold text-navy-dark">
                   Sepetim
-                  {items.length > 0 && (
+                  {totalQty > 0 && (
                     <span className="ml-2 text-sm font-normal text-gray-400">
-                      ({items.length} ürün)
+                      ({totalQty} ürün)
                     </span>
                   )}
                 </h2>
@@ -216,6 +219,37 @@ export function CartDrawer() {
                     onApplied={applyCoupon}
                     onRemoved={clearCoupon}
                   />
+
+                  {/* Ücretsiz kargo progress */}
+                  {!isEmpty && (
+                    <div className="rounded-xl border border-gray-100 p-3 bg-gray-50">
+                      {hasFreeShipping ? (
+                        <div className="flex items-center gap-2 text-green-600">
+                          <Truck size={14} className="flex-shrink-0" />
+                          <span className="text-xs font-bold">Ücretsiz kargo kazandınız! 🎉</span>
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="flex items-center gap-2 text-gray-600 mb-1.5">
+                            <Truck size={14} className="text-orange flex-shrink-0" />
+                            <span className="text-xs">
+                              <strong className="text-orange">{itemsUntilFreeShipping} ürün</strong>
+                              {' '}daha ekle, kargo bedava!
+                            </span>
+                          </div>
+                          <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-gradient-to-r from-orange to-orange-dark rounded-full transition-all duration-500"
+                              style={{ width: `${Math.min(100, (totalQty / FREE_SHIPPING_ITEM_COUNT) * 100)}%` }}
+                            />
+                          </div>
+                          <p className="text-[10px] text-gray-400 mt-1 text-right">
+                            {totalQty}/{FREE_SHIPPING_ITEM_COUNT} ürün
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between text-sm text-gray-500">

@@ -2,8 +2,9 @@ export const formatPrice = (n: number) =>
   new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(n)
 
 // Kargo politikası — tek kaynak, tüm sayfalar buradan okur
-export const FREE_SHIPPING_THRESHOLD = 150   // ₺ üzeri ücretsiz
-export const SHIPPING_COST           = 29.90 // sabit kargo bedeli
+export const FREE_SHIPPING_THRESHOLD = 150        // eski fiyat bazlı (geriye dönük uyumluluk için bırakıldı)
+export const FREE_SHIPPING_ITEM_COUNT = 4         // 4 ürün ve üzeri → ücretsiz kargo
+export const SHIPPING_COST           = 29.90      // sabit kargo bedeli
 
 export const formatDate = (iso: string) =>
   new Intl.DateTimeFormat('tr-TR', { dateStyle: 'long' }).format(new Date(iso))

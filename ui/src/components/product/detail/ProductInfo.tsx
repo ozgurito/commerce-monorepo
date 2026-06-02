@@ -1,7 +1,7 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Heart, ShoppingBag, Star, Minus, Plus, Truck, RotateCcw, Shield, Share2, Check, ShoppingCart, Zap, Clock, MapPin } from 'lucide-react'
+import { Heart, ShoppingBag, Star, Minus, Plus, Truck, RotateCcw, Shield, Share2, Check, ShoppingCart, Zap, Clock, MapPin, Users, TrendingUp } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useRouter } from 'next/navigation'
 import { cartApi } from '@/domains/cart/cart.api'
@@ -10,7 +10,7 @@ import { useAuthStore } from '@/store/auth.store'
 import { useUIStore } from '@/store/ui.store'
 import { useCartStore } from '@/store/cart.store'
 import { QUERY_KEYS } from '@/lib/query-keys'
-import { formatPrice, FREE_SHIPPING_THRESHOLD } from '@/utils/format'
+import { formatPrice, FREE_SHIPPING_ITEM_COUNT, SHIPPING_COST } from '@/utils/format'
 import { VariantSelector, groupVariants } from './VariantSelector'
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed'
 import type { ProductDetailDto, ProductVariantDto } from '@/domains/products/products.types'
@@ -64,11 +64,46 @@ export function ProductInfo({ product }: Props) {
   const [quantity, setQuantity] = useState(1)
   const [wishlisted, setWishlisted] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [viewersNow, setViewersNow]   = useState(0)
+  const [soldLastHour, setSoldLastHour] = useState(0)
+  const [inCartCount, setInCartCount]   = useState(0)
   const variantRef = useRef<HTMLDivElement>(null)
+
+  // Seed helper — deterministik ama zaman + ID kombinasyonu ile değişebilir
+  const seedNum = (seed: number, min: number, max: number) => {
+    const x = Math.sin(seed * 9301 + 49297) * 233280
+    return min + Math.floor((x - Math.floor(x)) * (max - min))
+  }
+
+  // Saatlik değişen sayılar (her tam saatte güncellenir)
+  useEffect(() => {
+    const calc = () => {
+      const hourSlot = Math.floor(Date.now() / (1000 * 60 * 60))       // saatte 1 değişir
+      const biHourSlot = Math.floor(Date.now() / (1000 * 60 * 60 * 2)) // 2 saatte 1 değişir
+      setSoldLastHour(seedNum(product.id * 13 + hourSlot,    3, 12))
+      setInCartCount(seedNum(product.id * 7  + biHourSlot,   8, 28))
+    }
+    calc()
+    // Her dakika kontrol et — saat değişince otomatik güncellenir
+    const id = setInterval(calc, 60_000)
+    return () => clearInterval(id)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product.id])
+
+  // "Şu an inceliyor" — 30 saniyede bir hafif değişim (2–9 aralığı)
+  useEffect(() => {
+    const base = seedNum(product.id * 3, 2, 9)
+    setViewersNow(base)
+    const id = setInterval(() => {
+      setViewersNow(Math.max(1, base + Math.floor(Math.random() * 3) - 1))
+    }, 30_000)
+    return () => clearInterval(id)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product.id])
 
   const { token } = useAuthStore()
   const { openAuthModal } = useUIStore()
-  const { openDrawer } = useCartStore()
+  const { openDrawer, itemCount: cartItemCount } = useCartStore()
   const queryClient = useQueryClient()
   const { push: pushRecent } = useRecentlyViewed()
   const router = useRouter()
@@ -123,10 +158,11 @@ export function ProductInfo({ product }: Props) {
   // (Beden varyantları admin panelinden stock:0 oluşturulsa da ürünün kendisi stokluysa göster)
   const effectiveStock = product.stock
   const isOutOfStock = effectiveStock === 0
-  const maxQty = Math.min(effectiveStock, 10)
+  const maxQty = effectiveStock
   const displayPrice = product.price + (activeVariant?.priceModifier ?? 0)
-  const needsForFreeShipping = Math.max(0, FREE_SHIPPING_THRESHOLD - displayPrice * quantity)
-  const hasFreeShipping = displayPrice * quantity >= FREE_SHIPPING_THRESHOLD
+  const totalCartItems = cartItemCount + quantity   // sepetteki + şu an seçili adet
+  const hasFreeShipping = totalCartItems >= FREE_SHIPPING_ITEM_COUNT
+  const itemsUntilFree = Math.max(0, FREE_SHIPPING_ITEM_COUNT - totalCartItems)
 
   const cartMutation = useMutation({
     mutationFn: () => cartApi.addItem({ productId: product.id, variantId: activeVariant?.id, quantity }),
@@ -232,10 +268,11 @@ export function ProductInfo({ product }: Props) {
           </p>
           <button
             onClick={handleShare}
-            className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600
-                       transition-colors"
+            className="flex items-center gap-1.5 text-sm font-semibold text-gray-500
+                       hover:text-orange transition-colors px-2.5 py-1.5 rounded-xl
+                       border border-gray-200 hover:border-orange/40 bg-white"
           >
-            {copied ? <Check size={13} className="text-green-500" /> : <Share2 size={13} />}
+            {copied ? <Check size={16} className="text-green-500" /> : <Share2 size={16} />}
             {copied ? 'Kopyalandı' : 'Paylaş'}
           </button>
         </div>
@@ -280,14 +317,39 @@ export function ProductInfo({ product }: Props) {
       )}
 
       {/* Sosyal kanıt */}
-      {product.totalReviews > 0 && !isOutOfStock && (
-        <div className="flex items-center gap-2 text-sm text-gray-600 bg-amber-50 border border-amber-100
-                        rounded-xl px-3 py-2">
-          <ShoppingCart size={14} className="text-amber-500 flex-shrink-0" />
-          <span>
-            <strong className="text-gray-800">{Math.max(10, product.totalReviews * 3).toLocaleString('tr-TR')} kişinin</strong>{' '}
-            sepetinde, tükenmeden al!
-          </span>
+      {!isOutOfStock && (
+        <div className="space-y-2">
+          {/* Şu an inceliyor */}
+          <div className="flex items-center gap-2 text-sm text-gray-600 bg-blue-50 border border-blue-100
+                          rounded-xl px-3 py-2">
+            <Users size={14} className="text-blue-500 flex-shrink-0" />
+            <span>
+              Şu an{' '}
+              <strong className="text-blue-700">{Math.max(1, viewersNow)} kişi</strong>
+              {' '}bu ürünü inceliyor
+            </span>
+          </div>
+
+          {/* Son saatte satış */}
+          <div className="flex items-center gap-2 text-sm text-gray-600 bg-orange-50 border border-orange-100
+                          rounded-xl px-3 py-2">
+            <TrendingUp size={14} className="text-orange flex-shrink-0" />
+            <span>
+              Son 1 saatte{' '}
+              <strong className="text-orange">{soldLastHour} adet</strong>
+              {' '}satıldı
+            </span>
+          </div>
+
+          {/* Sepetinde */}
+          <div className="flex items-center gap-2 text-sm text-gray-600 bg-amber-50 border border-amber-100
+                          rounded-xl px-3 py-2">
+            <ShoppingCart size={14} className="text-amber-500 flex-shrink-0" />
+            <span>
+              <strong className="text-gray-800">{inCartCount} kişinin</strong>
+              {' '}sepetinde, tükenmeden al!
+            </span>
+          </div>
         </div>
       )}
 
@@ -377,15 +439,17 @@ export function ProductInfo({ product }: Props) {
               <Plus size={14} />
             </button>
           </div>
-          <span className="text-xs text-gray-400">Max {maxQty} adet</span>
+          {effectiveStock <= 20 && (
+            <span className="text-xs text-gray-400">Stok: {effectiveStock}</span>
+          )}
         </div>
       )}
 
       {/* Kampanya kutusu */}
-      {(hasDiscount || displayPrice >= FREE_SHIPPING_THRESHOLD || product.stock > 100) && (
+      {(hasDiscount || hasFreeShipping || product.stock > 100) && (
         <div className="border border-orange/20 rounded-xl p-3 bg-orange/[0.03] space-y-1.5">
           <p className="text-[11px] font-extrabold text-orange uppercase tracking-wide">Ürün Kampanyaları</p>
-          {displayPrice >= FREE_SHIPPING_THRESHOLD && (
+          {hasFreeShipping && (
             <div className="flex items-center gap-2 text-sm text-emerald-700 font-semibold">
               <Truck size={13} className="text-emerald-500 flex-shrink-0" />
               Sepette Kargo Bedava uygulanır
@@ -403,48 +467,46 @@ export function ProductInfo({ product }: Props) {
         </div>
       )}
 
-      {/* CTA Buttons */}
-      <div className="space-y-2.5">
+      {/* CTA Buttons — Trendyol tarzı tek satır: [Hemen Al] [Sepete Ekle] [❤] */}
+      <div className="flex gap-2.5 items-stretch">
         {/* Hemen Al */}
-        {!isOutOfStock && (
-          <button
-            onClick={handleBuyNow}
-            disabled={buyNowMutation.isPending}
-            className="w-full flex items-center justify-center gap-2 border-2 border-orange
-                       text-orange hover:bg-orange hover:text-white active:scale-[0.98]
-                       font-extrabold py-4 rounded-2xl transition-all
-                       disabled:opacity-60 disabled:cursor-not-allowed text-[15px]"
-          >
-            <Zap size={18} />
-            {buyNowMutation.isPending ? 'Yönlendiriliyor…' : 'Hemen Al'}
-          </button>
-        )}
+        <button
+          onClick={handleBuyNow}
+          disabled={isOutOfStock || buyNowMutation.isPending}
+          className="flex-1 flex items-center justify-center gap-1.5 border-2 border-orange
+                     text-orange hover:bg-orange hover:text-white active:scale-[0.98]
+                     font-extrabold py-4 rounded-2xl transition-all text-[14px]
+                     disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <Zap size={16} />
+          {buyNowMutation.isPending ? 'Yönlendiriliyor…' : 'Hemen Al'}
+        </button>
 
-        {/* Sepete Ekle + Favori */}
-        <div className="flex gap-3">
-          <button
-            onClick={handleAddToCart}
-            disabled={isOutOfStock || cartMutation.isPending}
-            className="flex-1 flex items-center justify-center gap-2 bg-orange hover:bg-orange-dark
-                       active:scale-[0.98] text-white font-extrabold py-4 rounded-2xl transition-all
-                       disabled:opacity-60 disabled:cursor-not-allowed shadow-lg shadow-orange/20
-                       text-[15px]"
-          >
-            <ShoppingBag size={18} />
-            {isOutOfStock ? 'Stokta Yok' : cartMutation.isPending ? 'Ekleniyor…' : 'Sepete Ekle'}
-          </button>
-          <button
-            onClick={() => { if (!token) { openAuthModal('login'); return }; wishlistMutation.mutate() }}
-            aria-label="Favorilere ekle"
-            className={`w-14 rounded-2xl border-2 flex items-center justify-center transition-all
-                        active:scale-95
-                        ${wishlisted
-                          ? 'border-red-300 bg-red-50 text-red-500 shadow-sm'
-                          : 'border-gray-200 text-gray-400 hover:border-red-300 hover:text-red-400'}`}
-          >
+        {/* Sepete Ekle */}
+        <button
+          onClick={handleAddToCart}
+          disabled={isOutOfStock || cartMutation.isPending}
+          className="flex-[1.4] flex items-center justify-center gap-1.5 bg-orange hover:bg-orange-dark
+                     active:scale-[0.98] text-white font-extrabold py-4 rounded-2xl transition-all
+                     disabled:opacity-60 disabled:cursor-not-allowed shadow-lg shadow-orange/25
+                     text-[14px]"
+        >
+          <ShoppingBag size={16} />
+          {isOutOfStock ? 'Stokta Yok' : cartMutation.isPending ? 'Ekleniyor…' : 'Sepete Ekle'}
+        </button>
+
+        {/* Favori — yuvarlak */}
+        <button
+          onClick={() => { if (!token) { openAuthModal('login'); return }; wishlistMutation.mutate() }}
+          aria-label="Favorilere ekle"
+          className={`w-14 rounded-2xl border-2 flex items-center justify-center transition-all
+                      active:scale-95 flex-shrink-0
+                      ${wishlisted
+                        ? 'border-red-300 bg-red-50 text-red-500 shadow-sm'
+                        : 'border-gray-200 text-gray-400 hover:border-red-300 hover:text-red-400'}`}
+        >
             <Heart size={19} className={wishlisted ? 'fill-red-500' : ''} />
           </button>
-        </div>
       </div>
 
       {/* Free shipping progress */}
@@ -452,16 +514,16 @@ export function ProductInfo({ product }: Props) {
         <div className="rounded-2xl border border-gray-100 p-4 bg-gradient-to-r from-gray-50 to-white">
           {hasFreeShipping ? (
             <div className="flex items-center gap-2 text-green-600">
-              <Truck size={16} className="fill-green-100 flex-shrink-0" />
-              <span className="text-sm font-bold">Bu siparişe ücretsiz kargo kazandınız! 🎉</span>
+              <Truck size={16} className="flex-shrink-0" />
+              <span className="text-sm font-bold">Sepetinde ücretsiz kargo var! 🎉</span>
             </div>
           ) : (
             <div>
               <div className="flex items-center gap-2 text-gray-600 mb-2">
                 <Truck size={15} className="text-orange flex-shrink-0" />
                 <span className="text-sm">
-                  <strong className="text-orange">{formatPrice(needsForFreeShipping)}</strong>
-                  {' '}daha ekle, ücretsiz kargo kazan!
+                  <strong className="text-orange">{itemsUntilFree} ürün</strong>
+                  {' '}daha ekle, kargo bedava!
                 </span>
               </div>
               <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
@@ -469,10 +531,13 @@ export function ProductInfo({ product }: Props) {
                   className="h-full bg-gradient-to-r from-orange to-orange-dark rounded-full
                                transition-all duration-500"
                   style={{
-                    width: `${Math.min(100, (displayPrice * quantity / FREE_SHIPPING_THRESHOLD) * 100)}%`
+                    width: `${Math.min(100, (totalCartItems / FREE_SHIPPING_ITEM_COUNT) * 100)}%`
                   }}
                 />
               </div>
+              <p className="text-[10px] text-gray-400 mt-1 text-right">
+                {totalCartItems}/{FREE_SHIPPING_ITEM_COUNT} ürün
+              </p>
             </div>
           )}
         </div>
@@ -482,7 +547,7 @@ export function ProductInfo({ product }: Props) {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
         {[
           { icon: Shield,    label: 'Güvenli Ödeme', sub: '256-bit SSL' },
-          { icon: RotateCcw, label: '30 Gün İade',    sub: 'Ücretsiz' },
+          { icon: RotateCcw, label: '14 Gün İade',    sub: 'Yasal Süre' },
           { icon: Truck,     label: 'Hızlı Kargo',    sub: '1-3 iş günü' },
         ].map(({ icon: Icon, label, sub }) => (
           <div key={label}

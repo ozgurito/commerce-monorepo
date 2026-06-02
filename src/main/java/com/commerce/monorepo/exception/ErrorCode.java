@@ -48,6 +48,7 @@ public enum ErrorCode {
     USER_EMAIL_TAKEN("4001", "Bu email zaten kullanımda", HttpStatus.CONFLICT),
     PRODUCT_OUT_OF_STOCK("4008", "Ürün stokta yok", HttpStatus.BAD_REQUEST),
     VARIANT_NOT_FOUND("4009", "Ürün varyantı bulunamadı", HttpStatus.NOT_FOUND),
+    VARIANT_REQUIRED("4010", "Bu ürün için renk/beden seçimi zorunludur", HttpStatus.BAD_REQUEST),
 
     // DOMAIN / BUSINESS ERRORS (5000)
 

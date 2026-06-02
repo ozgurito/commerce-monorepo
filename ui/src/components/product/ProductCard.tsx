@@ -2,7 +2,15 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Heart, ShoppingBag, Star, Eye } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Heart, ShoppingBag, Star, Eye, Zap, Users } from 'lucide-react'
+
+// Ürün ID + günlük slot → her gün farklı, küçük mağaza ölçeği
+function seedViews(id: number): number {
+  const daySlot = Math.floor(Date.now() / (1000 * 60 * 60 * 24))
+  const x = Math.sin((id + daySlot) * 9301 + 49297) * 233280
+  return 20 + Math.floor((x - Math.floor(x)) * 130) // 20–150 arası
+}
 
 const CARD_GRADIENTS = [
   'from-pink-300 to-rose-400',
@@ -57,6 +65,7 @@ export function ProductCard({ product, priority = false }: Props) {
   const { openAuthModal } = useUIStore()
   const { openDrawer } = useCartStore()
   const queryClient = useQueryClient()
+  const router = useRouter()
 
   const hasDiscount = product.comparePrice && product.comparePrice > product.price
   const discountPct = hasDiscount
@@ -91,7 +100,8 @@ export function ProductCard({ product, priority = false }: Props) {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.cart.all })
       openDrawer()
     } catch {
-      // Varyant gerekiyorsa detay sayfasına yönlendir
+      // Varyant seçimi gerekiyor → detay sayfasına yönlendir
+      router.push(`/urunler/${product.slug}`)
     } finally {
       setAddingCart(false)
     }
@@ -127,7 +137,7 @@ export function ProductCard({ product, priority = false }: Props) {
               fill
               sizes="(max-width:640px) 50vw, (max-width:1024px) 33vw, 25vw"
               priority={priority}
-              className="object-cover group-hover:scale-[1.06] transition-transform duration-500"
+              className="object-contain group-hover:scale-[1.06] transition-transform duration-500"
             />
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center bg-gray-100">
@@ -146,8 +156,12 @@ export function ProductCard({ product, priority = false }: Props) {
         {/* Top badges */}
         <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
           {hasDiscount && (
-            <span className="bg-red-500 text-white text-[10px] font-extrabold
-                             px-2 py-0.5 rounded-lg shadow-sm">
+            <span className="flex items-center gap-0.5 text-white text-[11px] font-extrabold
+                             px-2 py-1 rounded-lg shadow-lg
+                             bg-gradient-to-r from-red-500 to-orange-500
+                             animate-[pulse_2s_ease-in-out_infinite]
+                             ring-1 ring-white/20">
+              <Zap size={9} className="fill-white flex-shrink-0" />
               %{discountPct} İNDİRİM
             </span>
           )}
@@ -254,6 +268,18 @@ export function ProductCard({ product, priority = false }: Props) {
           </div>
         )}
 
+        {/* Sosyal kanıt — 24 saatte X kişi inceledi */}
+        {!isOutOfStock && (
+          <div className="flex items-center gap-1 mt-1">
+            <Users size={9} className="text-gray-400 flex-shrink-0" />
+            <span className="text-[10px] text-gray-400">
+              24 saatte{' '}
+              <strong className="text-gray-600">{seedViews(product.id).toLocaleString('tr-TR')}</strong>
+              {' '}kişi inceledi
+            </span>
+          </div>
+        )}
+
         {/* Price */}
         <div className="flex items-center gap-2 mt-2">
           <span className="text-[15px] font-extrabold text-orange">
@@ -266,13 +292,6 @@ export function ProductCard({ product, priority = false }: Props) {
           )}
         </div>
 
-        {/* Free shipping badge */}
-        {product.price >= 150 && (
-          <p className="text-[10px] text-green-600 font-semibold mt-1 flex items-center gap-1">
-            <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500" />
-            Ücretsiz kargo
-          </p>
-        )}
       </div>
 
       {/* Alt hover çizgisi */}

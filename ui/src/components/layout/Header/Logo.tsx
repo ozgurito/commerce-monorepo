@@ -25,7 +25,6 @@ export function Logo() {
         <span className="text-[22px] font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-orange to-[#ff5722] ml-[1px]">
           Noktan
         </span>
-        <div className="w-1.5 h-1.5 bg-orange rounded-full ml-1 mb-0.5 group-hover:scale-150 transition-transform" />
       </div>
     </Link>
   )
