@@ -61,7 +61,10 @@ public class SecurityConfig {
                                 "/", "/index.html", "/css/**", "/js/**", "/images/**", "/favicon.ico"
                         )
                         .permitAll()
-                        .requestMatchers("/api/admin/**", "/api/users", "/api/users/**").hasRole("ADMIN")
+                        // /me endpoint'leri normal kullanıcı da erişebilir
+                        .requestMatchers("/api/users/me", "/api/users/me/**").authenticated()
+                        // Diğer user yönetimi admin only
+                        .requestMatchers("/api/admin/**", "/api/users", "/api/users/{id}", "/api/users/{id}/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 );
 

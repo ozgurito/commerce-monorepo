@@ -80,6 +80,14 @@ public class UserController {
         return userService.findByEmail(email);
     }
 
+    @GetMapping("/me/welcome-coupon")
+    @PreAuthorize("isAuthenticated()")
+    @RateLimit(key = "users:welcome-coupon", limit = 10, windowSeconds = 60)
+    public java.util.Map<String, Object> getWelcomeCoupon() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        return userService.getWelcomeCouponEligibility(email);
+    }
+
     @PutMapping("/me")
     @PreAuthorize("isAuthenticated()")
     @RateLimit(key = "users:update", limit = 10, windowSeconds = 60)

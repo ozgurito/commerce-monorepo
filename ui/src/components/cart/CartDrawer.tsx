@@ -3,9 +3,10 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { AnimatePresence, motion } from 'framer-motion'
-import { X, ShoppingBag, Trash2, Clock, Truck } from 'lucide-react'
+import { X, ShoppingBag, Trash2, Clock, Truck, Gift } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { cartApi } from '@/domains/cart/cart.api'
+import { userApi } from '@/domains/user/user.api'
 import { useCartStore } from '@/store/cart.store'
 import { useAuthStore } from '@/store/auth.store'
 import { useRecentlyViewed, type RecentItem } from '@/hooks/useRecentlyViewed'
@@ -26,6 +27,24 @@ export function CartDrawer() {
     queryFn: cartApi.get,
     enabled: !!token && isDrawerOpen,
     staleTime: 30 * 1000,
+  })
+
+  // Hoş geldiniz kuponu — sepet açıkken ve kupon yoksa kontrol et
+  const { data: welcomeCoupon } = useQuery({
+    queryKey: ['welcome-coupon'],
+    queryFn: userApi.getWelcomeCoupon,
+    enabled: !!token && isDrawerOpen && !appliedCoupon,
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const applyWelcomeMutation = useMutation({
+    mutationFn: () => cartApi.applyCoupon('WELCOME10'),
+    onSuccess: (res: { couponCode: string; discountAmount: number }) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.cart.all })
+      applyCoupon(res.couponCode ?? 'WELCOME10', Number(res.discountAmount ?? 0))
+      toast.success('🎁 %10 hoş geldiniz indirimi uygulandı!')
+    },
+    onError: () => toast.error('Kupon uygulanamadı'),
   })
 
   useEffect(() => {
@@ -213,6 +232,27 @@ export function CartDrawer() {
 
                 {/* Alt panel */}
                 <div className="border-t border-gray-100 px-5 py-4 space-y-4 bg-white">
+                  {/* Hoş geldiniz kuponu banner */}
+                  {welcomeCoupon?.eligible && !appliedCoupon && (
+                    <div className="flex items-center gap-2 bg-amber-50 border border-amber-200
+                                    rounded-xl px-3 py-2.5">
+                      <Gift size={15} className="text-amber-500 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-extrabold text-amber-800">🎁 İlk siparişe %10 indirim!</p>
+                        <p className="text-[10px] text-amber-600 font-medium">{welcomeCoupon.code}</p>
+                      </div>
+                      <button
+                        onClick={() => applyWelcomeMutation.mutate()}
+                        disabled={applyWelcomeMutation.isPending}
+                        className="flex-shrink-0 bg-amber-500 hover:bg-amber-600 text-white
+                                   text-[11px] font-bold px-2.5 py-1.5 rounded-lg
+                                   transition-colors disabled:opacity-60 whitespace-nowrap"
+                      >
+                        {applyWelcomeMutation.isPending ? '…' : 'Uygula'}
+                      </button>
+                    </div>
+                  )}
+
                   <CouponInput
                     appliedCoupon={appliedCoupon}
                     discountAmount={discountAmount}

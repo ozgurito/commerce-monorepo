@@ -49,9 +49,15 @@ type Stamp = { lines: [string, string]; bg: string }
 
 function getStamp(product: ProductDto, discountPct: number, isOutOfStock: boolean): Stamp | null {
   if (isOutOfStock) return null
-  if (product.totalReviews >= 50)
+  // Rating bazlı rozetler
+  if (product.totalReviews >= 5 && product.averageRating >= 4.5)
+    return { lines: ['KULLANICILAR', 'BEĞENİYOR'], bg: 'bg-amber-500' }
+  if (product.totalReviews >= 2 && product.averageRating >= 4.0)
+    return { lines: ['SEÇKİN', 'ÜRÜN'], bg: 'bg-purple-500' }
+  if (product.totalReviews >= 5)
     return { lines: ['EN ÇOK', 'SATAN'], bg: 'bg-orange' }
-  if (discountPct >= 25)
+  // İndirimli her ürün
+  if (discountPct > 0)
     return { lines: ['AVANTAJLI', 'ÜRÜN'], bg: 'bg-emerald-500' }
   if (product.stock > 0 && product.stock <= 10)
     return { lines: ['SON', 'ÜRÜNLER'], bg: 'bg-red-500' }

@@ -4,10 +4,14 @@ import com.commerce.monorepo.dto.ChangePasswordRequest;
 import com.commerce.monorepo.dto.CreateUserRequest;
 import com.commerce.monorepo.dto.UpdateProfileRequest;
 import com.commerce.monorepo.dto.UserDto;
+import com.commerce.monorepo.entity.Coupon;
+import com.commerce.monorepo.entity.DiscountType;
 import com.commerce.monorepo.entity.User;
 import com.commerce.monorepo.entity.UserRole;
 import com.commerce.monorepo.exception.BaseException;
 import com.commerce.monorepo.exception.ErrorCode;
+import com.commerce.monorepo.repository.CouponRepository;
+import com.commerce.monorepo.repository.OrderRepository;
 import com.commerce.monorepo.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -16,8 +20,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -26,6 +32,10 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final CouponRepository couponRepository;
+    private final OrderRepository orderRepository;
+
+    static final String WELCOME_COUPON_CODE = "WELCOME10";
 
     @Transactional(readOnly = true)
     public List<UserDto> findAll() {
@@ -95,7 +105,52 @@ public class UserService {
         user.setRole(UserRole.USER);
 
         User saved = userRepository.save(user);
+
+        // Yeni üye → WELCOME10 kuponu yoksa oluştur (idempotent)
+        ensureWelcomeCouponExists();
+
         return toDto(saved);
+    }
+
+    /** WELCOME10 kuponu DB'de yoksa oluşturur — race condition'a karşı try/catch */
+    private void ensureWelcomeCouponExists() {
+        if (couponRepository.existsByCode(WELCOME_COUPON_CODE)) return;
+        try {
+            Coupon coupon = new Coupon();
+            coupon.setCode(WELCOME_COUPON_CODE);
+            coupon.setDescription("Hoş Geldiniz! İlk siparişinize özel %10 indirim");
+            coupon.setDiscountType(DiscountType.PERCENTAGE);
+            coupon.setDiscountValue(new BigDecimal("10"));
+            coupon.setFirstOrderOnly(true);
+            coupon.setUsageLimitPerUser(1);
+            coupon.setIsActive(true);
+            couponRepository.save(coupon);
+        } catch (Exception ignored) {
+            // Eşzamanlı kayıt durumunda unique constraint hatası — görmezden gel
+        }
+    }
+
+    /**
+     * Kullanıcının WELCOME10 için uygunluğunu kontrol eder.
+     * Koşul: hiç siparişi olmamalı + kupon aktif olmalı
+     */
+    @Transactional
+    public Map<String, Object> getWelcomeCouponEligibility(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BaseException(ErrorCode.USER_NOT_FOUND));
+
+        // Kupon yoksa burada da oluştur (mevcut kullanıcılar için güvence)
+        ensureWelcomeCouponExists();
+
+        long orderCount = orderRepository.countByUserId(user.getId());
+        boolean couponActive = couponRepository.findByCodeAndIsActiveTrue(WELCOME_COUPON_CODE).isPresent();
+        boolean eligible = orderCount == 0 && couponActive;
+
+        return Map.of(
+                "eligible", eligible,
+                "code", WELCOME_COUPON_CODE,
+                "discountPercent", 10
+        );
     }
 
     @Transactional(readOnly = true)

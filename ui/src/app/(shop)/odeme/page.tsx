@@ -1,11 +1,12 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useQuery } from '@tanstack/react-query'
-import { AlertTriangle } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { AlertTriangle, Gift } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { cartApi } from '@/domains/cart/cart.api'
 import { ordersApi } from '@/domains/orders/orders.api'
+import { userApi } from '@/domains/user/user.api'
 import { useAuthStore } from '@/store/auth.store'
 import { useCartStore } from '@/store/cart.store'
 import { QUERY_KEYS } from '@/lib/query-keys'
@@ -19,7 +20,8 @@ import type { Address, PaymentMethod } from '@/domains/orders/orders.types'
 export default function OdemePage() {
   const router = useRouter()
   const { token } = useAuthStore()
-  const { syncFromCart, couponCode, discountAmount, clearCoupon } = useCartStore()
+  const { syncFromCart, couponCode, discountAmount, clearCoupon, applyCoupon } = useCartStore()
+  const queryClient = useQueryClient()
 
   const [step, setStep] = useState(0)
   const [shippingAddress, setShippingAddress] = useState<Address | null>(null)
@@ -32,6 +34,25 @@ export default function OdemePage() {
     queryFn: cartApi.get,
     enabled: !!token,
     staleTime: 30 * 1000,
+  })
+
+  // İlk sipariş kupon uygunluğu — sadece giriş yapmışsa ve kupon uygulanmamışsa kontrol et
+  const { data: welcomeCoupon } = useQuery({
+    queryKey: ['welcome-coupon'],
+    queryFn: userApi.getWelcomeCoupon,
+    enabled: !!token && !couponCode,
+    staleTime: 5 * 60 * 1000,
+  })
+
+  // Kupon uygulama mutation
+  const applyWelcomeMutation = useMutation({
+    mutationFn: () => cartApi.applyCoupon('WELCOME10'),
+    onSuccess: (res: { couponCode: string; discountAmount: number }) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.cart.all })
+      applyCoupon(res.couponCode ?? 'WELCOME10', Number(res.discountAmount ?? 0))
+      toast.success('🎁 Hoş geldiniz kuponu uygulandı! %10 indirim kazandınız.')
+    },
+    onError: () => toast.error('Kupon uygulanamadı'),
   })
 
   // Stok kontrolü

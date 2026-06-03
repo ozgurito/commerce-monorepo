@@ -11,4 +11,9 @@ export const userApi = {
     const { data } = await apiClient.put('/api/users/me', req)
     return data
   },
+
+  getWelcomeCoupon: async (): Promise<{ eligible: boolean; code: string; discountPercent: number }> => {
+    const { data } = await apiClient.get('/api/users/me/welcome-coupon')
+    return data
+  },
 }

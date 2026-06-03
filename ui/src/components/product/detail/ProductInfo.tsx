@@ -299,20 +299,39 @@ export function ProductInfo({ product }: Props) {
 
       {/* Rating */}
       {product.totalReviews > 0 && (
-        <div className="flex items-center gap-3 pb-3 border-b border-gray-100">
-          <div className="flex items-center gap-0.5">
-            {[1, 2, 3, 4, 5].map((s) => (
-              <Star key={s} size={14}
-                className={s <= Math.round(product.averageRating)
-                  ? 'text-amber-400 fill-amber-400'
-                  : 'text-gray-200 fill-gray-200'} />
-            ))}
+        <div className="space-y-2 pb-3 border-b border-gray-100">
+          {/* Yıldız + puan + yorum sayısı */}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-0.5">
+              {[1, 2, 3, 4, 5].map((s) => (
+                <Star key={s} size={14}
+                  className={s <= Math.round(product.averageRating)
+                    ? 'text-amber-400 fill-amber-400'
+                    : 'text-gray-200 fill-gray-200'} />
+              ))}
+            </div>
+            <span className="text-sm font-bold text-gray-700">{product.averageRating.toFixed(1)}</span>
+            <a href="#reviews"
+              className="text-xs text-gray-400 hover:text-orange transition-colors">
+              {product.totalReviews} değerlendirme
+            </a>
           </div>
-          <span className="text-sm font-bold text-gray-700">{product.averageRating.toFixed(1)}</span>
-          <a href="#reviews"
-            className="text-xs text-gray-400 hover:text-orange transition-colors">
-            {product.totalReviews} değerlendirme
-          </a>
+
+          {/* Rating badge — Trendyol tarzı segmentasyon */}
+          {product.averageRating >= 4.5 && product.totalReviews >= 5 && (
+            <div className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-700
+                            bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg">
+              <Star size={11} className="fill-amber-500 text-amber-500" />
+              Kullanıcılar Beğeniyor!
+            </div>
+          )}
+          {product.averageRating >= 4.0 && product.averageRating < 4.5 && product.totalReviews >= 2 && (
+            <div className="inline-flex items-center gap-1.5 text-xs font-bold text-purple-700
+                            bg-purple-50 border border-purple-200 px-2.5 py-1 rounded-lg">
+              <Star size={11} className="fill-purple-500 text-purple-500" />
+              Seçkin Ürün
+            </div>
+          )}
         </div>
       )}
 

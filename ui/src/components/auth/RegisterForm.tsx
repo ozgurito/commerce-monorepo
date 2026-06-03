@@ -9,13 +9,22 @@ import { authApi } from '@/domains/auth/auth.api'
 import { useAuthStore } from '@/store/auth.store'
 
 const schema = z.object({
-  fullName:        z.string().min(3, 'Ad Soyad en az 3 karakter'),
-  email:           z.string().email('Geçerli bir e-posta girin'),
-  password:        z.string().min(6, 'Şifre en az 6 karakter'),
+  fullName: z.string()
+    .min(3, 'Ad Soyad en az 3 karakter')
+    .max(60, 'Ad Soyad en fazla 60 karakter')
+    .regex(/^[^@]+$/, 'Ad Soyad e-posta içeremez')
+    .regex(/^[\p{L}\s\-'.]+$/u, 'Ad Soyad yalnızca harf içerebilir'),
+  email:    z.string().email('Geçerli bir e-posta girin'),
+  password: z.string()
+    .min(6, 'Şifre en az 6 karakter')
+    .max(72, 'Şifre en fazla 72 karakter'),
   confirmPassword: z.string().min(1, 'Şifre tekrarı zorunlu'),
 }).refine((d) => d.password === d.confirmPassword, {
   message: 'Şifreler eşleşmiyor',
   path: ['confirmPassword'],
+}).refine((d) => d.password !== d.email, {
+  message: 'Şifre e-posta adresiyle aynı olamaz',
+  path: ['password'],
 })
 
 type FormValues = z.infer<typeof schema>
