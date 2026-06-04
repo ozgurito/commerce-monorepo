@@ -104,7 +104,7 @@ export default function IadePage() {
             0541 877 16 35
           </a>
           <a
-            href="mailto:iade@alisverisnoktam.com"
+            href="mailto:iade@alisverisnoktan.com"
             className="flex items-center gap-2 bg-orange text-white font-bold
                        px-5 py-2.5 rounded-xl hover:bg-orange-600 transition-colors text-sm"
           >

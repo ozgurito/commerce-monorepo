@@ -15,7 +15,8 @@ const nextConfig: NextConfig = {
       // Cloudflare R2 / custom CDN
       { protocol: 'https', hostname: '**.r2.cloudflarestorage.com' },
       // Genel HTTPS (production CDN)
-      { protocol: 'https', hostname: '**.alisverisnoktam.com' },
+      { protocol: 'https', hostname: '**.alisverisnoktan.com' },
+      { protocol: 'https', hostname: 'cdn.alisverisnoktan.com' },
     ],
   },
   // Vercel için output default (server), Docker için standalone

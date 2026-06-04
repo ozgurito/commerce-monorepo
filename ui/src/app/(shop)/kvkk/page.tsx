@@ -39,7 +39,7 @@ const SECTIONS = [
   {
     title: '7. Başvuru Yöntemi',
     content:
-      'Haklarınızı kullanmak için kvkk@alisverisnoktam.com adresine e-posta göndererek veya yazılı başvuru aracılığıyla Şirket adresimize başvurabilirsiniz. Başvurularınız en geç 30 gün içinde yanıtlanacaktır.',
+      'Haklarınızı kullanmak için kvkk@alisverisnoktan.com adresine e-posta göndererek veya yazılı başvuru aracılığıyla Şirket adresimize başvurabilirsiniz. Başvurularınız en geç 30 gün içinde yanıtlanacaktır.',
   },
 ]
 

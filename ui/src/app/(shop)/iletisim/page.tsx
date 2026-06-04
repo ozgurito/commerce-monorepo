@@ -21,8 +21,8 @@ const CONTACT_INFO = [
   {
     icon: Mail,
     label: 'E-posta',
-    value: 'destek@alisverisnoktam.com',
-    href: 'mailto:destek@alisverisnoktam.com',
+    value: 'destek@alisverisnoktan.com',
+    href: 'mailto:destek@alisverisnoktan.com',
     note: 'En geç 24 saat içinde yanıt',
   },
   {

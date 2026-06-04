@@ -52,11 +52,11 @@ export default function BasinPage() {
             Röportaj talepleri, basın kiti ve görsel istekleri için aşağıdaki adrese ulaşabilirsiniz.
           </p>
           <a
-            href="mailto:basin@alisverisnoktam.com"
+            href="mailto:basin@alisverisnoktan.com"
             className="inline-flex items-center gap-2 bg-orange text-white font-bold px-5 py-2.5
                        rounded-xl hover:bg-orange-600 transition-colors text-sm"
           >
-            basin@alisverisnoktam.com
+            basin@alisverisnoktan.com
           </a>
         </div>
       </section>
@@ -72,7 +72,7 @@ export default function BasinPage() {
         <div className="border border-dashed border-gray-200 rounded-2xl p-8 text-center text-gray-400">
           <p className="text-4xl mb-3">📁</p>
           <p className="font-semibold">Basın Kiti</p>
-          <p className="text-sm mt-1">Talep için basin@alisverisnoktam.com adresine yazın</p>
+          <p className="text-sm mt-1">Talep için basin@alisverisnoktan.com adresine yazın</p>
         </div>
       </section>
     </div>

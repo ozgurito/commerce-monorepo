@@ -39,7 +39,7 @@ const SECTIONS = [
   {
     title: '7. Haklarınız',
     content:
-      'KVKK kapsamındaki haklarınızı kvkk@alisverisnoktam.com adresine e-posta göndererek kullanabilirsiniz. Detaylı bilgi için KVKK Aydınlatma Metnimizi inceleyiniz.',
+      'KVKK kapsamındaki haklarınızı kvkk@alisverisnoktan.com adresine e-posta göndererek kullanabilirsiniz. Detaylı bilgi için KVKK Aydınlatma Metnimizi inceleyiniz.',
   },
 ]
 

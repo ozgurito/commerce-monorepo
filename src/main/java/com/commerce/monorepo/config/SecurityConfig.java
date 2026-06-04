@@ -99,8 +99,6 @@ public class SecurityConfig {
             "http://127.0.0.1:*",
             "https://*.vercel.app",
             "https://alisverisnoktan.vercel.app",
-            "https://alısverisnoktan.com",
-            "https://www.alısverisnoktan.com",
             "https://alisverisnoktan.com",
             "https://www.alisverisnoktan.com"
         ));

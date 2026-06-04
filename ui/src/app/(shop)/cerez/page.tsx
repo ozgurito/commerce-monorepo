@@ -76,8 +76,8 @@ export default function CerezPage() {
         <h2 className="text-xl font-bold text-navy-dark mb-3">İletişim</h2>
         <p className="text-gray-600 leading-relaxed">
           Çerez politikamız hakkında sorularınız için{' '}
-          <a href="mailto:gizlilik@alisverisnoktam.com" className="text-orange hover:underline font-medium">
-            gizlilik@alisverisnoktam.com
+          <a href="mailto:gizlilik@alisverisnoktan.com" className="text-orange hover:underline font-medium">
+            gizlilik@alisverisnoktan.com
           </a>{' '}
           adresine ulaşabilirsiniz.
         </p>
