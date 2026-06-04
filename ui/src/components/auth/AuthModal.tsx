@@ -93,7 +93,7 @@ export function AuthModal({ defaultTab = 'login', onClose, onSuccess }: Props) {
           />
         ) : (
           <RegisterForm
-            onSuccess={handleSuccess}
+            onSuccess={() => setTab('login')}
             onSwitchToLogin={() => setTab('login')}
           />
         )}

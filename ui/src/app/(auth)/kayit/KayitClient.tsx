@@ -22,7 +22,7 @@ export function KayitClient() {
       </div>
 
       <RegisterForm
-        onSuccess={() => router.push('/hesabim')}
+        onSuccess={() => router.push('/giris')}
         onSwitchToLogin={() => router.push('/giris')}
       />
     </div>

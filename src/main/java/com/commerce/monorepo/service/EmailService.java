@@ -39,7 +39,7 @@ public class EmailService {
     @Async
     public void sendPasswordResetEmail(User user, String token) {
         try {
-            String resetUrl = appProperties.getFrontendUrl() + "/reset-password?token=" + token;
+            String resetUrl = appProperties.getFrontendUrl() + "/sifre-sifirla?token=" + token;
             
             Context context = new Context();
             context.setVariable("userName", user.getFullName() != null ? user.getFullName() : user.getEmail());
@@ -78,8 +78,8 @@ public class EmailService {
             context.setVariable("shippingCost", formatCurrency(order.getShippingCost()));
             context.setVariable("total", formatCurrency(order.getTotal()));
             context.setVariable("shippingAddress", order.getShippingAddress());
-            context.setVariable("orderUrl", appProperties.getFrontendUrl() + "/account/orders/" + order.getId());
-            
+            context.setVariable("orderUrl", appProperties.getFrontendUrl() + "/hesabim/siparislerim/" + order.getId());
+
             String htmlContent = templateEngine.process("email/order-confirmation", context);
             
             sendHtmlEmail(
@@ -108,8 +108,8 @@ public class EmailService {
             context.setVariable("orderNumber", order.getOrderNumber());
             context.setVariable("total", formatCurrency(order.getTotal()));
             context.setVariable("paymentId", order.getIyzicoPaymentId());
-            context.setVariable("orderUrl", appProperties.getFrontendUrl() + "/account/orders/" + order.getId());
-            
+            context.setVariable("orderUrl", appProperties.getFrontendUrl() + "/hesabim/siparislerim/" + order.getId());
+
             String htmlContent = templateEngine.process("email/payment-success", context);
             
             sendHtmlEmail(
@@ -137,7 +137,7 @@ public class EmailService {
             context.setVariable("userName", user.getFullName() != null ? user.getFullName() : user.getEmail());
             context.setVariable("orderNumber", order.getOrderNumber());
             context.setVariable("reason", reason != null ? reason : "Bilinmeyen hata");
-            context.setVariable("retryUrl", appProperties.getFrontendUrl() + "/checkout/payment?orderId=" + order.getId());
+            context.setVariable("retryUrl", appProperties.getFrontendUrl() + "/hesabim/siparislerim/" + order.getId());
             
             String htmlContent = templateEngine.process("email/payment-failed", context);
             
@@ -166,8 +166,8 @@ public class EmailService {
             context.setVariable("userName", user.getFullName() != null ? user.getFullName() : user.getEmail());
             context.setVariable("orderNumber", order.getOrderNumber());
             context.setVariable("status", getStatusText(order.getStatus().name()));
-            context.setVariable("orderUrl", appProperties.getFrontendUrl() + "/account/orders/" + order.getId());
-            
+            context.setVariable("orderUrl", appProperties.getFrontendUrl() + "/hesabim/siparislerim/" + order.getId());
+
             String htmlContent = templateEngine.process("email/order-status-update", context);
             
             sendHtmlEmail(
@@ -191,8 +191,8 @@ public class EmailService {
         try {
             Context context = new Context();
             context.setVariable("userName", user.getFullName() != null ? user.getFullName() : user.getEmail());
-            context.setVariable("loginUrl", appProperties.getFrontendUrl() + "/login");
-            context.setVariable("shopUrl", appProperties.getFrontendUrl() + "/products");
+            context.setVariable("loginUrl", appProperties.getFrontendUrl() + "/giris");
+            context.setVariable("shopUrl", appProperties.getFrontendUrl() + "/urunler");
             
             String htmlContent = templateEngine.process("email/welcome", context);
             
@@ -218,7 +218,7 @@ public class EmailService {
             context.setVariable("productName", productName);
             context.setVariable("currentStock", currentStock);
             context.setVariable("threshold", threshold);
-            context.setVariable("adminUrl", appProperties.getFrontendUrl() + "/admin/products");
+            context.setVariable("adminUrl", appProperties.getFrontendUrl() + "/admin/urunler");
             
             String htmlContent = templateEngine.process("email/low-stock-alert", context);
             

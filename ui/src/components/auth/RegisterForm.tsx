@@ -6,7 +6,6 @@ import { z } from 'zod'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { authApi } from '@/domains/auth/auth.api'
-import { useAuthStore } from '@/store/auth.store'
 
 const schema = z.object({
   fullName: z.string()
@@ -41,7 +40,6 @@ interface Props {
 }
 
 export function RegisterForm({ onSuccess, onSwitchToLogin }: Props) {
-  const { login } = useAuthStore()
   const [showPass, setShowPass] = useState(false)
   const [loading, setLoading] = useState(false)
 
@@ -54,13 +52,12 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: Props) {
   const onSubmit = async (values: FormValues) => {
     setLoading(true)
     try {
-      const res = await authApi.register({
+      await authApi.register({
         fullName: values.fullName,
         email: values.email,
         password: values.password,
       })
-      login(res)
-      toast.success('Hoş geldiniz!')
+      toast.success('Kayıt oluşturuldu. Lütfen giriş yapın.')
       onSuccess?.()
     } catch (err: unknown) {
       const msg =

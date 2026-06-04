@@ -27,15 +27,15 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       isAdmin: false,
 
-      login: (res) =>
+      login: (res) => {
+        if (!res.token) return
         set({
-          user: res.userId
-            ? { id: res.userId, email: res.email, fullName: res.fullName, role: res.role }
-            : null,
+          user: { id: res.userId, email: res.email, fullName: res.fullName, role: res.role },
           token: res.token,
-          isAuthenticated: !!res.token,
+          isAuthenticated: true,
           isAdmin: res.role === 'ADMIN',
-        }),
+        })
+      },
 
       logout: () =>
         set({ user: null, token: null, isAuthenticated: false, isAdmin: false }),
