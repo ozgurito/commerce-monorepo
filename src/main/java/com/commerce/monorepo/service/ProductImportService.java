@@ -199,8 +199,10 @@ public class ProductImportService {
                     //  color ve size AYNI variant objesine yazılır. Hiçbir zaman
                     //  color-only veya size-only ayrı kayıt oluşturulmaz.
 
+                    // renk → ilk variant eşlemesi (in-memory, DB flush sorunu yok)
+                    Map<String, ProductVariant> colorVariantMap = new LinkedHashMap<>();
+
                     for (Row row : rows) {
-                        // Her iki değeri de aynı satırdan aynı anda oku
                         String renk   = col.containsKey(C_RENK)
                                 ? cellStr(row, col.get(C_RENK)).trim() : "";
                         String beden  = col.containsKey(C_BEDEN)
@@ -211,12 +213,8 @@ public class ProductImportService {
 
                         ProductVariant variant = new ProductVariant();
                         variant.setProduct(saved);
-
-                        // name: "Renk - Beden" formatı (örn: "Lacivert - M")
                         variant.setName(buildVariantName(renk, beden));
                         variant.setVariantType("color-size");
-
-                        // color ve size TEK varyanta aynı anda set edilir
                         variant.setColor(renk.isBlank()   ? null : renk);
                         variant.setSize(beden.isBlank()   ? null : beden);
                         variant.setSku(barkod.isBlank()   ? null : barkod);
@@ -226,26 +224,47 @@ public class ProductImportService {
 
                         productVariantRepository.save(variant);
 
+                        // Renk başına ilk variant'ı map'e kaydet (görsel eşlemesi için)
+                        if (!renk.isBlank()) {
+                            colorVariantMap.putIfAbsent(renk.toLowerCase(), variant);
+                        }
+
                         log.debug("  → Variant: name='{}' color='{}' size='{}' sku='{}' stock={}",
                                 variant.getName(), variant.getColor(), variant.getSize(),
                                 variant.getSku(), variant.getStock());
                     }
 
-                    // ── Görseller: Görsel 1 → Görsel 5 (ilk satırdan) ───────────
+                    // ── Görseller: Her satırdan o rengin görsellerini oku + variant'a bağla ──
+                    // Aynı rengin 5 bedeni aynı URL'e sahip → dedup ile sadece 1 kez kaydedilir
+                    Set<String> addedUrls = new LinkedHashSet<>();
                     int imgOrder = 0;
-                    for (int n = 1; n <= 5; n++) {
-                        String gorselKey = norm("Gorsel " + n);   // "Görsel N" normalize hali
-                        if (!col.containsKey(gorselKey)) continue;
-                        String url = cellStr(firstRow, col.get(gorselKey)).trim();
-                        if (url.isBlank()) continue;
 
-                        ProductImage img = new ProductImage();
-                        img.setProduct(saved);
-                        img.setImageUrl(url);
-                        img.setDisplayOrder(imgOrder);
-                        img.setIsPrimary(imgOrder == 0);
-                        productImageRepository.save(img);
-                        imgOrder++;
+                    for (Row row : rows) {
+                        String rowRenk = col.containsKey(C_RENK)
+                                ? cellStr(row, col.get(C_RENK)).trim() : "";
+
+                        // In-memory map'ten variant bul (transaction flush gerektirmez)
+                        ProductVariant matchedVariant = colorVariantMap.get(rowRenk.toLowerCase());
+
+                        for (int n = 1; n <= 5; n++) {
+                            String gorselKey = norm("Gorsel " + n);
+                            if (!col.containsKey(gorselKey)) continue;
+                            String url = cellStr(row, col.get(gorselKey)).trim();
+                            if (url.isBlank() || addedUrls.contains(url)) continue;
+
+                            addedUrls.add(url);
+                            ProductImage img = new ProductImage();
+                            img.setProduct(saved);
+                            img.setImageUrl(url);
+                            img.setDisplayOrder(imgOrder);
+                            img.setIsPrimary(imgOrder == 0);
+                            img.setVariant(matchedVariant); // renk-görsel bağlantısı
+                            if (matchedVariant != null) {
+                                img.setAltText(matchedVariant.getColor()); // alt text = renk adı
+                            }
+                            productImageRepository.save(img);
+                            imgOrder++;
+                        }
                     }
 
                     successCount++;

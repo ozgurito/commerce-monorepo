@@ -11,6 +11,8 @@ import com.commerce.monorepo.repository.ProductRepository;
 import com.commerce.monorepo.repository.CategoryRepository;
 import com.commerce.monorepo.repository.ProductImageRepository;
 import com.commerce.monorepo.repository.ProductVariantRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import com.commerce.monorepo.repository.specification.ProductSpecification;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -36,6 +38,9 @@ public class ProductService {
 
     private final ProductRepository repo;
     private final CategoryRepository categoryRepository;
+
+    @PersistenceContext
+    private EntityManager em;
     private final ProductImageRepository productImageRepository;
     private final ProductVariantRepository variantRepository;
 
@@ -245,6 +250,13 @@ public class ProductService {
 
     @Transactional
     public void deleteAll() {
+        // Sipariş geçmişi KORUNUR — sadece ürün referansları temizlenir
+        em.createNativeQuery("UPDATE order_items SET product_variant_id = NULL").executeUpdate();
+        em.createNativeQuery("UPDATE order_items SET product_id = NULL").executeUpdate();
+        // Sepet ve favoriler temizlenir (anlık veri, silinmesi normal)
+        em.createNativeQuery("DELETE FROM cart_items").executeUpdate();
+        em.createNativeQuery("DELETE FROM wishlist_items").executeUpdate();
+        em.flush();
         repo.deleteAll();
     }
 
@@ -428,6 +440,15 @@ public class ProductService {
         image.setAltText(request.getAltText());
         image.setDisplayOrder(request.getDisplayOrder() != null ? request.getDisplayOrder() : 0);
         image.setIsPrimary(request.getIsPrimary() != null ? request.getIsPrimary() : false);
+
+        // Görsel → variant bağlantısı (variantId gönderilmişse)
+        if (request.getVariantId() != null) {
+            variantRepository.findById(request.getVariantId())
+                    .ifPresent(v -> {
+                        image.setVariant(v);
+                        if (image.getAltText() == null) image.setAltText(v.getColor());
+                    });
+        }
         
         product.getImages().add(image);
         repo.save(product);
@@ -507,13 +528,17 @@ public class ProductService {
     }
 
     private ProductImageDto mapImageToDto(ProductImage image) {
+        ProductVariant v = image.getVariant();
         return new ProductImageDto(
                 image.getId(),
                 image.getProduct().getId(),
                 image.getImageUrl(),
                 image.getAltText(),
                 image.getDisplayOrder(),
-                image.getIsPrimary()
+                image.getIsPrimary(),
+                v != null ? v.getId()       : null,
+                v != null ? v.getColor()    : null,
+                v != null ? v.getColorHex() : null
         );
     }
 

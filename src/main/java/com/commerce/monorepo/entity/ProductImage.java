@@ -27,5 +27,10 @@ public class ProductImage extends BaseEntity {
     
     @Column(name = "is_primary")
     private Boolean isPrimary = false;
+
+    /** Hangi renk varyantına ait olduğu (nullable — eski görsellerde null) */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "variant_id")
+    private ProductVariant variant;
 }
 

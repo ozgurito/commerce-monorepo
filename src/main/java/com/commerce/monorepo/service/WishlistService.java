@@ -113,14 +113,21 @@ public class WishlistService {
 
     private WishlistItemDto mapToDto(WishlistItem item) {
         Product product = item.getProduct();
-        
-        // Primary image URL bul
+
+        // Görsel önceliği: 1) İlk variant görsel  2) Primary  3) İlk görsel
+        // Wishlist'te renk bilgisi yok, ürünün ilk renginin görselini göster
         String imageUrl = product.getImages().stream()
-                .filter(img -> Boolean.TRUE.equals(img.getIsPrimary()))
-                .findFirst()
+                .filter(img -> img.getVariant() != null)
+                .sorted(java.util.Comparator.comparingInt(
+                        img -> img.getDisplayOrder() != null ? img.getDisplayOrder() : 0))
                 .map(img -> img.getImageUrl())
-                .orElse(product.getImages().isEmpty() ? null : 
-                        product.getImages().get(0).getImageUrl());
+                .findFirst()
+                .orElseGet(() -> product.getImages().stream()
+                        .filter(img -> Boolean.TRUE.equals(img.getIsPrimary()))
+                        .findFirst()
+                        .map(img -> img.getImageUrl())
+                        .orElse(product.getImages().isEmpty() ? null :
+                                product.getImages().get(0).getImageUrl()));
 
         return new WishlistItemDto(
                 item.getId(),

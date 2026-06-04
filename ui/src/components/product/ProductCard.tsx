@@ -38,6 +38,7 @@ import { useUIStore } from '@/store/ui.store'
 import { useCartStore } from '@/store/cart.store'
 import { QUERY_KEYS } from '@/lib/query-keys'
 import { formatPrice } from '@/utils/format'
+import { getProductBadge } from '@/utils/product-badge'
 import type { ProductDto } from '@/domains/products/products.types'
 
 interface Props {
@@ -45,23 +46,14 @@ interface Props {
   priority?: boolean
 }
 
-type Stamp = { lines: [string, string]; bg: string }
-
-function getStamp(product: ProductDto, discountPct: number, isOutOfStock: boolean): Stamp | null {
-  if (isOutOfStock) return null
-  // Rating bazlı rozetler
-  if (product.totalReviews >= 5 && product.averageRating >= 4.5)
-    return { lines: ['KULLANICILAR', 'BEĞENİYOR'], bg: 'bg-amber-500' }
-  if (product.totalReviews >= 2 && product.averageRating >= 4.0)
-    return { lines: ['SEÇKİN', 'ÜRÜN'], bg: 'bg-purple-500' }
-  if (product.totalReviews >= 5)
-    return { lines: ['EN ÇOK', 'SATAN'], bg: 'bg-orange' }
-  // İndirimli her ürün
-  if (discountPct > 0)
-    return { lines: ['AVANTAJLI', 'ÜRÜN'], bg: 'bg-emerald-500' }
-  if (product.stock > 0 && product.stock <= 10)
-    return { lines: ['SON', 'ÜRÜNLER'], bg: 'bg-red-500' }
-  return null
+function getStamp(product: ProductDto, discountPct: number, isOutOfStock: boolean) {
+  return getProductBadge({
+    totalReviews: product.totalReviews,
+    averageRating: product.averageRating,
+    stock: product.stock,
+    discountPct,
+    isOutOfStock,
+  })
 }
 
 export function ProductCard({ product, priority = false }: Props) {
@@ -215,14 +207,15 @@ export function ProductCard({ product, priority = false }: Props) {
           </button>
         </div>
 
-        {/* Dairesel damga rozeti — sol alt */}
+        {/* Trendyol tarzı yuvarlak rozet — sol alt */}
         {stamp && (
-          <div className={`absolute bottom-10 left-2 z-10 w-[52px] h-[52px] rounded-full
+          <div className={`absolute bottom-10 left-2 z-10 w-[62px] h-[62px] rounded-full
                            ${stamp.bg} text-white
                            flex flex-col items-center justify-center
-                           border-2 border-white/30 shadow-lg`}>
+                           border-[3px] border-white/40 shadow-xl`}>
+            <Star size={12} className="fill-white text-white mb-0.5 opacity-90" />
             {stamp.lines.map((line, i) => (
-              <span key={i} className="text-[8px] font-extrabold leading-tight tracking-tight">
+              <span key={i} className="text-[7.5px] font-extrabold leading-tight tracking-tight text-center px-1">
                 {line}
               </span>
             ))}

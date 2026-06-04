@@ -33,10 +33,13 @@ export interface ProductDto {
 export interface ProductImageDto {
   id: number
   productId: number
-  imageUrl: string       // NOT "url"
+  imageUrl: string
   altText: string | null
-  displayOrder: number   // NOT "sortOrder"
+  displayOrder: number
   isPrimary: boolean
+  variantId: number | null
+  variantColor: string | null
+  variantColorHex: string | null
 }
 
 export interface ProductVariantDto {

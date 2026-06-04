@@ -4,11 +4,11 @@ import type { ProductVariantDto } from '@/domains/products/products.types'
 
 interface Props {
   variants: ProductVariantDto[]
-  /** Grup adı → seçili varyant (null = seçilmedi) */
   selections: Record<string, ProductVariantDto | null>
   onSelect: (groupName: string, variant: ProductVariantDto) => void
-  /** Hangi gruplar zorunlu ama henüz seçilmedi */
   errorGroups?: string[]
+  /** true → Renk grubu swatchları gizlenir (görseller üzerinden renk seçimi yapılır) */
+  hideColorSwatches?: boolean
 }
 
 const SIZE_ORDER = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL']
@@ -110,7 +110,7 @@ function groupVariants(variants: ProductVariantDto[] | null | undefined) {
   return groups
 }
 
-export function VariantSelector({ variants, selections, onSelect, errorGroups = [] }: Props) {
+export function VariantSelector({ variants, selections, onSelect, errorGroups = [], hideColorSwatches = false }: Props) {
   const ref = useRef<HTMLDivElement>(null)
   const safeVariants = variants ?? []
   const groups = groupVariants(safeVariants)
@@ -119,7 +119,10 @@ export function VariantSelector({ variants, selections, onSelect, errorGroups = 
 
   return (
     <div ref={ref} className="space-y-4">
-      {Object.entries(groups).map(([groupName, items]) => {
+      {Object.entries(groups).filter(([groupName]) =>
+        // Görseller variant bilgisi taşıyorsa Renk grubunu gizle (thumbnail = renk seçici)
+        !(hideColorSwatches && groupName === 'Renk')
+      ).map(([groupName, items]) => {
         const selectedInGroup = selections[groupName] ?? null
         const hasGroupError = errorGroups.includes(groupName)
 

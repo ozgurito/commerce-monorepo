@@ -194,8 +194,8 @@ export const adminApi = {
     return data
   },
 
-  addProductImage: async (productId: number, imageUrl: string, isPrimary = false): Promise<void> => {
-    await apiClient.post(`/api/products/${productId}/images`, { imageUrl, isPrimary })
+  addProductImage: async (productId: number, imageUrl: string, isPrimary = false, variantId?: number): Promise<void> => {
+    await apiClient.post(`/api/products/${productId}/images`, { imageUrl, isPrimary, variantId })
   },
 
   deleteProductImage: async (productId: number, imageId: number): Promise<void> => {

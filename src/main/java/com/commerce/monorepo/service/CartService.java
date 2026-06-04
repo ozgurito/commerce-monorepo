@@ -6,6 +6,7 @@ import com.commerce.monorepo.exception.BaseException;
 import com.commerce.monorepo.exception.ErrorCode;
 import com.commerce.monorepo.repository.CartItemRepository;
 import com.commerce.monorepo.repository.CartRepository;
+import com.commerce.monorepo.repository.ProductImageRepository;
 import com.commerce.monorepo.repository.ProductRepository;
 import com.commerce.monorepo.repository.ProductVariantRepository;
 import com.commerce.monorepo.repository.UserRepository;
@@ -27,6 +28,7 @@ public class CartService {
     private final CartItemRepository cartItemRepository;
     private final ProductRepository productRepository;
     private final ProductVariantRepository productVariantRepository;
+    private final ProductImageRepository productImageRepository;
     private final UserRepository userRepository;
 
     public CartDto getMyCart() {
@@ -219,10 +221,26 @@ public class CartService {
                         itemDto.setAvailableStock(item.getProduct().getStock());
                     }
 
-                    // Ürün görseli — ilk resmi al
-                    if (item.getProduct().getImages() != null && !item.getProduct().getImages().isEmpty()) {
-                        itemDto.setImageUrl(item.getProduct().getImages().get(0).getImageUrl());
+                    // Görsel: renk adı + ürün ID kombinasyonuyla ara (tüm bedenler için çalışır)
+                    String resolvedImageUrl = null;
+                    if (item.getProductVariant() != null &&
+                            item.getProductVariant().getColor() != null &&
+                            !item.getProductVariant().getColor().isBlank()) {
+                        java.util.List<com.commerce.monorepo.entity.ProductImage> colorImgs =
+                            productImageRepository.findByProductIdAndVariantColorOrderByDisplayOrder(
+                                item.getProduct().getId(),
+                                item.getProductVariant().getColor());
+                        if (!colorImgs.isEmpty()) {
+                            resolvedImageUrl = colorImgs.get(0).getImageUrl();
+                        }
                     }
+                    // Renk görseli bulunamadıysa ürünün ilk görseline düş
+                    if (resolvedImageUrl == null &&
+                            item.getProduct().getImages() != null &&
+                            !item.getProduct().getImages().isEmpty()) {
+                        resolvedImageUrl = item.getProduct().getImages().get(0).getImageUrl();
+                    }
+                    itemDto.setImageUrl(resolvedImageUrl);
 
                     return itemDto;
                 })

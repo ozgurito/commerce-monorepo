@@ -149,6 +149,8 @@ interface ParsedProduct {
   categoryName: string
   gender:       string
   images:       string[]
+  /** Renk adı → o rengin görsel URL'leri (variantId bağlama için) */
+  colorImages:  Record<string, string[]>
   /** Her satır = 1 kombinasyon varyantı */
   variants:     ParsedVariant[]
   isActive:     boolean
@@ -190,15 +192,24 @@ function parseExcel(rows: unknown[][]): ParsedProduct[] {
 
     const price = parseFloat(String(first[COL.SATIS_FIYAT] ?? '0')) || 0
 
-    // Görseller — tüm satırlarda dolu URL'leri topla (dedupe)
-    const imageSet = new Set<string>()
+    // Görseller — renk başına ayrı topla + global dedupe listesi
+    const imageSet   = new Set<string>()
+    const colorImages: Record<string, string[]> = {}
+
     for (const r of groupRows) {
+      const rawRenk = String((r as unknown[])[COL.RENK] ?? '').trim()
+      const renk    = rawRenk ? normalizeColor(rawRenk) : '__nocolor__'
+      if (!colorImages[renk]) colorImages[renk] = []
+
       for (const idx of [COL.GORSEL_1, COL.GORSEL_2, COL.GORSEL_3, COL.GORSEL_4, COL.GORSEL_5]) {
         const url = String((r as unknown[])[idx] ?? '').trim()
-        if (url.startsWith('http')) imageSet.add(url)
+        if (!url.startsWith('http')) continue
+        imageSet.add(url)
+        // Renk başına sadece yeni URL'leri ekle
+        if (!colorImages[renk].includes(url)) colorImages[renk].push(url)
       }
     }
-    const images = [...imageSet].slice(0, 8)
+    const images = [...imageSet].slice(0, 20)
 
     // ── KOMBİNASYON VARYANTLARI: her satır = 1 variant ──────────────
     // Renk ve beden AYNI satırdan, AYNI variant objesine yazılır.
@@ -236,6 +247,7 @@ function parseExcel(rows: unknown[][]): ParsedProduct[] {
       categoryName: normalizeCategoryName(rawCategory),
       gender: normalizeGender(rawGender),
       images,
+      colorImages,
       variants,
       isActive: true,
     })
@@ -330,21 +342,13 @@ export default function ImportPage() {
           isActive:    p.isActive,
         })
 
-        // Görseller
-        for (let imgIdx = 0; imgIdx < p.images.length; imgIdx++) {
-          try {
-            await adminApi.addProductImage(product.id, p.images[imgIdx], imgIdx === 0)
-          } catch { /* görsel hataları sessizce atla */ }
-        }
+        // ── Önce varyantları oluştur → renk → variantId map'i tut ──
+        // color → ilk variantId (görsel bağlama için)
+        const colorToVariantId: Record<string, number> = {}
 
-        // ── KOMBİNASYON VARYANTLARl ────────────────────────────────
-        // Her variant = 1 createVariant çağrısı.
-        // color ve size AYNI objeye, AYNI anda gönderilir.
-        // ÖRN: { variantType:'color-size', name:'Lacivert - M',
-        //         color:'Lacivert', size:'M', sku:'BAR001', stock:10 }
         for (const v of p.variants) {
           try {
-            await adminApi.createVariant(product.id, {
+            const created = await adminApi.createVariant(product.id, {
               variantType: 'COMBINED',
               name:        v.label,
               color:       v.renk   || undefined,
@@ -353,7 +357,39 @@ export default function ImportPage() {
               ...(v.barkod ? { sku: v.barkod } : {}),
               stock:       v.stock,
             })
+            // Renk başına ilk variantId'yi sakla
+            if (v.renk && !colorToVariantId[v.renk]) {
+              colorToVariantId[v.renk] = created.id
+            }
           } catch { /* devam */ }
+        }
+
+        // ── Görselleri variantId ile ekle ────────────────────────────
+        // colorImages: { "Lacivert": ["url1","url2"], "Beyaz": ["url3"] }
+        const addedUrls = new Set<string>()
+        let imgOrder = 0
+
+        // Renkli görseller önce (variantId ile)
+        for (const [color, urls] of Object.entries(p.colorImages)) {
+          const variantId = color !== '__nocolor__' ? colorToVariantId[color] : undefined
+          for (const url of urls) {
+            if (addedUrls.has(url)) continue
+            addedUrls.add(url)
+            try {
+              await adminApi.addProductImage(product.id, url, imgOrder === 0, variantId)
+              imgOrder++
+            } catch { /* sessizce atla */ }
+          }
+        }
+
+        // Varsa renksiz görseller
+        for (const url of p.images) {
+          if (addedUrls.has(url)) continue
+          addedUrls.add(url)
+          try {
+            await adminApi.addProductImage(product.id, url, imgOrder === 0)
+            imgOrder++
+          } catch { /* sessizce atla */ }
         }
 
         res[i] = { ...res[i], status: 'success' }

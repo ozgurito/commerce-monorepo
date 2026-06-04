@@ -18,5 +18,8 @@ public class ProductImageRequest {
     private Integer displayOrder = 0;
     
     private Boolean isPrimary = false;
+
+    /** Görselin ait olduğu variant ID (nullable) */
+    private Long variantId;
 }
 

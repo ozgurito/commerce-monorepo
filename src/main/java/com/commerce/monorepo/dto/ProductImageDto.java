@@ -14,4 +14,8 @@ public class ProductImageDto {
     private String altText;
     private Integer displayOrder;
     private Boolean isPrimary;
+    // Görsel hangi renk varyantına ait (null = varyant bağlantısı yok)
+    private Long variantId;
+    private String variantColor;
+    private String variantColorHex;
 }

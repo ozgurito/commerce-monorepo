@@ -26,11 +26,11 @@ export const cartApi = {
   },
 
   applyCoupon: async (code: string) => {
-    const { data } = await apiClient.post('/api/cart/coupon', { code })
+    const { data } = await apiClient.post('/api/coupons/apply', { code })
     return data
   },
 
   removeCoupon: async () => {
-    await apiClient.delete('/api/cart/coupon')
+    // Kupon kaldırma sadece frontend state'inden yapılır (backend stateless)
   },
 }

@@ -1,8 +1,9 @@
 'use client'
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Heart, ShoppingBag, Star, Minus, Plus, Truck, RotateCcw, Shield, Share2, Check, ShoppingCart, Zap, Clock, MapPin, Users, TrendingUp } from 'lucide-react'
+import { Heart, ShoppingBag, Star, Minus, Plus, Truck, RotateCcw, Shield, Share2, Check, ShoppingCart, Zap, Clock, MapPin, Users, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react'
 import toast from 'react-hot-toast'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { cartApi } from '@/domains/cart/cart.api'
 import { wishlistApi } from '@/domains/wishlist/wishlist.api'
@@ -11,9 +12,10 @@ import { useUIStore } from '@/store/ui.store'
 import { useCartStore } from '@/store/cart.store'
 import { QUERY_KEYS } from '@/lib/query-keys'
 import { formatPrice, FREE_SHIPPING_ITEM_COUNT, SHIPPING_COST } from '@/utils/format'
+import { getProductBadge } from '@/utils/product-badge'
 import { VariantSelector, groupVariants } from './VariantSelector'
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed'
-import type { ProductDetailDto, ProductVariantDto } from '@/domains/products/products.types'
+import type { ProductDetailDto, ProductVariantDto, ProductImageDto } from '@/domains/products/products.types'
 
 // FREE_SHIPPING_THRESHOLD utils/format.ts'den import ediliyor
 
@@ -55,13 +57,52 @@ function getShippingEstimate() {
 
 interface Props {
   product: ProductDetailDto
+  onGalleryChange?: (index: number) => void
+  onColorSelect?: (color: string) => void  // renk seçilince activeColor'u güncelle
+  imageClickColor?: string | null
+  imagesHaveVariants?: boolean
 }
 
-export function ProductInfo({ product }: Props) {
+export function ProductInfo({ product, onGalleryChange, onColorSelect, imageClickColor, imagesHaveVariants }: Props) {
   // Beden ve renk grupları ayrı ayrı takip edilir
   const [selections, setSelections] = useState<Record<string, ProductVariantDto | null>>({})
   const [errorGroups, setErrorGroups] = useState<string[]>([])
   const [quantity, setQuantity] = useState(1)
+
+  // Swatch scroll ref
+  const swatchScrollRef = useRef<HTMLDivElement>(null)
+  const [swatchCanLeft,  setSwatchCanLeft]  = useState(false)
+  const [swatchCanRight, setSwatchCanRight] = useState(false)
+
+  useEffect(() => {
+    const el = swatchScrollRef.current
+    if (!el) return
+    const update = () => {
+      setSwatchCanLeft(el.scrollLeft > 4)
+      setSwatchCanRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4)
+    }
+    update()
+    el.addEventListener('scroll', update, { passive: true })
+    return () => el.removeEventListener('scroll', update)
+  }, [imagesHaveVariants, product.images])
+
+  // ── Renk → ilk görsel map + swatch listesi ──
+  const { colorToFirstImage, colorSwatches } = useMemo(() => {
+    const map: Record<string, number> = {}
+    const swatches: { color: string; image: ProductImageDto }[] = []
+    const sorted = [...(product.images ?? [])].sort((a, b) => {
+      if (a.isPrimary && !b.isPrimary) return -1
+      if (!a.isPrimary && b.isPrimary) return 1
+      return a.displayOrder - b.displayOrder
+    })
+    sorted.forEach((img, idx) => {
+      if (img.variantColor && !(img.variantColor in map)) {
+        map[img.variantColor] = idx
+        swatches.push({ color: img.variantColor, image: img })
+      }
+    })
+    return { colorToFirstImage: map, colorSwatches: swatches }
+  }, [product.images])
   const [wishlisted, setWishlisted] = useState(false)
   const [copied, setCopied] = useState(false)
   const [viewersNow, setViewersNow]   = useState(0)
@@ -100,6 +141,18 @@ export function ProductInfo({ product }: Props) {
     return () => clearInterval(id)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product.id])
+
+  // Görsel tıklanınca → o görselin rengi otomatik seçilir
+  useEffect(() => {
+    if (!imageClickColor || !product.variants?.length) return
+    const variant = product.variants.find(
+      v => v.color?.toLowerCase() === imageClickColor.toLowerCase()
+    )
+    if (variant) {
+      setSelections(prev => ({ ...prev, 'Renk': variant }))
+      setErrorGroups(prev => prev.filter(g => g !== 'Renk'))
+    }
+  }, [imageClickColor, product.variants])
 
   const { token } = useAuthStore()
   const { openAuthModal } = useUIStore()
@@ -262,6 +315,26 @@ export function ProductInfo({ product }: Props) {
 
       {/* Category + title */}
       <div>
+        {/* Ürün rozeti — Trendyol tarzı (Avantajlı, Seçkin, En Çok Satan...) */}
+        {(() => {
+          const badge = getProductBadge({
+            totalReviews: product.totalReviews,
+            averageRating: product.averageRating,
+            stock: product.stock,
+            discountPct,
+            isOutOfStock,
+          })
+          if (!badge) return null
+          return (
+            <div className={`inline-flex items-center gap-1.5 ${badge.bg} ${badge.textColor}
+                             text-xs font-extrabold px-3 py-1.5 rounded-full mb-3
+                             shadow-sm tracking-wide`}>
+              <Star size={11} className="fill-current flex-shrink-0" />
+              {badge.lines.join(' ')}
+            </div>
+          )
+        })()}
+
         <div className="flex items-center justify-between mb-2">
           <p className="text-xs font-semibold text-orange uppercase tracking-widest">
             {product.categoryName}
@@ -397,6 +470,87 @@ export function ProductInfo({ product }: Props) {
         )}
       </div>
 
+      {/* ── Görsel bazlı renk seçimi — Trendyol tarzı ── */}
+      {imagesHaveVariants && colorSwatches.length > 1 && (
+        <div>
+          <p className="text-sm font-bold text-gray-700 mb-2.5">
+            Renk:{' '}
+            <span className="font-extrabold text-navy-dark">
+              {selections['Renk']?.color
+                ? <>{selections['Renk']!.color} <span className="text-xs text-gray-400 font-normal">(görselden seçildi)</span></>
+                : <span className="text-gray-400 font-normal text-xs">Görsele tıklayarak seçin</span>
+              }
+            </span>
+          </p>
+
+          <div className="relative">
+            {swatchCanLeft && (
+              <button
+                onClick={() => swatchScrollRef.current?.scrollBy({ left: -150, behavior: 'smooth' })}
+                className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-6 h-6 bg-white
+                           shadow-md rounded-full flex items-center justify-center
+                           text-gray-500 hover:text-orange -translate-x-1">
+                <ChevronLeft size={14} />
+              </button>
+            )}
+
+            <div ref={swatchScrollRef}
+                 className="flex gap-2.5 overflow-x-auto scrollbar-none pb-1 px-0.5">
+              {colorSwatches.map(({ color, image }) => {
+                const isSelected = selections['Renk']?.color === color
+                const firstIdx = colorToFirstImage[color] ?? 0
+                return (
+                  <button
+                    key={color}
+                    onClick={() => {
+                      // Renk varyantını seç
+                      const variant = product.variants?.find(v => v.color === color) ?? null
+                      if (variant) {
+                        setSelections(prev => ({ ...prev, 'Renk': variant }))
+                        setErrorGroups(prev => prev.filter(g => g !== 'Renk'))
+                      }
+                      onColorSelect?.(color)   // activeColor güncelle → gallery filtrele
+                      onGalleryChange?.(firstIdx)
+                    }}
+                    title={color}
+                    className="flex-shrink-0 flex flex-col items-center gap-1"
+                  >
+                    <div className={`w-[60px] h-[60px] rounded-xl overflow-hidden border-2
+                                     transition-all duration-200
+                                     ${isSelected
+                                       ? 'border-orange scale-105 shadow-md'
+                                       : 'border-gray-200 hover:border-gray-400'}`}>
+                      <Image
+                        src={image.imageUrl}
+                        alt={color}
+                        width={60}
+                        height={60}
+                        className="w-full h-full object-cover"
+                        unoptimized
+                      />
+                    </div>
+                    <span className={`text-[10px] font-semibold leading-none
+                                      ${isSelected ? 'text-orange' : 'text-gray-500'}`}>
+                      {color}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+
+            {swatchCanRight && (
+              <button
+                onClick={() => swatchScrollRef.current?.scrollBy({ left: 150, behavior: 'smooth' })}
+                className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-6 h-6 bg-white
+                           shadow-md rounded-full flex items-center justify-center
+                           text-gray-500 hover:text-orange translate-x-1">
+                <ChevronRight size={14} />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Stock badge */}
       <div className="flex items-center gap-2">
         {isOutOfStock ? (
@@ -420,14 +574,33 @@ export function ProductInfo({ product }: Props) {
         )}
       </div>
 
-      {/* Variant selector */}
+      {/* Görsel bazlı renk seçimi aktifse seçili renk adını göster */}
+      {imagesHaveVariants && selections['Renk']?.color && (
+        <div className="flex items-center gap-2 text-sm">
+          <span className="font-semibold text-gray-600">Renk:</span>
+          <span className="font-extrabold text-navy-dark">{selections['Renk'].color}</span>
+          <span className="text-xs text-gray-400">(görselden seçildi)</span>
+        </div>
+      )}
+      {imagesHaveVariants && !selections['Renk'] && (
+        <p className="text-xs text-gray-400 flex items-center gap-1">
+          <span>👆</span> Görsele tıklayarak renk seçin
+        </p>
+      )}
+
+      {/* Variant selector — görseller variant bilgisi taşıyorsa renk swatchları thumbnail üzerinden seçilir */}
       <div ref={variantRef}>
         <VariantSelector
           variants={product.variants ?? []}
           selections={selections}
+          hideColorSwatches={imagesHaveVariants}
           onSelect={(groupName, v) => {
             setSelections(prev => ({ ...prev, [groupName]: v }))
             setErrorGroups(prev => prev.filter(g => g !== groupName))
+            // Renk seçilince → o rengin ilk görselini gallery'de göster
+            if (groupName === 'Renk' && v.color && v.color in colorToFirstImage) {
+              onGalleryChange?.(colorToFirstImage[v.color])
+            }
           }}
           errorGroups={errorGroups}
         />
