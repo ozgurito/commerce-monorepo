@@ -10,7 +10,7 @@ interface Props {
 export function OrderSummary({ cart, couponCode, discountAmount }: Props) {
   const discount = discountAmount ?? 0
   const discountedSubtotal = Math.max(0, cart.totalAmount - discount)
-  const shipping = discountedSubtotal >= 150 ? 0 : 29.90
+  const shipping = cart.totalAmount >= 300 ? 0 : 49
   const grandTotal = discountedSubtotal + shipping
 
   return (

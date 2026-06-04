@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { CheckCircle2, Package, Truck, Home, ArrowRight, Clock, Phone } from 'lucide-react'
+import { CartClearer } from './CartClearer'
 
 export const metadata: Metadata = {
   title: 'Sipariş Alındı | AlışverişNoktan',
@@ -16,6 +17,7 @@ export default async function BasariliPage({ searchParams }: Props) {
 
   return (
     <div className="min-h-[70vh] flex items-center justify-center px-4 py-12">
+      <CartClearer />
       <div className="w-full max-w-[560px]">
 
         {/* ── Success animation card ── */}

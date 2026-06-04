@@ -148,7 +148,7 @@ public class OrderService {
         // Order'ı kaydet (cascade ile items da kaydedilecek)
         order.setItems(orderItems);
         order.setSubtotal(subtotal);
-        order.setTax(subtotal.multiply(BigDecimal.valueOf(0.20))); // %20 KDV
+        order.setTax(BigDecimal.ZERO); // Fiyatlar KDV dahil — ek hesaplama yok
         
         // Kargo ücreti — ShippingService hesaplar (300₺ üzeri ücretsiz)
         BigDecimal shippingCost = shippingService.calculate(subtotal);

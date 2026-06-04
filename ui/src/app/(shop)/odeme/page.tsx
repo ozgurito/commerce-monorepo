@@ -90,6 +90,7 @@ export default function OdemePage() {
           shippingAddress,
           billingAddress: shippingAddress,
           paymentMethod,
+          couponCode: couponCode ?? undefined,
         })
       } else {
         order = await ordersApi.createGuest({
@@ -98,16 +99,17 @@ export default function OdemePage() {
           shippingAddress,
           billingAddress: shippingAddress,
           paymentMethod,
+          couponCode: couponCode ?? undefined,
         })
       }
 
-      syncFromCart(0, 0)
-      clearCoupon()
-
       if (paymentMethod === 'CREDIT_CARD') {
+        // Sepeti temizleme yok — /odeme/basarili sayfasında yapılacak
         router.push(`/odeme/iyzico?orderId=${order.id}`)
       } else {
-        // BANK_TRANSFER
+        // Havale/COD: sipariş kesinleşti, hemen temizle
+        syncFromCart(0, 0)
+        clearCoupon()
         router.push(`/odeme/havale?orderId=${order.id}`)
       }
     } catch (err: unknown) {
