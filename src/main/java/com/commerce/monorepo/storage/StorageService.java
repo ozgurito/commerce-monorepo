@@ -27,4 +27,12 @@ public class StorageService {
         s3.putObject(put, RequestBody.fromInputStream(stream, size));
         return key;
     }
+
+    /** Controller tarafından üretilen güvenli (safe) key ile upload. */
+    public String putWithKey(String key, String contentType, InputStream stream, long size) {
+        PutObjectRequest put = PutObjectRequest.builder()
+                .bucket(bucket).key(key).contentType(contentType).build();
+        s3.putObject(put, RequestBody.fromInputStream(stream, size));
+        return key;
+    }
 }

@@ -2,11 +2,14 @@ package com.commerce.monorepo.repository;
 
 import com.commerce.monorepo.entity.Order;
 import com.commerce.monorepo.entity.OrderStatus;
+import com.commerce.monorepo.entity.PaymentStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -53,4 +56,20 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
         ORDER BY year ASC, month ASC
         """, nativeQuery = true)
     java.util.List<Object[]> findMonthlyStats();
+
+    // Paket 6 — Pending payment cleanup: 60dk+ eski, ödenmemiş PENDING siparişleri bulur.
+    // DISTINCT şart: left join fetch o.items ile birden fazla item'lı siparişler duplicate dönmesin.
+    @Query("""
+        select distinct o from Order o
+        left join fetch o.items i
+        left join fetch i.product p
+        where o.status = :status
+          and o.paymentStatus in :paymentStatuses
+          and o.createdAt < :cutoff
+    """)
+    List<Order> findExpiredPendingOrders(
+        @Param("status") OrderStatus status,
+        @Param("paymentStatuses") List<PaymentStatus> paymentStatuses,
+        @Param("cutoff") LocalDateTime cutoff
+    );
 }

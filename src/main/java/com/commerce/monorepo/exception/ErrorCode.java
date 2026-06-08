@@ -49,6 +49,8 @@ public enum ErrorCode {
     PRODUCT_OUT_OF_STOCK("4008", "Ürün stokta yok", HttpStatus.BAD_REQUEST),
     VARIANT_NOT_FOUND("4009", "Ürün varyantı bulunamadı", HttpStatus.NOT_FOUND),
     VARIANT_REQUIRED("4010", "Bu ürün için renk/beden seçimi zorunludur", HttpStatus.BAD_REQUEST),
+    INVALID_FILE_TYPE("4011", "Sadece JPEG, PNG veya WEBP görseller yüklenebilir.", HttpStatus.BAD_REQUEST),
+    FILE_TOO_LARGE("4012", "Görsel en fazla 5MB olabilir.", HttpStatus.BAD_REQUEST),
 
     // DOMAIN / BUSINESS ERRORS (5000)
 
