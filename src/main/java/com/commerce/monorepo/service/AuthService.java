@@ -30,6 +30,7 @@ public class AuthService {
     private final RefreshTokenService refreshTokenService;
     private final AuthenticationManager authenticationManager;
     private final EmailService emailService;
+    private final EmailVerificationService emailVerificationService;
 
     /** Kullanıcı kaydı */
     @Transactional
@@ -55,8 +56,8 @@ public class AuthService {
 
         User saved = userRepository.save(user);
 
-        // Hoş geldin emaili gönder
-        emailService.sendWelcomeEmail(saved);
+        // Doğrulama emaili gönder (hoş geldin emaili doğrulama sonrası gönderilir)
+        emailVerificationService.sendVerificationEmail(saved);
 
         return new AuthResponse(
                 null,
@@ -87,6 +88,11 @@ public class AuthService {
         // Brute-force kilidi hâlâ aktif mi?
         if (user.getLockedUntil() != null && LocalDateTime.now().isBefore(user.getLockedUntil())) {
             throw new BaseException(ErrorCode.ACCOUNT_LOCKED);
+        }
+
+        // Email doğrulanmamışsa giriş izni yok
+        if (Boolean.FALSE.equals(user.getEmailVerified())) {
+            throw new BaseException(ErrorCode.EMAIL_NOT_VERIFIED);
         }
 
         try {

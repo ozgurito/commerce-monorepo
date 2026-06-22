@@ -11,6 +11,8 @@ import com.commerce.monorepo.ratelimit.RateLimit;
 import com.commerce.monorepo.service.AuthService;
 import com.commerce.monorepo.service.RefreshTokenService;
 import com.commerce.monorepo.service.PasswordResetService;
+import com.commerce.monorepo.service.EmailVerificationService;
+import com.commerce.monorepo.dto.ResendVerificationRequest;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -35,6 +37,7 @@ public class AuthController {
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenService refreshTokenService;
     private final PasswordResetService passwordResetService;
+    private final EmailVerificationService emailVerificationService;
     private final IpExtract ipExtract;
     private final RateLimitService rateLimitService;
 
@@ -108,6 +111,35 @@ public class AuthController {
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
         return ResponseEntity.ok(res);
+    }
+
+    // ============================================
+    // EMAIL VERIFICATION ENDPOINTS
+    // ============================================
+
+    /**
+     * Doğrulama linkine tıklandığında çağrılır
+     *
+     * Örnek: GET /api/auth/verify-email?token=xxx
+     */
+    @GetMapping("/verify-email")
+    public ResponseEntity<Map<String, String>> verifyEmail(@RequestParam String token) {
+        emailVerificationService.verifyEmail(token);
+        return ResponseEntity.ok(Map.of("message", "E-posta adresiniz başarıyla doğrulandı."));
+    }
+
+    /**
+     * Yeni doğrulama emaili gönderir
+     *
+     * Örnek: POST /api/auth/verify-email/resend
+     */
+    @PostMapping("/verify-email/resend")
+    @RateLimit(key = "auth:verify-resend", limit = 3, windowSeconds = 300)
+    public ResponseEntity<Map<String, String>> resendVerificationEmail(
+            @Valid @RequestBody ResendVerificationRequest request) {
+        emailVerificationService.resendVerificationEmail(request.email());
+        return ResponseEntity.ok(Map.of(
+                "message", "Eğer bu e-posta kayıtlı ve doğrulanmamışsa, yeni bir bağlantı gönderildi."));
     }
 
     // ============================================

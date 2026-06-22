@@ -35,7 +35,7 @@ const inputCls = (hasError?: boolean) =>
      : 'border-gray-200 focus:border-orange focus:ring-orange/20'}`
 
 interface Props {
-  onSuccess?: () => void
+  onSuccess?: (email?: string) => void
   onSwitchToLogin?: () => void
 }
 
@@ -57,8 +57,8 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: Props) {
         email: values.email,
         password: values.password,
       })
-      toast.success('Kayıt oluşturuldu. Lütfen giriş yapın.')
-      onSuccess?.()
+      toast.success('Kayıt oluşturuldu! E-postanızı doğrulayın.')
+      onSuccess?.(values.email)
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message

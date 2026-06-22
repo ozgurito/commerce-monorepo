@@ -12,6 +12,10 @@ public enum ErrorCode {
     ACCESS_DENIED("1003", "Bu işlemi yapmaya yetkiniz yok", HttpStatus.FORBIDDEN),
     ACCOUNT_DISABLED("1014", "Hesabınız askıya alınmıştır. Destek ile iletişime geçin.", HttpStatus.FORBIDDEN),
     ACCOUNT_LOCKED("1015", "Çok fazla hatalı giriş denemesi. Hesabınız geçici olarak kilitlendi. Lütfen 15 dakika sonra tekrar deneyin.", HttpStatus.FORBIDDEN),
+    EMAIL_NOT_VERIFIED("1016", "E-posta adresinizi doğrulamanız gerekiyor. Lütfen e-posta kutunuzu kontrol edin.", HttpStatus.FORBIDDEN),
+    VERIFICATION_TOKEN_INVALID("1017", "Geçersiz doğrulama bağlantısı", HttpStatus.BAD_REQUEST),
+    VERIFICATION_TOKEN_EXPIRED("1018", "Doğrulama bağlantısının süresi dolmuş. Yeni bir bağlantı talep edin.", HttpStatus.BAD_REQUEST),
+    VERIFICATION_TOKEN_USED("1019", "Bu doğrulama bağlantısı zaten kullanılmış", HttpStatus.BAD_REQUEST),
 
     EMAIL_TAKEN("1004", "Bu e-posta zaten kayıtlı", HttpStatus.CONFLICT),
     FULL_NAME_TAKEN("1005", "Bu kullanıcı adı zaten kullanımda", HttpStatus.CONFLICT),

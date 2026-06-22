@@ -22,7 +22,7 @@ export function KayitClient() {
       </div>
 
       <RegisterForm
-        onSuccess={() => router.push('/giris')}
+        onSuccess={(email) => router.push(`/email-dogrulama-gonderildi?email=${encodeURIComponent(email ?? '')}`)}
         onSwitchToLogin={() => router.push('/giris')}
       />
     </div>

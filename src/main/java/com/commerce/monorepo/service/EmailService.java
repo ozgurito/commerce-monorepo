@@ -34,6 +34,33 @@ public class EmailService {
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
 
     /**
+     * Email doğrulama linki gönderir
+     */
+    @Async
+    public void sendEmailVerificationEmail(User user, String token) {
+        try {
+            String verifyUrl = appProperties.getFrontendUrl() + "/email-dogrula?token=" + token;
+
+            Context context = new Context();
+            context.setVariable("userName", user.getFullName() != null ? user.getFullName() : user.getEmail());
+            context.setVariable("verifyUrl", verifyUrl);
+            context.setVariable("expiryHours", 24);
+
+            String htmlContent = templateEngine.process("email/email-verification", context);
+
+            log.info("Email verification token for {} — verify URL: {}", user.getEmail(), verifyUrl);
+
+            sendHtmlEmail(
+                user.getEmail(),
+                "E-posta Adresinizi Doğrulayın",
+                htmlContent
+            );
+        } catch (Exception e) {
+            log.error("Failed to send verification email to {}: {}", user.getEmail(), e.getMessage());
+        }
+    }
+
+    /**
      * Şifre sıfırlama emaili gönderir
      */
     @Async
