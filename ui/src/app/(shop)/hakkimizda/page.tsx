@@ -25,7 +25,7 @@ const VALUES = [
   {
     icon: Truck,
     title: 'Hızlı Teslimat',
-    desc: '150₺ ve üzeri siparişlerde ücretsiz kargo. Siparişiniz ortalama 1–3 iş günü içinde kapınıza teslim.',
+    desc: '1000₺ ve üzeri siparişlerde ücretsiz kargo. Siparişiniz ortalama 1–3 iş günü içinde kapınıza teslim.',
   },
   {
     icon: Shield,
@@ -35,7 +35,7 @@ const VALUES = [
   {
     icon: Heart,
     title: 'Müşteri Önce',
-    desc: '30 gün koşulsuz iade garantisi ve 7/24 destek ekibimizle alışverişin her adımında yanınızdayız.',
+    desc: '14 gün koşulsuz iade garantisi ve 7/24 destek ekibimizle alışverişin her adımında yanınızdayız.',
   },
 ]
 

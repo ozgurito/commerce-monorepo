@@ -3,14 +3,14 @@ import Link from 'next/link'
 import { Truck, RotateCcw, Shield, Phone } from 'lucide-react'
 
 const TICKER_ITEMS = [
-  { icon: Truck,      text: 'Ücretsiz kargo',  highlight: '4 ürün ve üzeri' },
+  { icon: Truck,      text: 'Ücretsiz kargo',  highlight: '1000₺ ve üzeri' },
   { icon: RotateCcw,  text: 'Kolay iade',       highlight: '14 gün yasal süre' },
   { icon: Shield,     text: 'Güvenli ödeme',    highlight: '256-bit SSL' },
-  { icon: Phone,      text: 'Müşteri hattı',    highlight: '0541 877 16 35' },
-  { icon: Truck,      text: 'Ücretsiz kargo',  highlight: '4 ürün ve üzeri' },
+  { icon: Phone,      text: 'Müşteri hattı',    highlight: '0541 877 16 35', href: 'tel:+905418771635' },
+  { icon: Truck,      text: 'Ücretsiz kargo',  highlight: '1000₺ ve üzeri' },
   { icon: RotateCcw,  text: 'Kolay iade',       highlight: '14 gün yasal süre' },
   { icon: Shield,     text: 'Güvenli ödeme',    highlight: '256-bit SSL' },
-  { icon: Phone,      text: 'Müşteri hattı',    highlight: '0541 877 16 35' },
+  { icon: Phone,      text: 'Müşteri hattı',    highlight: '0541 877 16 35', href: 'tel:+905418771635' },
 ]
 
 export function TopBar() {
@@ -20,15 +20,22 @@ export function TopBar() {
       <div className="flex items-center animate-[marquee_32s_linear_infinite] whitespace-nowrap flex-shrink-0">
         {TICKER_ITEMS.map((item, i) => {
           const Icon = item.icon
-          return (
-            <div
-              key={i}
-              className="text-[11.5px] font-semibold text-white/80 px-9 flex items-center
-                         gap-[7px] border-r border-white/10 flex-shrink-0"
-            >
+          const className = "text-[11.5px] font-semibold text-white/80 px-9 flex items-center " +
+                            "gap-[7px] border-r border-white/10 flex-shrink-0"
+          const content = (
+            <>
               <Icon size={12} className="opacity-70 flex-shrink-0" />
               {item.text}{' '}
               <strong className="text-amber-400">{item.highlight}</strong>
+            </>
+          )
+          return item.href ? (
+            <a key={i} href={item.href} className={className + ' hover:text-white transition-colors'}>
+              {content}
+            </a>
+          ) : (
+            <div key={i} className={className}>
+              {content}
             </div>
           )
         })}

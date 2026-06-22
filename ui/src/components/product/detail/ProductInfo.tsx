@@ -11,7 +11,7 @@ import { useAuthStore } from '@/store/auth.store'
 import { useUIStore } from '@/store/ui.store'
 import { useCartStore } from '@/store/cart.store'
 import { QUERY_KEYS } from '@/lib/query-keys'
-import { formatPrice, FREE_SHIPPING_ITEM_COUNT, SHIPPING_COST } from '@/utils/format'
+import { formatPrice, FREE_SHIPPING_THRESHOLD } from '@/utils/format'
 import { getProductBadge } from '@/utils/product-badge'
 import { VariantSelector, groupVariants } from './VariantSelector'
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed'
@@ -116,28 +116,24 @@ export function ProductInfo({ product, onGalleryChange, onColorSelect, imageClic
     return min + Math.floor((x - Math.floor(x)) * (max - min))
   }
 
-  // Saatlik değişen sayılar (her tam saatte güncellenir)
+  // Sosyal kanıt sayaçları — ürüne özgü tohumdan başlar, sonra birkaç saniyede bir
+  // küçük adımlarla (random walk) sınırlar içinde canlı oynar → sürekli dinamik his.
   useEffect(() => {
-    const calc = () => {
-      const hourSlot = Math.floor(Date.now() / (1000 * 60 * 60))       // saatte 1 değişir
-      const biHourSlot = Math.floor(Date.now() / (1000 * 60 * 60 * 2)) // 2 saatte 1 değişir
-      setSoldLastHour(seedNum(product.id * 13 + hourSlot,    3, 12))
-      setInCartCount(seedNum(product.id * 7  + biHourSlot,   8, 28))
-    }
-    calc()
-    // Her dakika kontrol et — saat değişince otomatik güncellenir
-    const id = setInterval(calc, 60_000)
-    return () => clearInterval(id)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [product.id])
+    setViewersNow(seedNum(product.id * 3, 3, 9))
+    setSoldLastHour(seedNum(product.id * 13, 4, 12))
+    setInCartCount(seedNum(product.id * 7, 9, 24))
 
-  // "Şu an inceliyor" — 30 saniyede bir hafif değişim (2–9 aralığı)
-  useEffect(() => {
-    const base = seedNum(product.id * 3, 2, 9)
-    setViewersNow(base)
+    const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v))
+    const drift = () => (Math.random() < 0.5 ? -1 : 1)
+
     const id = setInterval(() => {
-      setViewersNow(Math.max(1, base + Math.floor(Math.random() * 3) - 1))
-    }, 30_000)
+      // "Şu an inceliyor" → ANLIK metrik, gelen-giden olur (artıp azalabilir)
+      setViewersNow(v => clamp(v + drift(), 2, 12))
+      // "Son 1 saatte satıldı" → KÜMÜLATİF, azalmaz; ara sıra +1 artar
+      if (Math.random() < 0.12) setSoldLastHour(v => clamp(v + 1, 3, 18))
+      // "Sepette" → ANLIK (ekleyen-çıkaran olur), yavaşça artıp azalabilir
+      if (Math.random() < 0.3) setInCartCount(v => clamp(v + drift(), 8, 30))
+    }, 5000)
     return () => clearInterval(id)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product.id])
@@ -156,7 +152,7 @@ export function ProductInfo({ product, onGalleryChange, onColorSelect, imageClic
 
   const { token } = useAuthStore()
   const { openAuthModal } = useUIStore()
-  const { openDrawer, itemCount: cartItemCount } = useCartStore()
+  const { openDrawer, itemCount: cartItemCount, totalAmount: cartTotalAmount } = useCartStore()
   const queryClient = useQueryClient()
   const { push: pushRecent } = useRecentlyViewed()
   const router = useRouter()
@@ -194,16 +190,28 @@ export function ProductInfo({ product, onGalleryChange, onColorSelect, imageClic
   // Stok: Seçili Beden ve Renk kombinasyonuna uygun varyantı bulmaya çalış
   const selectedSize = selections['Beden'] ?? null
   const selectedColor = selections['Renk'] ?? null
-  
-  // Kombinasyon arayışı: Hem seçili beden hem de seçili renkle eşleşen bir varyant var mı?
+
+  // Varyant grupları — renk/beden seçenek sayısı. 1 ise gerçek bir seçim yok (tek renk/tek beden)
+  // → seçim zorunlu DEĞİL ve otomatik kullanılır ki doğru variantId sepete gitsin.
+  const variantGroups = useMemo(() => groupVariants(product.variants ?? []), [product.variants])
+  const colorOptions = variantGroups['Renk'] ?? []
+  const sizeOptions = variantGroups['Beden'] ?? []
+  const colorRequired = colorOptions.length > 1
+  const sizeRequired = sizeOptions.length > 1
+
+  // Tek seçenekli boyut/renk kullanıcı seçmese de otomatik devreye girer
+  const effectiveColor = selectedColor ?? (colorOptions.length === 1 ? colorOptions[0] : null)
+  const effectiveSize = selectedSize ?? (sizeOptions.length === 1 ? sizeOptions[0] : null)
+
+  // Kombinasyon arayışı: Hem beden hem renkle eşleşen bir varyant var mı?
   let activeVariant = null
   if (product.variants?.length) {
-    if (selectedSize && selectedColor) {
-      activeVariant = product.variants.find(v => v.size === selectedSize.size && v.color === selectedColor.color)
+    if (effectiveSize && effectiveColor) {
+      activeVariant = product.variants.find(v => v.size === effectiveSize.size && v.color === effectiveColor.color)
     }
-    // Kombinasyon bulunamadıysa (veya sadece biri seçiliyse) seçili olanı kullan
+    // Kombinasyon bulunamadıysa (veya sadece biri varsa) onu kullan
     if (!activeVariant) {
-      activeVariant = selectedSize ?? selectedColor ?? null
+      activeVariant = effectiveSize ?? effectiveColor ?? null
     }
   }
 
@@ -213,9 +221,10 @@ export function ProductInfo({ product, onGalleryChange, onColorSelect, imageClic
   const isOutOfStock = effectiveStock === 0
   const maxQty = effectiveStock
   const displayPrice = product.price + (activeVariant?.priceModifier ?? 0)
-  const totalCartItems = cartItemCount + quantity   // sepetteki + şu an seçili adet
-  const hasFreeShipping = totalCartItems >= FREE_SHIPPING_ITEM_COUNT
-  const itemsUntilFree = Math.max(0, FREE_SHIPPING_ITEM_COUNT - totalCartItems)
+  // Kargo fiyat bazlı: sepet parasal toplamı + şu an seçili miktar × birim fiyat ≥ 1000₺ → ücretsiz
+  const cartMoneyTotal = cartTotalAmount + displayPrice * quantity
+  const hasFreeShipping = cartMoneyTotal >= FREE_SHIPPING_THRESHOLD
+  const amountUntilFree = Math.max(0, FREE_SHIPPING_THRESHOLD - cartMoneyTotal)
 
   const cartMutation = useMutation({
     mutationFn: () => cartApi.addItem({ productId: product.id, variantId: activeVariant?.id, quantity }),
@@ -248,14 +257,10 @@ export function ProductInfo({ product, onGalleryChange, onColorSelect, imageClic
   const handleAddToCart = () => {
     if (!token) { openAuthModal('login'); return }
 
-    // Hangi gruplar zorunlu ama seçilmedi?
-    const groups = groupVariants(product.variants ?? [])
+    // Hangi gruplar gerçekten zorunlu (birden fazla seçenek var) ama seçilmedi?
     const missing: string[] = []
-
-    // Beden varsa beden seçimi zorunlu
-    if (groups['Beden']?.length && !selections['Beden']) missing.push('Beden')
-    // Renk grubu varsa (COMBINED veya tek renk) renk seçimi zorunlu
-    if (groups['Renk']?.length && !selections['Renk']) missing.push('Renk')
+    if (sizeRequired && !selections['Beden']) missing.push('Beden')
+    if (colorRequired && !selections['Renk']) missing.push('Renk')
 
     if (missing.length > 0) {
       setErrorGroups(missing)
@@ -264,8 +269,8 @@ export function ProductInfo({ product, onGalleryChange, onColorSelect, imageClic
       return
     }
 
-    // Seçili kombine varyantın stoğu yoksa engelle
-    if (activeVariant && activeVariant.stock === 0) {
+    // Kullanıcı açıkça seçim yaptıysa ve o kombinasyonun stoğu yoksa engelle
+    if ((selectedSize || selectedColor) && activeVariant && activeVariant.stock === 0) {
       toast.error('Seçili beden/renk kombinasyonu stokta kalmadı')
       return
     }
@@ -277,10 +282,9 @@ export function ProductInfo({ product, onGalleryChange, onColorSelect, imageClic
   const handleBuyNow = () => {
     if (!token) { openAuthModal('login'); return }
 
-    const groups = groupVariants(product.variants ?? [])
     const missing: string[] = []
-    if (groups['Beden']?.length && !selections['Beden']) missing.push('Beden')
-    if (groups['Renk']?.length && !selections['Renk']) missing.push('Renk')
+    if (sizeRequired && !selections['Beden']) missing.push('Beden')
+    if (colorRequired && !selections['Renk']) missing.push('Renk')
 
     if (missing.length > 0) {
       setErrorGroups(missing)
@@ -289,8 +293,8 @@ export function ProductInfo({ product, onGalleryChange, onColorSelect, imageClic
       return
     }
 
-    // Seçili kombine varyantın stoğu yoksa engelle
-    if (activeVariant && activeVariant.stock === 0) {
+    // Kullanıcı açıkça seçim yaptıysa ve o kombinasyonun stoğu yoksa engelle
+    if ((selectedSize || selectedColor) && activeVariant && activeVariant.stock === 0) {
       toast.error('Seçili beden/renk kombinasyonu stokta kalmadı')
       return
     }
@@ -341,11 +345,15 @@ export function ProductInfo({ product, onGalleryChange, onColorSelect, imageClic
           </p>
           <button
             onClick={handleShare}
-            className="flex items-center gap-1.5 text-sm font-semibold text-gray-500
-                       hover:text-orange transition-colors px-2.5 py-1.5 rounded-xl
-                       border border-gray-200 hover:border-orange/40 bg-white"
+            className={`flex items-center gap-1.5 text-sm font-semibold transition-colors
+                       px-2.5 py-1.5 rounded-xl border bg-white
+                       ${copied
+                         ? 'text-green-600 border-green-300'
+                         : 'text-orange border-orange/40 hover:bg-orange/5'}`}
           >
-            {copied ? <Check size={16} className="text-green-500" /> : <Share2 size={16} />}
+            {copied
+              ? <Check size={15} className="text-green-500" />
+              : <Share2 size={15} className="animate-blink" />}
             {copied ? 'Kopyalandı' : 'Paylaş'}
           </button>
         </div>
@@ -408,13 +416,16 @@ export function ProductInfo({ product, onGalleryChange, onColorSelect, imageClic
         </div>
       )}
 
-      {/* Sosyal kanıt */}
+      {/* Sosyal kanıt — küçük kutular + her birinde canlı yanıp sönen nokta */}
       {!isOutOfStock && (
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {/* Şu an inceliyor */}
           <div className="flex items-center gap-2 text-sm text-gray-600 bg-blue-50 border border-blue-100
                           rounded-xl px-3 py-2">
-            <Users size={14} className="text-blue-500 flex-shrink-0" />
+            <span className="relative flex h-2 w-2 flex-shrink-0">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-blue-500" />
+            </span>
             <span>
               Şu an{' '}
               <strong className="text-blue-700">{Math.max(1, viewersNow)} kişi</strong>
@@ -425,6 +436,7 @@ export function ProductInfo({ product, onGalleryChange, onColorSelect, imageClic
           {/* Son saatte satış */}
           <div className="flex items-center gap-2 text-sm text-gray-600 bg-orange-50 border border-orange-100
                           rounded-xl px-3 py-2">
+            <span className="h-2 w-2 rounded-full bg-orange flex-shrink-0 animate-blink" />
             <TrendingUp size={14} className="text-orange flex-shrink-0" />
             <span>
               Son 1 saatte{' '}
@@ -436,6 +448,7 @@ export function ProductInfo({ product, onGalleryChange, onColorSelect, imageClic
           {/* Sepetinde */}
           <div className="flex items-center gap-2 text-sm text-gray-600 bg-amber-50 border border-amber-100
                           rounded-xl px-3 py-2">
+            <span className="h-2 w-2 rounded-full bg-amber-500 flex-shrink-0 animate-blink" />
             <ShoppingCart size={14} className="text-amber-500 flex-shrink-0" />
             <span>
               <strong className="text-gray-800">{inCartCount} kişinin</strong>
@@ -582,7 +595,7 @@ export function ProductInfo({ product, onGalleryChange, onColorSelect, imageClic
           <span className="text-xs text-gray-400">(görselden seçildi)</span>
         </div>
       )}
-      {imagesHaveVariants && !selections['Renk'] && (
+      {imagesHaveVariants && colorSwatches.length > 1 && !selections['Renk'] && (
         <p className="text-xs text-gray-400 flex items-center gap-1">
           <span>👆</span> Görsele tıklayarak renk seçin
         </p>
@@ -714,7 +727,7 @@ export function ProductInfo({ product, onGalleryChange, onColorSelect, imageClic
               <div className="flex items-center gap-2 text-gray-600 mb-2">
                 <Truck size={15} className="text-orange flex-shrink-0" />
                 <span className="text-sm">
-                  <strong className="text-orange">{itemsUntilFree} ürün</strong>
+                  <strong className="text-orange">{formatPrice(amountUntilFree)}</strong>
                   {' '}daha ekle, kargo bedava!
                 </span>
               </div>
@@ -723,12 +736,12 @@ export function ProductInfo({ product, onGalleryChange, onColorSelect, imageClic
                   className="h-full bg-gradient-to-r from-orange to-orange-dark rounded-full
                                transition-all duration-500"
                   style={{
-                    width: `${Math.min(100, (totalCartItems / FREE_SHIPPING_ITEM_COUNT) * 100)}%`
+                    width: `${Math.min(100, (cartMoneyTotal / FREE_SHIPPING_THRESHOLD) * 100)}%`
                   }}
                 />
               </div>
               <p className="text-[10px] text-gray-400 mt-1 text-right">
-                {totalCartItems}/{FREE_SHIPPING_ITEM_COUNT} ürün
+                {formatPrice(cartMoneyTotal)} / {formatPrice(FREE_SHIPPING_THRESHOLD)}
               </p>
             </div>
           )}

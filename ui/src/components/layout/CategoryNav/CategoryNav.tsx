@@ -118,6 +118,7 @@ export function CategoryNav() {
             >
               <Link
                 href={`/kategori/${cat.slug}`}
+                onClick={() => { setOpenSlug(null); setAllOpen(false) }}
                 className={`flex items-center gap-1 h-full px-3 text-[13px] font-medium
                             whitespace-nowrap border-b-2 transition-all
                             ${isActive || isOpen

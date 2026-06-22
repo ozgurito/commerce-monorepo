@@ -1,4 +1,4 @@
-import { formatPrice } from '@/utils/format'
+import { formatPrice, FREE_SHIPPING_THRESHOLD, SHIPPING_COST } from '@/utils/format'
 import type { CartDto } from '@/domains/cart/cart.types'
 
 interface Props {
@@ -10,7 +10,8 @@ interface Props {
 export function OrderSummary({ cart, couponCode, discountAmount }: Props) {
   const discount = discountAmount ?? 0
   const discountedSubtotal = Math.max(0, cart.totalAmount - discount)
-  const shipping = cart.totalAmount >= 300 ? 0 : 49
+  // Kargo: ara toplam (indirim öncesi) ≥ 1000₺ → ücretsiz; altında 29,90₺. Kupon kargoyu etkilemez.
+  const shipping = cart.totalAmount >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST
   const grandTotal = discountedSubtotal + shipping
 
   return (

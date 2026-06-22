@@ -59,8 +59,8 @@ export function SaleBannerStrip() {
             </div>
             <div className="relative grid grid-cols-3 gap-4 w-full">
               {[
-                { icon: Truck,       title: 'Ücretsiz Kargo',  desc: '150₺ üzeri tüm siparişlerde' },
-                { icon: RotateCcw,   title: '30 Gün İade',     desc: 'Kolay ve ücretsiz iade' },
+                { icon: Truck,       title: 'Ücretsiz Kargo',  desc: '1000₺ üzeri tüm siparişlerde' },
+                { icon: RotateCcw,   title: '14 Gün İade',     desc: 'Kolay ve ücretsiz iade' },
                 { icon: Shield,      title: 'Güvenli Ödeme',   desc: '256-bit SSL şifreleme' },
               ].map(({ icon: Icon, title, desc }) => (
                 <div key={title} className="flex flex-col items-center text-center gap-1.5">

@@ -16,46 +16,31 @@ import java.math.BigDecimal;
 @Slf4j
 public class ShippingService {
 
-    // Sabit değerler — ileride DB tablosuna taşınabilir
-    private static final BigDecimal FREE_SHIPPING_THRESHOLD = new BigDecimal("300.00");
-    private static final BigDecimal RATE_LIGHT   = new BigDecimal("29.00");  // 0–500g
-    private static final BigDecimal RATE_MEDIUM  = new BigDecimal("49.00");  // 500g–2kg
-    private static final BigDecimal RATE_HEAVY   = new BigDecimal("69.00");  // 2kg+
+    // Kargo politikası: 1000₺ ve üzeri (ara toplam, indirim ÖNCESİ) ücretsiz; altında sabit 29,90₺.
+    // Ağırlık bazlı kademe kaldırıldı — ileride DB/admin paneline taşınabilir.
+    private static final BigDecimal FREE_SHIPPING_THRESHOLD = new BigDecimal("1000.00");
+    private static final BigDecimal FLAT_RATE = new BigDecimal("29.90");
 
     /**
-     * Kargo ücretini hesaplar.
+     * Kargo ücretini hesaplar (tutar bazlı, tek standart).
      *
-     * @param orderSubtotal  Ürün tutarı (indirim öncesi)
-     * @param weightKg       Toplam ağırlık (kg). null ise orta kademe uygulanır.
-     * @return               Kargo ücreti (₺). Ücretsiz kargoda 0.
+     * @param orderSubtotal  Ürün ara toplamı (indirim öncesi)
+     * @return               1000₺ ve üzeri → 0; altında → 29,90₺
      */
-    public BigDecimal calculate(BigDecimal orderSubtotal, BigDecimal weightKg) {
-        // 300₺ ve üzeri bedava kargo
+    public BigDecimal calculate(BigDecimal orderSubtotal) {
         if (orderSubtotal != null
                 && orderSubtotal.compareTo(FREE_SHIPPING_THRESHOLD) >= 0) {
-            log.debug("Ücretsiz kargo uygulandı — sipariş tutarı: {}", orderSubtotal);
+            log.debug("Ücretsiz kargo uygulandı — ara toplam: {}", orderSubtotal);
             return BigDecimal.ZERO;
         }
-
-        // Ağırlığa göre hesapla
-        if (weightKg == null) {
-            return RATE_MEDIUM;
-        }
-
-        if (weightKg.compareTo(new BigDecimal("0.5")) <= 0) {
-            return RATE_LIGHT;
-        } else if (weightKg.compareTo(new BigDecimal("2.0")) <= 0) {
-            return RATE_MEDIUM;
-        } else {
-            return RATE_HEAVY;
-        }
+        return FLAT_RATE;
     }
 
     /**
-     * Sadece tutar bazlı (ağırlık bilinmiyorsa) hesaplama.
+     * Ağırlık parametreli eski imza — geriye dönük uyumluluk için korunur; ağırlık artık dikkate alınmaz.
      */
-    public BigDecimal calculate(BigDecimal orderSubtotal) {
-        return calculate(orderSubtotal, null);
+    public BigDecimal calculate(BigDecimal orderSubtotal, BigDecimal weightKg) {
+        return calculate(orderSubtotal);
     }
 
     /**

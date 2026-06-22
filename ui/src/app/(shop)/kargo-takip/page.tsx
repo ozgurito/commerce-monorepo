@@ -83,17 +83,21 @@ export default function KargoTakipPage() {
         <div className="grid sm:grid-cols-2 gap-4">
           {[
             { icon: Truck, title: 'Standart Kargo', desc: '1–3 iş günü içinde teslim' },
-            { icon: Package, title: 'Ücretsiz Kargo', desc: '150 TL ve üzeri siparişlerde' },
+            { icon: Package, title: 'Ücretsiz Kargo', desc: '1000 TL ve üzeri siparişlerde' },
             { icon: MapPin, title: 'Teslimat Bölgesi', desc: 'Türkiye geneli tüm iller' },
-            { icon: Phone, title: 'Kargo Desteği', desc: '0541 877 16 35' },
-          ].map(({ icon: Icon, title, desc }) => (
+            { icon: Phone, title: 'Kargo Desteği', desc: '0541 877 16 35', href: 'tel:+905418771635' },
+          ].map(({ icon: Icon, title, desc, href }) => (
             <div key={title} className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl">
               <div className="w-9 h-9 bg-orange/10 rounded-xl flex items-center justify-center flex-shrink-0">
                 <Icon size={16} className="text-orange" />
               </div>
               <div>
                 <p className="font-bold text-gray-800 text-sm">{title}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{desc}</p>
+                {href ? (
+                  <a href={href} className="text-xs text-gray-500 mt-0.5 block hover:text-orange transition-colors">{desc}</a>
+                ) : (
+                  <p className="text-xs text-gray-500 mt-0.5">{desc}</p>
+                )}
               </div>
             </div>
           ))}
@@ -106,7 +110,7 @@ export default function KargoTakipPage() {
         <div className="space-y-3">
           {[
             { q: 'Kargom ne zaman gelecek?', a: 'Siparişiniz onaylandıktan sonra 1–3 iş günü içinde teslim edilir.' },
-            { q: 'Kargo ücretini nasıl öğrenirim?', a: '150 TL ve üzeri siparişlerde kargo ücretsizdir. Altında kalan siparişler için 29,90 TL kargo ücreti uygulanır.' },
+            { q: 'Kargo ücretini nasıl öğrenirim?', a: '1000 TL ve üzeri siparişlerde kargo ücretsizdir. Altında kalan siparişler için 29,90 TL kargo ücreti uygulanır.' },
             { q: 'Kargom kaybolursa ne yapmalıyım?', a: 'Müşteri hizmetlerimizi arayın: 0541 877 16 35. 24 saat içinde dönüş sağlarız.' },
           ].map(({ q, a }) => (
             <div key={q} className="border border-gray-100 rounded-xl p-4">

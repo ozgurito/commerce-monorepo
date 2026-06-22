@@ -3,14 +3,14 @@ import { RotateCcw, CheckCircle, Clock, Phone } from 'lucide-react'
 
 export const metadata: Metadata = {
   title: 'İade & Değişim | AlışverişNoktan',
-  description: '30 gün iade garantisi. Kolay ve ücretsiz iade süreci.',
+  description: '14 gün iade garantisi. Kolay ve ücretsiz iade süreci.',
 }
 
 export default function IadePage() {
   return (
     <div className="max-w-[860px] mx-auto px-5 py-12">
       <h1 className="text-3xl font-extrabold text-navy-dark mb-2">İade & Değişim</h1>
-      <p className="text-gray-500 mb-10">30 gün içinde koşulsuz iade garantisi</p>
+      <p className="text-gray-500 mb-10">14 gün içinde koşulsuz iade garantisi</p>
 
       {/* Hero Banner */}
       <div className="bg-gradient-to-r from-navy-dark to-navy rounded-2xl p-6 mb-10 text-white flex items-center gap-4">
@@ -18,7 +18,7 @@ export default function IadePage() {
           <RotateCcw size={24} className="text-white" />
         </div>
         <div>
-          <p className="font-extrabold text-lg">30 Gün Koşulsuz İade</p>
+          <p className="font-extrabold text-lg">14 Gün Koşulsuz İade</p>
           <p className="text-white/70 text-sm mt-0.5">
             Ürünü beğenmezseniz, hiçbir soru sormadan iade alıyoruz.
           </p>
@@ -30,7 +30,7 @@ export default function IadePage() {
         <h2 className="text-xl font-bold text-navy-dark mb-4">İade Koşulları</h2>
         <div className="space-y-3">
           {[
-            'Ürün teslim tarihinden itibaren 30 gün içinde iade talebinde bulunulmalıdır.',
+            'Ürün teslim tarihinden itibaren 14 gün içinde iade talebinde bulunulmalıdır.',
             'İade edilecek ürün kullanılmamış, yıkanmamış ve orijinal etiketleri üzerinde olmalıdır.',
             'Ürün, orijinal ambalajı (varsa) ile birlikte iade edilmelidir.',
             'İç giyim ve mayo gibi hijyen ürünleri iade kapsamı dışındadır.',

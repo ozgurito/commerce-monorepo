@@ -20,7 +20,7 @@ export default function BasinPage() {
           güncel koleksiyonlar sunan marka; hız, kalite ve müşteri memnuniyetini öncelik olarak benimsemektedir.
         </p>
         <p className="text-gray-600 leading-relaxed">
-          Tüm ürünlerimiz sertifikalı tedarikçilerden temin edilmekte; 30 gün iade garantisi ve ücretsiz
+          Tüm ürünlerimiz sertifikalı tedarikçilerden temin edilmekte; 14 gün iade garantisi ve ücretsiz
           kargo seçenekleriyle müşterilerimize güvenli alışveriş deneyimi sunulmaktadır.
         </p>
       </section>
@@ -32,7 +32,7 @@ export default function BasinPage() {
           {[
             { num: '500+', label: 'Aktif Ürün' },
             { num: '10K+', label: 'Mutlu Müşteri' },
-            { num: '30 gün', label: 'İade Garantisi' },
+            { num: '14 gün', label: 'İade Garantisi' },
             { num: '1–3 gün', label: 'Teslimat Süresi' },
           ].map(({ num, label }) => (
             <div key={label} className="bg-gray-50 rounded-2xl p-5 text-center">

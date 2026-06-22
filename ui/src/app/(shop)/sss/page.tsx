@@ -16,11 +16,11 @@ const SSS_ITEMS = [
   },
   {
     q: 'Ücretsiz kargo eşiği nedir?',
-    a: '150₺ ve üzeri siparişlerinizde kargo tamamen ücretsizdir. Sepet toplamınız 150₺\'nin altında kalırsa sabit 29,90₺ kargo ücreti uygulanır.',
+    a: '1000₺ ve üzeri siparişlerinizde kargo tamamen ücretsizdir. Sepet ara toplamınız 1000₺\'nin altında kalırsa sabit 29,90₺ kargo ücreti uygulanır.',
   },
   {
     q: 'Ürünü iade edebilir miyim?',
-    a: 'Evet! Teslim tarihinden itibaren 30 gün içinde, ürünü kullanmamış ve etiketini sökmemiş olmanız koşuluyla koşulsuz iade hakkınız bulunmaktadır. İade talebinizi "Hesabım > Siparişlerim" bölümünden başlatabilirsiniz.',
+    a: 'Evet! Teslim tarihinden itibaren 14 gün içinde, ürünü kullanmamış ve etiketini sökmemiş olmanız koşuluyla koşulsuz iade hakkınız bulunmaktadır. İade talebinizi "Hesabım > Siparişlerim" bölümünden başlatabilirsiniz.',
   },
   {
     q: 'Beden seçiminde nasıl karar vermeliyim?',

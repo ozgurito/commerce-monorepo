@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
@@ -59,6 +59,15 @@ function getStamp(product: ProductDto, discountPct: number, isOutOfStock: boolea
 export function ProductCard({ product, priority = false }: Props) {
   const [wishlisted, setWishlisted] = useState(false)
   const [addingCart, setAddingCart] = useState(false)
+
+  // "24 saatte X inceledi" — KÜMÜLATİF sayı, azalmaz; ara sıra +1 artar (canlı ama gerçekçi)
+  const [views, setViews] = useState(() => seedViews(product.id))
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (Math.random() < 0.25) setViews(v => Math.min(220, v + 1))
+    }, 6000)
+    return () => clearInterval(id)
+  }, [])
   const { token } = useAuthStore()
   const { openAuthModal } = useUIStore()
   const { openDrawer } = useCartStore()
@@ -273,7 +282,7 @@ export function ProductCard({ product, priority = false }: Props) {
             <Users size={9} className="text-gray-400 flex-shrink-0" />
             <span className="text-[10px] text-gray-400">
               24 saatte{' '}
-              <strong className="text-gray-600">{seedViews(product.id).toLocaleString('tr-TR')}</strong>
+              <strong className="text-gray-600">{views.toLocaleString('tr-TR')}</strong>
               {' '}kişi inceledi
             </span>
           </div>

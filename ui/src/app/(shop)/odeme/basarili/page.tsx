@@ -111,7 +111,7 @@ export default async function BasariliPage({ searchParams }: Props) {
               <Phone size={16} className="text-gray-400 flex-shrink-0 mt-0.5" />
               <p className="text-xs text-gray-500">
                 Siparişinizle ilgili sorularınız için{' '}
-                <span className="font-semibold text-navy-dark">destek@alisverisnoktan.com</span>
+                <a href="mailto:destek@alisverisnoktan.com" className="font-semibold text-navy-dark hover:text-orange transition-colors">destek@alisverisnoktan.com</a>
                 {' '}adresine yazabilirsiniz.
               </p>
             </div>

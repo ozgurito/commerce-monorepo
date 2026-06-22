@@ -135,9 +135,9 @@ export function HeroSlider() {
           {/* Trust badges */}
           <div className="flex items-center gap-5 mt-8 flex-wrap">
             {[
-              { icon: Truck,  text: 'Ücretsiz kargo' },
+              { icon: Truck,  text: '1000₺ üzeri ücretsiz kargo' },
               { icon: Shield, text: 'Güvenli ödeme' },
-              { icon: Tag,    text: '30 gün iade' },
+              { icon: Tag,    text: '14 gün iade' },
             ].map(({ icon: Icon, text }) => (
               <div key={text} className="flex items-center gap-1.5 text-white/55 text-[11px] font-medium">
                 <Icon size={12} className="text-orange/80" />

@@ -25,9 +25,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.hibernate.Hibernate;
@@ -43,6 +45,7 @@ public class ProductService {
     private EntityManager em;
     private final ProductImageRepository productImageRepository;
     private final ProductVariantRepository variantRepository;
+    private final SearchCategoryResolver searchCategoryResolver;
 
     @Transactional(readOnly = true)
     public Page<ProductDto> list(Pageable pageable) {
@@ -62,6 +65,9 @@ public class ProductService {
     public Page<ProductDto> listFiltered(ProductSearchRequest request) {
         request = request.withDefaults();
 
+        // R7 — Arama kelimesini kategoriye + renge çöz (ad bazlı alt-dizgi karışıklığını önler)
+        applyKeywordResolution(request);
+
         // Alt kategorileri dahil et: categoryId yerine tüm child id'leri kullan
         if (request.getCategoryId() != null && Boolean.TRUE.equals(request.getIncludeSubcategories())) {
             List<Long> categoryIds = categoryRepository.findCategoryAndChildIds(request.getCategoryId());
@@ -74,10 +80,83 @@ public class ProductService {
         Sort sort = createSort(request.getSortBy(), request.getSortDirection());
         Pageable pageable = PageRequest.of(request.getPage(), request.getSize(), sort);
 
+        // R7 Aşama 2 — Tek renk filtresi aktifse kartta o rengin varyant görselini göster
+        final String highlightColor = (request.getColors() != null && request.getColors().size() == 1)
+                ? request.getColors().get(0) : null;
+
         return repo.findAll(
                 ProductSpecification.buildSpecification(request),
                 pageable
-        ).map(this::mapToDto);
+        ).map(p -> {
+            ProductDto dto = mapToDto(p);
+            if (highlightColor != null) {
+                String colorImg = imageForColor(p, highlightColor);
+                if (colorImg != null) {
+                    dto = dto.toBuilder().imageUrl(colorImg).build();
+                }
+            }
+            return dto;
+        });
+    }
+
+    /**
+     * R7 — Arama kelimesini KATEGORİ ve RENGE çözer.
+     * - Kategori: yalnızca kullanıcı açıkça kategori seçmediğinde (categoryId/categoryIds boşken).
+     * - Renk: yalnızca kullanıcı açıkça renk seçmediğinde (colors boşken).
+     * Çözülen kelimeler keyword'den çıkarılır; kalanlar ad/açıklama araması olarak kalır.
+     * Örn: "kırmızı tişört" → kategori=T-Shirt + renk=Kırmızı; "kedi tişört" → T-Shirt + "kedi".
+     */
+    private void applyKeywordResolution(ProductSearchRequest request) {
+        if (!StringUtils.hasText(request.getKeyword())) return;
+
+        boolean canResolveCategory = request.getCategoryId() == null
+                && (request.getCategoryIds() == null || request.getCategoryIds().isEmpty());
+        boolean canResolveColor = request.getColors() == null || request.getColors().isEmpty();
+
+        String[] tokens = request.getKeyword().trim().split("\\s+");
+        List<String> remaining = new ArrayList<>();
+        Long resolvedCategoryId = null;
+        List<String> resolvedColors = new ArrayList<>();
+
+        for (String token : tokens) {
+            if (canResolveCategory && resolvedCategoryId == null) {
+                Optional<Long> cat = searchCategoryResolver.resolveTokenToCategory(token);
+                if (cat.isPresent()) {
+                    resolvedCategoryId = cat.get();
+                    continue;
+                }
+            }
+            if (canResolveColor) {
+                Optional<String> color = searchCategoryResolver.resolveTokenToColor(token);
+                if (color.isPresent()) {
+                    resolvedColors.add(color.get());
+                    continue;
+                }
+            }
+            remaining.add(token);
+        }
+
+        if (resolvedCategoryId != null || !resolvedColors.isEmpty()) {
+            if (resolvedCategoryId != null) request.setCategoryId(resolvedCategoryId);
+            if (!resolvedColors.isEmpty()) request.setColors(resolvedColors);
+            request.setKeyword(remaining.isEmpty() ? null : String.join(" ", remaining));
+        }
+    }
+
+    /**
+     * R7 Aşama 2 — Verilen renge ait varyant görselini döndürür (yoksa null).
+     * Görsel, ProductImage.variant.color üzerinden eşleştirilir (Türkçe-duyarlı normalize ile).
+     */
+    private String imageForColor(Product product, String color) {
+        if (product.getImages() == null || color == null) return null;
+        String target = SearchCategoryResolver.normalize(color);
+        return product.getImages().stream()
+                .filter(img -> img.getVariant() != null
+                        && target.equals(SearchCategoryResolver.normalize(img.getVariant().getColor())))
+                .map(ProductImage::getImageUrl)
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElse(null);
     }
 
     @Transactional(readOnly = true)

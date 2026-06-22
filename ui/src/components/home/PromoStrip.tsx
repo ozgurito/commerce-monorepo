@@ -4,14 +4,14 @@ const PROMOS = [
   {
     Icon: Truck,
     title: 'Ücretsiz Kargo',
-    desc: '150 TL ve üzeri siparişlerde',
+    desc: '1000 TL ve üzeri siparişlerde',
     color: 'text-blue-500',
     bg: 'bg-blue-50',
   },
   {
     Icon: RotateCcw,
     title: 'Kolay İade',
-    desc: '30 gün içinde ücretsiz',
+    desc: '14 gün içinde ücretsiz',
     color: 'text-green-500',
     bg: 'bg-green-50',
   },

@@ -36,12 +36,6 @@ const CHIPS: Chip[] = [
     params: { ...RESET, sortBy: 'averageRating', sortDir: 'DESC' },
   },
   {
-    id: 'kargo',
-    label: 'Kargo Bedava',
-    icon: '📦',
-    params: { ...RESET, minPrice: '150' },
-  },
-  {
     id: 'coksatan',
     label: 'En Çok Satan',
     icon: '🔥',

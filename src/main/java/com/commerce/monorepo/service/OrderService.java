@@ -165,13 +165,10 @@ public class OrderService {
             discountAmount = couponService.applyCouponToOrder(order, request.getCouponCode());
         }
         order.setDiscountAmount(discountAmount);
-        
-        // FREE_SHIPPING kuponu kontrolü
-        if (order.getCoupon() != null && 
-            order.getCoupon().getDiscountType() == com.commerce.monorepo.entity.DiscountType.FREE_SHIPPING) {
-            order.setShippingCost(BigDecimal.ZERO);
-        }
-        
+
+        // Not: Kupon kargoyu ETKİLEMEZ. Kargo yalnızca ara toplam (1000₺) kuralına bağlıdır.
+        // Eski FREE_SHIPPING kupon → kargo sıfırlama mantığı kaldırıldı (frontend/backend sapması olmasın).
+
         // Toplam = Subtotal + Tax + Shipping - Discount
         BigDecimal total = subtotal
             .add(order.getTax())

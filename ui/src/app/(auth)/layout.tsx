@@ -4,7 +4,7 @@ import { Shield, Truck, RotateCcw, Star } from 'lucide-react'
 const TRUST_ITEMS = [
   { icon: Shield,    text: 'Güvenli alışveriş' },
   { icon: Truck,     text: 'Hızlı teslimat' },
-  { icon: RotateCcw, text: '30 gün iade garantisi' },
+  { icon: RotateCcw, text: '14 gün iade garantisi' },
   { icon: Star,      text: '100.000+ mutlu müşteri' },
 ]
 

@@ -119,14 +119,14 @@ export function Footer() {
               Türkiye&apos;nin en sevilen giyim mağazası. Kaliteli ürünler, uygun fiyatlar ve hızlı teslimat.
             </p>
             <div className="mt-5 space-y-2">
-              <div className="flex items-center gap-2 text-sm text-white/60">
+              <a href="tel:+905418771635" className="flex items-center gap-2 text-sm text-white/60 hover:text-white transition-colors">
                 <Phone size={14} className="text-orange flex-shrink-0" />
                 0541 877 16 35
-              </div>
-              <div className="flex items-center gap-2 text-sm text-white/60">
+              </a>
+              <a href="mailto:destek@alisverisnoktan.com" className="flex items-center gap-2 text-sm text-white/60 hover:text-white transition-colors">
                 <Mail size={14} className="text-orange flex-shrink-0" />
                 destek@alisverisnoktan.com
-              </div>
+              </a>
               <div className="flex items-start gap-2 text-sm text-white/60">
                 <MapPin size={14} className="text-orange flex-shrink-0 mt-0.5" />
                 İzmir, Türkiye

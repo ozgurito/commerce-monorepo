@@ -10,7 +10,7 @@ import { userApi } from '@/domains/user/user.api'
 import { useCartStore } from '@/store/cart.store'
 import { useAuthStore } from '@/store/auth.store'
 import { useRecentlyViewed, type RecentItem } from '@/hooks/useRecentlyViewed'
-import { formatPrice, FREE_SHIPPING_ITEM_COUNT, SHIPPING_COST } from '@/utils/format'
+import { formatPrice, FREE_SHIPPING_THRESHOLD, SHIPPING_COST } from '@/utils/format'
 import { QUERY_KEYS } from '@/lib/query-keys'
 import { CartItem } from './CartItem'
 import { CouponInput } from './CouponInput'
@@ -83,10 +83,11 @@ export function CartDrawer() {
   const subtotal = cart?.totalAmount ?? 0
   const discount = discountAmount ?? 0
   const discountedSubtotal = Math.max(0, subtotal - discount)
-  const hasFreeShipping = totalQty >= FREE_SHIPPING_ITEM_COUNT
+  // Kargo: ara toplam (indirim öncesi) ≥ 1000₺ → ücretsiz; altında 29,90₺
+  const hasFreeShipping = subtotal >= FREE_SHIPPING_THRESHOLD
   const shipping = hasFreeShipping ? 0 : SHIPPING_COST
   const grandTotal = discountedSubtotal + shipping
-  const itemsUntilFreeShipping = Math.max(0, FREE_SHIPPING_ITEM_COUNT - totalQty)
+  const amountUntilFreeShipping = Math.max(0, FREE_SHIPPING_THRESHOLD - subtotal)
 
   return (
     <AnimatePresence>
@@ -273,18 +274,18 @@ export function CartDrawer() {
                           <div className="flex items-center gap-2 text-gray-600 mb-1.5">
                             <Truck size={14} className="text-orange flex-shrink-0" />
                             <span className="text-xs">
-                              <strong className="text-orange">{itemsUntilFreeShipping} ürün</strong>
+                              <strong className="text-orange">{formatPrice(amountUntilFreeShipping)}</strong>
                               {' '}daha ekle, kargo bedava!
                             </span>
                           </div>
                           <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
                             <div
                               className="h-full bg-gradient-to-r from-orange to-orange-dark rounded-full transition-all duration-500"
-                              style={{ width: `${Math.min(100, (totalQty / FREE_SHIPPING_ITEM_COUNT) * 100)}%` }}
+                              style={{ width: `${Math.min(100, (subtotal / FREE_SHIPPING_THRESHOLD) * 100)}%` }}
                             />
                           </div>
                           <p className="text-[10px] text-gray-400 mt-1 text-right">
-                            {totalQty}/{FREE_SHIPPING_ITEM_COUNT} ürün
+                            {formatPrice(subtotal)} / {formatPrice(FREE_SHIPPING_THRESHOLD)}
                           </p>
                         </div>
                       )}

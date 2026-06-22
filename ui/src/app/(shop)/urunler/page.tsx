@@ -68,13 +68,11 @@ export default async function UrunlerPage({
   const indirim  = params.indirim  === 'true'
   const yeni     = params.yeni     === 'true'
   const sortBy   = params.sortBy   as string | undefined
-  const minPrice = params.minPrice as string | undefined
 
   const cokSatan    = sortBy === 'totalReviews'
   const yuksekPuan  = sortBy === 'averageRating'
-  const kargoBedava = minPrice === '150' && !indirim && !yeni
 
-  const hasHero = indirim || yeni || cokSatan || yuksekPuan || kargoBedava
+  const hasHero = indirim || yeni || cokSatan || yuksekPuan
 
   return (
     <div>
@@ -109,14 +107,6 @@ export default async function UrunlerPage({
           fallbackGradient="bg-gradient-to-r from-violet-500 to-purple-600"
           icon="⭐" tag="Kalite" title="Yüksek Puanlı Ürünler"
           subtitle="4 yıldız ve üzeri değerlendirilen ürünler" />
-      )}
-      {kargoBedava && (
-        <PageHero
-          image="/images/Gemini_Generated_Image_e4ocsfe4ocsfe4oc.webp"
-          overlay="bg-gradient-to-r from-emerald-900/85 via-emerald-800/50 to-emerald-900/10"
-          fallbackGradient="bg-gradient-to-r from-emerald-500 to-teal-600"
-          icon="📦" tag="Fırsat" title="Kargo Bedava Ürünler"
-          subtitle="Seçili ürünlerde ücretsiz kargo fırsatı" />
       )}
       {!hasHero && (
         <PageHero

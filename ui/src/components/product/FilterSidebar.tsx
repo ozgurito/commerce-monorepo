@@ -96,14 +96,34 @@ export function FilterSidebar({ filters, onFilterChange, onReset, isOpen, onClos
     ? categories.filter((c: CategoryDto) => c.parentId === null && c.isActive)
     : []
 
+  // ── Taslak (draft) filtreler — "Uygula"ya basılana kadar URL'e yansımaz, ürün listesi yenilenmez ──
+  const [draft, setDraft] = useState<Filters>(filters)
+  // Dışarıdan (navigasyon / temizle / uygula sonrası) filters değişince draft senkronize edilir
+  useEffect(() => {
+    setDraft(filters)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.categoryId, filters.minPrice, filters.maxPrice, filters.colors.join(','), filters.sizes.join(',')])
+
+  const patchDraft = (patch: Partial<Filters>) => setDraft((d) => ({ ...d, ...patch }))
+
+  // Taslak uygulanmış filtreden farklı mı? (Uygula butonunu etkinleştirir)
+  const draftChanged =
+    draft.categoryId !== filters.categoryId ||
+    draft.minPrice !== filters.minPrice ||
+    draft.maxPrice !== filters.maxPrice ||
+    draft.colors.join(',') !== filters.colors.join(',') ||
+    draft.sizes.join(',') !== filters.sizes.join(',')
+
+  const applyDraft = () => { onFilterChange(draft); onClose() }
+
   const toggleArr = (arr: string[], val: string) =>
     arr.includes(val) ? arr.filter((x) => x !== val) : [...arr, val]
 
   const activeFilterCount =
-    (filters.categoryId ? 1 : 0) +
-    (filters.minPrice || filters.maxPrice ? 1 : 0) +
-    filters.colors.length +
-    filters.sizes.length
+    (draft.categoryId ? 1 : 0) +
+    (draft.minPrice || draft.maxPrice ? 1 : 0) +
+    draft.colors.length +
+    draft.sizes.length
 
   return (
     <>
@@ -120,6 +140,7 @@ export function FilterSidebar({ filters, onFilterChange, onReset, isOpen, onClos
                     transform transition-transform duration-300 ease-in-out
                     lg:relative lg:shadow-none lg:w-[240px] lg:translate-x-0
                     lg:z-auto lg:h-auto lg:top-auto lg:sticky lg:self-start
+                    lg:max-h-[calc(100vh-140px)]
                     ${isOpen ? 'translate-x-0' : '-translate-x-full'}
                     flex flex-col`}
         style={{ top: 'calc(68px + 44px + 1rem)' }}
@@ -158,7 +179,7 @@ export function FilterSidebar({ filters, onFilterChange, onReset, isOpen, onClos
           </div>
           {activeFilterCount > 0 && (
             <button
-              onClick={onReset}
+              onClick={() => { setDraft({ colors: [], sizes: [] }); onReset() }}
               className="text-xs font-bold text-orange hover:text-orange-dark transition-colors"
             >
               Temizle
@@ -170,12 +191,12 @@ export function FilterSidebar({ filters, onFilterChange, onReset, isOpen, onClos
         <div className="flex-1 overflow-y-auto px-4 lg:px-0 lg:pr-1">
 
           {/* Kategori */}
-          <FilterSection title="Kategori" count={filters.categoryId ? 1 : 0}>
+          <FilterSection title="Kategori" count={draft.categoryId ? 1 : 0}>
             <div className="space-y-0.5">
               <button
-                onClick={() => onFilterChange({ categoryId: undefined })}
+                onClick={() => patchDraft({ categoryId: undefined })}
                 className={`w-full text-left px-3 py-2 rounded-xl text-sm transition-colors
-                            ${!filters.categoryId
+                            ${!draft.categoryId
                               ? 'bg-orange-50 text-orange font-semibold'
                               : 'text-gray-600 hover:bg-gray-50 font-normal'}`}
               >
@@ -184,9 +205,9 @@ export function FilterSidebar({ filters, onFilterChange, onReset, isOpen, onClos
               {rootCats.map((cat: CategoryDto) => (
                 <button
                   key={cat.id}
-                  onClick={() => onFilterChange({ categoryId: cat.id })}
+                  onClick={() => patchDraft({ categoryId: cat.id })}
                   className={`w-full text-left px-3 py-2 rounded-xl text-[13px] transition-colors truncate
-                              ${filters.categoryId === cat.id
+                              ${draft.categoryId === cat.id
                                 ? 'bg-orange-50 text-orange font-semibold'
                                 : 'text-gray-600 hover:bg-gray-50 font-normal'}`}
                 >
@@ -199,25 +220,25 @@ export function FilterSidebar({ filters, onFilterChange, onReset, isOpen, onClos
           {/* Fiyat */}
           <FilterSection
             title="Fiyat Aralığı"
-            count={filters.minPrice || filters.maxPrice ? 1 : 0}
+            count={draft.minPrice || draft.maxPrice ? 1 : 0}
           >
             <PriceRangeSlider
               key={`${filters.minPrice ?? ''}-${filters.maxPrice ?? ''}`}
               initialMin={filters.minPrice}
               initialMax={filters.maxPrice}
-              onChange={(min, max) => onFilterChange({ minPrice: min, maxPrice: max })}
+              onChange={(min, max) => patchDraft({ minPrice: min, maxPrice: max })}
             />
           </FilterSection>
 
           {/* Beden */}
-          <FilterSection title="Beden" count={filters.sizes.length}>
+          <FilterSection title="Beden" count={draft.sizes.length}>
             <div className="flex flex-wrap gap-1.5">
               {SIZES.map((s) => {
-                const active = filters.sizes.includes(s)
+                const active = draft.sizes.includes(s)
                 return (
                   <button
                     key={s}
-                    onClick={() => onFilterChange({ sizes: toggleArr(filters.sizes, s) })}
+                    onClick={() => patchDraft({ sizes: toggleArr(draft.sizes, s) })}
                     className={`min-w-[40px] h-9 px-2 rounded-xl border text-xs font-bold
                                 transition-all duration-150
                                 ${active
@@ -232,14 +253,14 @@ export function FilterSidebar({ filters, onFilterChange, onReset, isOpen, onClos
           </FilterSection>
 
           {/* Renk */}
-          <FilterSection title="Renk" count={filters.colors.length}>
+          <FilterSection title="Renk" count={draft.colors.length}>
             <div className="grid grid-cols-4 sm:grid-cols-5 gap-x-2 gap-y-3">
               {COLORS.map(({ label, hex }) => {
-                const active = filters.colors.includes(label)
+                const active = draft.colors.includes(label)
                 return (
                   <button
                     key={label}
-                    onClick={() => onFilterChange({ colors: toggleArr(filters.colors, label) })}
+                    onClick={() => patchDraft({ colors: toggleArr(draft.colors, label) })}
                     title={label}
                     aria-label={label}
                     className="flex flex-col items-center gap-1 group"
@@ -275,34 +296,31 @@ export function FilterSidebar({ filters, onFilterChange, onReset, isOpen, onClos
           </FilterSection>
         </div>
 
-        {/* Mobile: sticky apply button */}
-        <div className="lg:hidden border-t border-gray-100 px-4 py-3 bg-white">
-          {activeFilterCount > 0 && (
-            <div className="flex gap-2">
+        {/* Uygula / Temizle barı — taslak filtreleri tek seferde uygular (desktop + mobil) */}
+        <div className="flex-shrink-0 border-t border-gray-100 px-4 lg:px-0 py-3 bg-white">
+          <div className="flex gap-2">
+            {activeFilterCount > 0 && (
               <button
-                onClick={() => { onReset(); onClose() }}
+                onClick={() => { setDraft({ colors: [], sizes: [] }); onReset() }}
                 className="flex-1 border border-gray-200 text-gray-600 font-semibold
                            py-2.5 rounded-xl text-sm hover:bg-gray-50 transition-colors"
               >
                 Temizle
               </button>
-              <button
-                onClick={onClose}
-                className="flex-2 bg-orange text-white font-bold py-2.5 px-6
-                           rounded-xl text-sm hover:bg-orange-dark transition-colors"
-              >
-                Uygula ({activeFilterCount})
-              </button>
-            </div>
-          )}
-          {activeFilterCount === 0 && (
+            )}
             <button
-              onClick={onClose}
-              className="w-full bg-navy text-white font-bold py-2.5 rounded-xl text-sm"
+              onClick={applyDraft}
+              disabled={!draftChanged}
+              className={`flex-[2] font-bold py-2.5 px-6 rounded-xl text-sm transition-colors
+                          ${draftChanged
+                            ? 'bg-orange text-white hover:bg-orange-dark'
+                            : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
             >
-              Kapat
+              {draftChanged
+                ? `Uygula${activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}`
+                : 'Uygulandı'}
             </button>
-          )}
+          </div>
         </div>
       </aside>
     </>
