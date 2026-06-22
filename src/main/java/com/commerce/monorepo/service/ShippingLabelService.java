@@ -18,8 +18,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.imageio.ImageIO;
+import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.time.format.DateTimeFormatter;
 
 @Service
@@ -45,39 +47,101 @@ public class ShippingLabelService {
             PdfWriter.getInstance(doc, out);
             doc.open();
 
-            // ── Fontlar ──────────────────────────────────────────────────
-            Font fontBrand  = FontFactory.getFont(FontFactory.HELVETICA_BOLD,  20, new java.awt.Color(249, 115, 22));
-            Font fontBrand2 = FontFactory.getFont(FontFactory.HELVETICA_BOLD,  20, new java.awt.Color(30,  27, 75));
-            Font fontHeader = FontFactory.getFont(FontFactory.HELVETICA_BOLD,  11, new java.awt.Color(30, 27, 75));
-            Font fontLabel  = FontFactory.getFont(FontFactory.HELVETICA_BOLD,   8, new java.awt.Color(107, 114, 128));
-            Font fontValue  = FontFactory.getFont(FontFactory.HELVETICA,       10, new java.awt.Color(30, 27, 75));
-            Font fontValueB = FontFactory.getFont(FontFactory.HELVETICA_BOLD,  10, new java.awt.Color(30, 27, 75));
-            Font fontSmall  = FontFactory.getFont(FontFactory.HELVETICA,        8, new java.awt.Color(107, 114, 128));
-            Font fontItem   = FontFactory.getFont(FontFactory.HELVETICA_BOLD,   9, new java.awt.Color(30, 27, 75));
-            Font fontItemSub= FontFactory.getFont(FontFactory.HELVETICA,        8, new java.awt.Color(107, 114, 128));
+            // ── Fontlar (Cp1254 = Windows Turkish — ş ğ ı ü ö ç İ Ş Ğ desteği) ──
+            BaseFont bfNormal = BaseFont.createFont(BaseFont.HELVETICA,       "Cp1254", BaseFont.NOT_EMBEDDED);
+            BaseFont bfBold   = BaseFont.createFont(BaseFont.HELVETICA_BOLD,  "Cp1254", BaseFont.NOT_EMBEDDED);
 
-            // ── Logo + Kargo firması satırı ───────────────────────────────
+            Font fontBrand  = new Font(bfBold,   20, Font.NORMAL, new java.awt.Color(249, 115, 22));
+            Font fontBrand2 = new Font(bfBold,   20, Font.NORMAL, new java.awt.Color(30,  27, 75));
+            Font fontHeader = new Font(bfBold,   11, Font.NORMAL, new java.awt.Color(30,  27, 75));
+            Font fontLabel  = new Font(bfBold,    8, Font.NORMAL, new java.awt.Color(107, 114, 128));
+            Font fontValue  = new Font(bfNormal, 10, Font.NORMAL, new java.awt.Color(30,  27, 75));
+            Font fontValueB = new Font(bfBold,   10, Font.NORMAL, new java.awt.Color(30,  27, 75));
+            Font fontSmall  = new Font(bfNormal,  8, Font.NORMAL, new java.awt.Color(107, 114, 128));
+            Font fontItem   = new Font(bfBold,    9, Font.NORMAL, new java.awt.Color(30,  27, 75));
+            Font fontItemSub= new Font(bfNormal,  8, Font.NORMAL, new java.awt.Color(107, 114, 128));
+
+            // ── Header: lacivert şerit — logo + marka adı sol, kargo firması sağ ──
+            java.awt.Color navyBg    = new java.awt.Color(30, 27, 75);
+            java.awt.Color orangeClr = new java.awt.Color(249, 115, 22);
+            java.awt.Color whiteClr  = new java.awt.Color(255, 255, 255);
+
+            Font fontBrandHdr  = new Font(bfBold,   18, Font.NORMAL, orangeClr);
+            Font fontBrandHdr2 = new Font(bfBold,   18, Font.NORMAL, whiteClr);
+            Font fontCarrierHdr= new Font(bfBold,   11, Font.NORMAL, whiteClr);
+
             PdfPTable headerTable = new PdfPTable(2);
             headerTable.setWidthPercentage(100);
             headerTable.setWidths(new float[]{1.5f, 1f});
-            headerTable.setSpacingAfter(12);
+            headerTable.setSpacingAfter(14);
 
-            // Sol: AlışverişNoktan logosu (metin bazlı)
-            Phrase logoPh = new Phrase();
-            logoPh.add(new Chunk("alışveriş", fontBrand));
-            logoPh.add(new Chunk("noktan", fontBrand2));
-            PdfPCell logoCell = new PdfPCell(logoPh);
+            // Sol hücre: logo ikonu + marka adı
+            PdfPCell logoCell = new PdfPCell();
             logoCell.setBorder(Rectangle.NO_BORDER);
+            logoCell.setBackgroundColor(navyBg);
             logoCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
-            logoCell.setPaddingBottom(4);
+            logoCell.setPadding(10);
 
-            // Sağ: Kargo firması adı
+            // Logo ikonunu yükle, beyaz arka plan üzerine koy
+            boolean logoLoaded = false;
+            try (InputStream logoStream = getClass().getResourceAsStream("/images/logo.webp")) {
+                if (logoStream != null) {
+                    BufferedImage logoBuffered = ImageIO.read(logoStream);
+                    if (logoBuffered != null) {
+                        // Şeffaf pikselleri lacivert arka planla doldur
+                        BufferedImage flat = new BufferedImage(
+                                logoBuffered.getWidth(), logoBuffered.getHeight(),
+                                BufferedImage.TYPE_INT_RGB);
+                        Graphics2D g2 = flat.createGraphics();
+                        g2.setColor(new java.awt.Color(30, 27, 75));
+                        g2.fillRect(0, 0, flat.getWidth(), flat.getHeight());
+                        g2.drawImage(logoBuffered, 0, 0, null);
+                        g2.dispose();
+                        ByteArrayOutputStream logoPng = new ByteArrayOutputStream();
+                        ImageIO.write(flat, "PNG", logoPng);
+                        Image logoImg = Image.getInstance(logoPng.toByteArray());
+                        logoImg.scaleToFit(34, 34);
+
+                        PdfPTable logoRow = new PdfPTable(2);
+                        logoRow.setWidths(new float[]{0.55f, 2f});
+                        PdfPCell imgCell = new PdfPCell(logoImg, false);
+                        imgCell.setBorder(Rectangle.NO_BORDER);
+                        imgCell.setBackgroundColor(navyBg);
+                        imgCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                        imgCell.setPaddingRight(8);
+
+                        Phrase brandPh = new Phrase();
+                        brandPh.add(new Chunk("Alisveris", fontBrandHdr));
+                        brandPh.add(new Chunk("Noktan", fontBrandHdr2));
+                        PdfPCell brandCell = new PdfPCell(brandPh);
+                        brandCell.setBorder(Rectangle.NO_BORDER);
+                        brandCell.setBackgroundColor(navyBg);
+                        brandCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+
+                        logoRow.addCell(imgCell);
+                        logoRow.addCell(brandCell);
+                        logoCell.addElement(logoRow);
+                        logoLoaded = true;
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Logo yuklenemedi: {}", e.getMessage());
+            }
+            if (!logoLoaded) {
+                Phrase logoPh = new Phrase();
+                logoPh.add(new Chunk("Alisveris", fontBrandHdr));
+                logoPh.add(new Chunk("Noktan", fontBrandHdr2));
+                logoCell.addElement(new Paragraph(logoPh));
+            }
+
+            // Sağ hücre: kargo firması
             String carrierName = resolveCarrierName(order.getShippingCarrier());
-            PdfPCell carrierCell = new PdfPCell(new Phrase(carrierName, fontHeader));
+            PdfPCell carrierCell = new PdfPCell(new Phrase(carrierName, fontCarrierHdr));
             carrierCell.setBorder(Rectangle.NO_BORDER);
+            carrierCell.setBackgroundColor(navyBg);
             carrierCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
             carrierCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
-            carrierCell.setPaddingBottom(4);
+            carrierCell.setPadding(10);
 
             headerTable.addCell(logoCell);
             headerTable.addCell(carrierCell);

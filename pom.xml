@@ -185,6 +185,13 @@
 			<version>3.5.3</version>
 		</dependency>
 
+		<!-- === WebP image support for PDF logo (TwelveMonkeys — BSD) === -->
+		<dependency>
+			<groupId>com.twelvemonkeys.imageio</groupId>
+			<artifactId>imageio-webp</artifactId>
+			<version>3.10.1</version>
+		</dependency>
+
 		<!-- === EMAIL === -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
