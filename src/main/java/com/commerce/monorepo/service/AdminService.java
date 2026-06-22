@@ -1,5 +1,6 @@
 package com.commerce.monorepo.service;
 
+import com.commerce.monorepo.dto.AssignTrackingRequest;
 import com.commerce.monorepo.dto.DashboardStatsDto;
 import com.commerce.monorepo.dto.MonthlyStatDto;
 import com.commerce.monorepo.dto.OrderDto;
@@ -56,6 +57,17 @@ public class AdminService {
     public OrderDto getOrderById(Long orderId) {
         Order order = orderRepository.findByIdWithItems(orderId)
                 .orElseThrow(() -> new BaseException(ErrorCode.ORDER_NOT_FOUND));
+        return orderService.mapToDtoPublic(order);
+    }
+
+    @Transactional
+    public OrderDto assignTracking(Long orderId, AssignTrackingRequest request) {
+        Order order = orderRepository.findByIdWithItems(orderId)
+                .orElseThrow(() -> new BaseException(ErrorCode.ORDER_NOT_FOUND));
+        order.setTrackingNumber(request.trackingNumber().trim());
+        order.setShippingCarrier(request.carrier().trim().toUpperCase());
+        orderRepository.save(order);
+        log.info("Tracking assigned to order {}: {} / {}", orderId, request.carrier(), request.trackingNumber());
         return orderService.mapToDtoPublic(order);
     }
 

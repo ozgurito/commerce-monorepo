@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   ArrowLeft, Loader2, Save, MapPin, Package,
-  Truck, CreditCard, User, CheckCircle2, AlertCircle,
+  Truck, CreditCard, User, CheckCircle2, AlertCircle, Printer,
 } from 'lucide-react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
@@ -55,6 +55,8 @@ export default function AdminSiparisDetayPage({ params }: Props) {
   const [orderId, setOrderId] = useState<number | null>(null)
   const [selectedStatus, setSelectedStatus] = useState<OrderStatus | null>(null)
   const [trackingNumber, setTrackingNumber] = useState('')
+  const [selectedCarrier, setSelectedCarrier] = useState('ARAS')
+  const [labelLoading, setLabelLoading] = useState(false)
 
   useEffect(() => {
     params.then(({ id }) => setOrderId(Number(id)))
@@ -69,9 +71,39 @@ export default function AdminSiparisDetayPage({ params }: Props) {
   // Durum değişince seçimi sıfırla
   useEffect(() => {
     if (order?.status) setSelectedStatus(order.status)
-  }, [order?.status])
+    if (order?.trackingNumber) setTrackingNumber(order.trackingNumber)
+    if (order?.shippingCarrier) setSelectedCarrier(order.shippingCarrier)
+  }, [order?.status, order?.trackingNumber, order?.shippingCarrier])
 
   const displayStatus: OrderStatus = selectedStatus ?? order?.status ?? 'PENDING'
+
+  const trackingMutation = useMutation({
+    mutationFn: ({ carrier, trackingNumber: tn }: { carrier: string; trackingNumber: string }) =>
+      adminApi.assignTracking(orderId!, carrier, tn),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'order', orderId] })
+      toast.success('Kargo bilgisi kaydedildi')
+    },
+    onError: (err: unknown) => {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      toast.error(msg ?? 'Kayıt başarısız')
+    },
+  })
+
+  const handleDownloadLabel = async () => {
+    if (!orderId) return
+    setLabelLoading(true)
+    try {
+      const blob = await adminApi.getShippingLabel(orderId)
+      const url = URL.createObjectURL(blob)
+      window.open(url, '_blank')
+      setTimeout(() => URL.revokeObjectURL(url), 60000)
+    } catch {
+      toast.error('Etiket oluşturulamadı')
+    } finally {
+      setLabelLoading(false)
+    }
+  }
 
   const statusMutation = useMutation({
     mutationFn: (status: OrderStatus) => adminApi.updateOrderStatus(orderId!, status),
@@ -233,31 +265,67 @@ export default function AdminSiparisDetayPage({ params }: Props) {
 
           {/* Kargo Takip */}
           <div className="bg-white rounded-2xl border border-gray-100 p-5">
-            <h2 className="text-sm font-extrabold text-navy-dark mb-3 flex items-center gap-2">
-              <div className="w-5 h-5 bg-orange/10 rounded-md flex items-center justify-center">
-                <Truck size={12} className="text-orange" />
-              </div>
-              Kargo Takip
-            </h2>
-            <div className="flex items-center gap-3">
-              <input
-                value={trackingNumber}
-                onChange={(e) => setTrackingNumber(e.target.value)}
-                placeholder="Kargo takip numarası girin…"
-                className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm
-                           focus:outline-none focus:border-orange focus:ring-1 focus:ring-orange/20"
-              />
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-extrabold text-navy-dark flex items-center gap-2">
+                <div className="w-5 h-5 bg-orange/10 rounded-md flex items-center justify-center">
+                  <Truck size={12} className="text-orange" />
+                </div>
+                Kargo Takip
+              </h2>
               <button
-                onClick={() => {
-                  if (!trackingNumber.trim()) { toast.error('Takip numarası girin'); return }
-                  navigator.clipboard?.writeText(trackingNumber).catch(() => {})
-                  toast.success('Takip numarası kaydedildi')
-                }}
-                className="flex items-center gap-2 bg-orange hover:bg-orange-dark text-white
-                           font-bold px-4 py-2.5 rounded-xl transition-colors text-sm whitespace-nowrap"
+                onClick={handleDownloadLabel}
+                disabled={labelLoading}
+                className="flex items-center gap-1.5 text-xs font-bold text-orange border border-orange
+                           px-3 py-1.5 rounded-lg hover:bg-orange/5 transition-colors disabled:opacity-50"
               >
-                <Save size={14} /> Kaydet
+                {labelLoading
+                  ? <Loader2 size={12} className="animate-spin" />
+                  : <Printer size={12} />}
+                Kargo Etiketi
               </button>
+            </div>
+            <div className="space-y-2">
+              <select
+                value={selectedCarrier}
+                onChange={(e) => setSelectedCarrier(e.target.value)}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-semibold
+                           focus:outline-none focus:border-orange focus:ring-1 focus:ring-orange/20 bg-white"
+              >
+                <option value="ARAS">Aras Kargo</option>
+                <option value="YURTICI">Yurtiçi Kargo</option>
+                <option value="MNG">MNG Kargo</option>
+                <option value="PTT">PTT Kargo</option>
+              </select>
+              <div className="flex items-center gap-3">
+                <input
+                  value={trackingNumber}
+                  onChange={(e) => setTrackingNumber(e.target.value)}
+                  placeholder="Takip numarası girin…"
+                  className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm
+                             focus:outline-none focus:border-orange focus:ring-1 focus:ring-orange/20"
+                />
+                <button
+                  onClick={() => {
+                    if (!trackingNumber.trim()) { toast.error('Takip numarası girin'); return }
+                    trackingMutation.mutate({ carrier: selectedCarrier, trackingNumber })
+                  }}
+                  disabled={trackingMutation.isPending}
+                  className="flex items-center gap-2 bg-orange hover:bg-orange-dark text-white
+                             font-bold px-4 py-2.5 rounded-xl transition-colors text-sm whitespace-nowrap
+                             disabled:opacity-50"
+                >
+                  {trackingMutation.isPending
+                    ? <Loader2 size={14} className="animate-spin" />
+                    : <Save size={14} />}
+                  Kaydet
+                </button>
+              </div>
+              {order.trackingNumber && (
+                <p className="text-xs text-gray-400">
+                  Mevcut: <span className="font-mono font-bold text-gray-600">{order.trackingNumber}</span>
+                  {' '}({order.shippingCarrier})
+                </p>
+              )}
             </div>
           </div>
 

@@ -18,6 +18,7 @@ public class OrderItemDto {
     private String variantName;  // "Lacivert - M" gibi
     private String size;
     private String color;
+    private String sku;
     private Integer quantity;
     private BigDecimal unitPrice;
     private BigDecimal totalPrice;

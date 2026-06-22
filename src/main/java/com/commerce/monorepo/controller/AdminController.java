@@ -1,9 +1,11 @@
 package com.commerce.monorepo.controller;
 
+import com.commerce.monorepo.dto.AssignTrackingRequest;
 import com.commerce.monorepo.dto.DashboardStatsDto;
 import com.commerce.monorepo.dto.LowStockAlertDto;
 import com.commerce.monorepo.dto.MonthlyStatDto;
 import com.commerce.monorepo.dto.OrderDto;
+import com.commerce.monorepo.service.ShippingLabelService;
 import com.commerce.monorepo.entity.OrderStatus;
 import com.commerce.monorepo.ratelimit.RateLimit;
 import com.commerce.monorepo.service.AdminService;
@@ -14,10 +16,13 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
 
@@ -29,6 +34,7 @@ public class AdminController {
 
     private final AdminService adminService;
     private final ScheduledTaskService scheduledTaskService;
+    private final ShippingLabelService shippingLabelService;
 
     @GetMapping("/orders")
     @RateLimit(key = "admin:orders", limit = 30, windowSeconds = 60)
@@ -45,6 +51,24 @@ public class AdminController {
     @RateLimit(key = "admin:order:detail", limit = 30, windowSeconds = 60)
     public OrderDto getOrderById(@PathVariable Long id) {
         return adminService.getOrderById(id);
+    }
+
+    @PatchMapping("/orders/{id}/tracking")
+    public ResponseEntity<OrderDto> assignTracking(
+            @PathVariable Long id,
+            @Valid @RequestBody AssignTrackingRequest request) {
+        return ResponseEntity.ok(adminService.assignTracking(id, request));
+    }
+
+    @GetMapping("/orders/{id}/shipping-label")
+    public ResponseEntity<byte[]> getShippingLabel(@PathVariable Long id) {
+        byte[] pdf = shippingLabelService.generateLabel(id);
+        OrderDto order = adminService.getOrderById(id);
+        String filename = "kargo-etiketi-" + order.getOrderNumber() + ".pdf";
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + filename + "\"")
+                .body(pdf);
     }
 
     @GetMapping("/stats")

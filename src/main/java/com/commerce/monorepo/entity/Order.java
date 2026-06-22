@@ -102,6 +102,12 @@ public class Order extends BaseEntity {
     @Column(name = "iyzico_conversation_id", length = 100)
     private String iyzicoConversationId;
 
+    @Column(name = "tracking_number", length = 100)
+    private String trackingNumber;
+
+    @Column(name = "shipping_carrier", length = 50)
+    private String shippingCarrier;
+
     // Helper methods to properly manage bidirectional relationship
     public void addItem(OrderItem item) {
         if (!items.contains(item)) {

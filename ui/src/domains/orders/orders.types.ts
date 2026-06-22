@@ -30,6 +30,7 @@ export interface OrderItemDto {
   variantName: string | null
   size?: string | null
   color?: string | null
+  sku?: string | null
   quantity: number
   unitPrice: number
   totalPrice: number
@@ -55,6 +56,8 @@ export interface OrderDto {
   discountAmount: number
   createdAt: string
   updatedAt: string
+  trackingNumber?: string | null
+  shippingCarrier?: string | null
 }
 
 export interface OrderItemRequest {

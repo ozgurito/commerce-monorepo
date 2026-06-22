@@ -35,4 +35,6 @@ public class OrderDto {
     private BigDecimal discountAmount;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private String trackingNumber;
+    private String shippingCarrier;
 }

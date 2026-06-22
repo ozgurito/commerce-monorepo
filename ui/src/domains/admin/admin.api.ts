@@ -140,6 +140,18 @@ export const adminApi = {
     return data
   },
 
+  assignTracking: async (id: number, carrier: string, trackingNumber: string): Promise<OrderDto> => {
+    const { data } = await apiClient.patch(`/api/admin/orders/${id}/tracking`, { carrier, trackingNumber })
+    return data
+  },
+
+  getShippingLabel: async (id: number): Promise<Blob> => {
+    const { data } = await apiClient.get(`/api/admin/orders/${id}/shipping-label`, {
+      responseType: 'blob',
+    })
+    return data
+  },
+
   // --- Products ---
   getProducts: async (page = 0, size = 20, keyword?: string, categoryId?: number): Promise<PagedProducts> => {
     if (categoryId) {

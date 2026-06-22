@@ -340,6 +340,8 @@ public class OrderService {
         dto.setDiscountAmount(order.getDiscountAmount());
         dto.setCreatedAt(order.getCreatedAt());
         dto.setUpdatedAt(order.getUpdatedAt());
+        dto.setTrackingNumber(order.getTrackingNumber());
+        dto.setShippingCarrier(order.getShippingCarrier());
 
         // N+1 önleme: tüm product ID'leri toplayıp tek sorguda görsel + variant çek
         List<Long> productIds = order.getItems().stream()
@@ -373,6 +375,7 @@ public class OrderService {
                     itemDto.setId(item.getId());
                     itemDto.setProductId(item.getProduct().getId());
                     itemDto.setProductName(item.getProduct().getName());
+                    itemDto.setSku(item.getProduct().getSku());
                     itemDto.setQuantity(item.getQuantity());
                     itemDto.setUnitPrice(item.getUnitPrice());
                     itemDto.setTotalPrice(item.getTotalPrice());
