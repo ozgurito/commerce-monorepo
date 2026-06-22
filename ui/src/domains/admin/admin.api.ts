@@ -152,6 +152,13 @@ export const adminApi = {
     return data
   },
 
+  getInvoice: async (id: number): Promise<Blob> => {
+    const { data } = await apiClient.get(`/api/admin/orders/${id}/invoice`, {
+      responseType: 'blob',
+    })
+    return data
+  },
+
   // --- Products ---
   getProducts: async (page = 0, size = 20, keyword?: string, categoryId?: number): Promise<PagedProducts> => {
     if (categoryId) {

@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   ArrowLeft, Package, MapPin, CreditCard,
-  Clock, CheckCircle2, Truck, Loader2, AlertCircle, XCircle, RefreshCw,
+  Clock, CheckCircle2, Truck, Loader2, AlertCircle, XCircle, RefreshCw, FileText,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { ordersApi } from '@/domains/orders/orders.api'
@@ -49,6 +49,22 @@ interface Props { params: Promise<{ id: string }> }
 export default function SiparisDetayPage({ params }: Props) {
   const queryClient = useQueryClient()
   const [orderId, setOrderId] = useState<number | null>(null)
+  const [invoiceLoading, setInvoiceLoading] = useState(false)
+
+  const handleDownloadInvoice = async () => {
+    if (!orderId) return
+    setInvoiceLoading(true)
+    try {
+      const blob = await ordersApi.getInvoice(orderId)
+      const url = URL.createObjectURL(blob)
+      window.open(url, '_blank')
+      setTimeout(() => URL.revokeObjectURL(url), 60000)
+    } catch {
+      toast.error('Fatura oluşturulamadı')
+    } finally {
+      setInvoiceLoading(false)
+    }
+  }
 
   useEffect(() => {
     params.then(({ id }) => setOrderId(Number(id)))
@@ -122,11 +138,26 @@ export default function SiparisDetayPage({ params }: Props) {
           </p>
         </div>
 
-        {/* Status badge */}
-        <div className={`ml-auto flex items-center gap-1.5 border rounded-xl px-3 py-1.5 text-sm
-                         font-bold flex-shrink-0 ${status.badge}`}>
-          {status.icon}
-          {status.label}
+        <div className="ml-auto flex items-center gap-2 flex-shrink-0">
+          <button
+            onClick={handleDownloadInvoice}
+            disabled={invoiceLoading}
+            className="flex items-center gap-1.5 text-xs font-bold text-gray-500 border border-gray-200
+                       px-3 py-1.5 rounded-xl hover:border-orange hover:text-orange transition-colors
+                       disabled:opacity-50"
+          >
+            {invoiceLoading
+              ? <Loader2 size={12} className="animate-spin" />
+              : <FileText size={12} />}
+            Fatura
+          </button>
+
+          {/* Status badge */}
+          <div className={`flex items-center gap-1.5 border rounded-xl px-3 py-1.5 text-sm
+                           font-bold ${status.badge}`}>
+            {status.icon}
+            {status.label}
+          </div>
         </div>
       </div>
 

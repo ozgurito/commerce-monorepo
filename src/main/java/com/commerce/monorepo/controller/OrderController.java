@@ -3,6 +3,7 @@ package com.commerce.monorepo.controller;
 import com.commerce.monorepo.entity.OrderStatus;
 import com.commerce.monorepo.dto.CreateOrderRequest;
 import com.commerce.monorepo.dto.OrderDto;
+import com.commerce.monorepo.service.InvoiceService;
 import com.commerce.monorepo.service.OrderService;
 import com.commerce.monorepo.ratelimit.RateLimit;
 import com.commerce.monorepo.exception.BaseException;
@@ -13,8 +14,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
@@ -25,6 +30,7 @@ import jakarta.validation.Valid;
 public class OrderController {
 
     private final OrderService orderService;
+    private final InvoiceService invoiceService;
 
     @PostMapping
     @PreAuthorize("isAuthenticated()")
@@ -86,5 +92,21 @@ public class OrderController {
     public ResponseEntity<OrderDto> cancelOrder(@PathVariable Long id) {
         OrderDto order = orderService.cancelOrder(id);
         return ResponseEntity.ok(order);
+    }
+
+    @GetMapping("/{id}/invoice")
+    @PreAuthorize("isAuthenticated()")
+    @RateLimit(key = "order:invoice", limit = 10, windowSeconds = 60)
+    public ResponseEntity<byte[]> getInvoice(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Long userId = orderService.getUserIdByEmail(userDetails.getUsername());
+        byte[] pdf = invoiceService.generateInvoiceForUser(id, userId);
+        OrderDto order = orderService.getOrder(id);
+        String filename = "fatura-" + order.getOrderNumber() + ".pdf";
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + filename + "\"")
+                .body(pdf);
     }
 }

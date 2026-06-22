@@ -5,6 +5,7 @@ import com.commerce.monorepo.dto.DashboardStatsDto;
 import com.commerce.monorepo.dto.LowStockAlertDto;
 import com.commerce.monorepo.dto.MonthlyStatDto;
 import com.commerce.monorepo.dto.OrderDto;
+import com.commerce.monorepo.service.InvoiceService;
 import com.commerce.monorepo.service.ShippingLabelService;
 import com.commerce.monorepo.entity.OrderStatus;
 import com.commerce.monorepo.ratelimit.RateLimit;
@@ -35,6 +36,7 @@ public class AdminController {
     private final AdminService adminService;
     private final ScheduledTaskService scheduledTaskService;
     private final ShippingLabelService shippingLabelService;
+    private final InvoiceService invoiceService;
 
     @GetMapping("/orders")
     @RateLimit(key = "admin:orders", limit = 30, windowSeconds = 60)
@@ -65,6 +67,17 @@ public class AdminController {
         byte[] pdf = shippingLabelService.generateLabel(id);
         OrderDto order = adminService.getOrderById(id);
         String filename = "kargo-etiketi-" + order.getOrderNumber() + ".pdf";
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + filename + "\"")
+                .body(pdf);
+    }
+
+    @GetMapping("/orders/{id}/invoice")
+    public ResponseEntity<byte[]> getInvoice(@PathVariable Long id) {
+        byte[] pdf = invoiceService.generateInvoice(id);
+        OrderDto order = adminService.getOrderById(id);
+        String filename = "fatura-" + order.getOrderNumber() + ".pdf";
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_PDF)
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + filename + "\"")

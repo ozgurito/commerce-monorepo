@@ -39,4 +39,11 @@ export const ordersApi = {
     const { data } = await apiClient.post(`/api/orders/${id}/cancel`)
     return data
   },
+
+  getInvoice: async (id: number): Promise<Blob> => {
+    const { data } = await apiClient.get(`/api/orders/${id}/invoice`, {
+      responseType: 'blob',
+    })
+    return data
+  },
 }

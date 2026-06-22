@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   ArrowLeft, Loader2, Save, MapPin, Package,
-  Truck, CreditCard, User, CheckCircle2, AlertCircle, Printer,
+  Truck, CreditCard, User, CheckCircle2, AlertCircle, Printer, FileText,
 } from 'lucide-react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
@@ -57,6 +57,7 @@ export default function AdminSiparisDetayPage({ params }: Props) {
   const [trackingNumber, setTrackingNumber] = useState('')
   const [selectedCarrier, setSelectedCarrier] = useState('ARAS')
   const [labelLoading, setLabelLoading] = useState(false)
+  const [invoiceLoading, setInvoiceLoading] = useState(false)
 
   useEffect(() => {
     params.then(({ id }) => setOrderId(Number(id)))
@@ -89,6 +90,21 @@ export default function AdminSiparisDetayPage({ params }: Props) {
       toast.error(msg ?? 'Kayıt başarısız')
     },
   })
+
+  const handleDownloadInvoice = async () => {
+    if (!orderId) return
+    setInvoiceLoading(true)
+    try {
+      const blob = await adminApi.getInvoice(orderId)
+      const url = URL.createObjectURL(blob)
+      window.open(url, '_blank')
+      setTimeout(() => URL.revokeObjectURL(url), 60000)
+    } catch {
+      toast.error('Fatura oluşturulamadı')
+    } finally {
+      setInvoiceLoading(false)
+    }
+  }
 
   const handleDownloadLabel = async () => {
     if (!orderId) return
@@ -149,6 +165,17 @@ export default function AdminSiparisDetayPage({ params }: Props) {
             <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${currentCfg.bg} ${currentCfg.color}`}>
               {currentCfg.label}
             </span>
+            <button
+              onClick={handleDownloadInvoice}
+              disabled={invoiceLoading}
+              className="flex items-center gap-1.5 text-xs font-bold text-navy-dark border border-gray-200
+                         px-3 py-1.5 rounded-lg hover:border-orange hover:text-orange transition-colors disabled:opacity-50 ml-auto"
+            >
+              {invoiceLoading
+                ? <Loader2 size={12} className="animate-spin" />
+                : <FileText size={12} />}
+              Fatura İndir
+            </button>
           </div>
           <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-2">
             <User size={11} />
