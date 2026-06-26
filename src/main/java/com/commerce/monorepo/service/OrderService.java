@@ -351,6 +351,7 @@ public class OrderService {
 
         // N+1 önleme: tüm product ID'leri toplayıp tek sorguda görsel + variant çek
         List<Long> productIds = order.getItems().stream()
+                .filter(item -> item.getProduct() != null)
                 .map(item -> item.getProduct().getId())
                 .collect(Collectors.toList());
         List<Long> variantIds = order.getItems().stream()
@@ -379,13 +380,14 @@ public class OrderService {
                 .map(item -> {
                     OrderItemDto itemDto = new OrderItemDto();
                     itemDto.setId(item.getId());
-                    itemDto.setProductId(item.getProduct().getId());
-                    itemDto.setProductName(item.getProduct().getName());
-                    itemDto.setSku(item.getProduct().getSku());
+                    Product p = item.getProduct();
+                    itemDto.setProductId(p != null ? p.getId() : null);
+                    itemDto.setProductName(p != null ? p.getName() : "Silinmiş Ürün");
+                    itemDto.setSku(p != null ? p.getSku() : null);
                     itemDto.setQuantity(item.getQuantity());
                     itemDto.setUnitPrice(item.getUnitPrice());
                     itemDto.setTotalPrice(item.getTotalPrice());
-                    itemDto.setImageUrl(imageMap.get(item.getProduct().getId()));
+                    itemDto.setImageUrl(p != null ? imageMap.get(p.getId()) : null);
 
                     if (item.getProductVariantId() != null) {
                         ProductVariant variant = variantMap.get(item.getProductVariantId());
