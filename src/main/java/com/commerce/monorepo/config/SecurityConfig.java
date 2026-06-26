@@ -97,7 +97,6 @@ public class SecurityConfig {
         cfg.setAllowedOriginPatterns(List.of(
             "http://localhost:*",
             "http://127.0.0.1:*",
-            "https://*.vercel.app",
             "https://alisverisnoktan.vercel.app",
             "https://alisverisnoktan.com",
             "https://www.alisverisnoktan.com"
