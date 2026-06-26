@@ -11,7 +11,7 @@ const PROMOS = [
   {
     Icon: RotateCcw,
     title: 'Kolay İade',
-    desc: '14 gün içinde ücretsiz',
+    desc: '14 gün yasal süre',
     color: 'text-green-500',
     bg: 'bg-green-50',
   },
