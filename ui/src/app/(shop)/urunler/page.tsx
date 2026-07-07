@@ -16,7 +16,7 @@ function PageHero({
   image?: string
   overlay?: string
   fallbackGradient: string
-  icon: string
+  icon?: string
   tag: string
   title: string
   subtitle: string
@@ -45,9 +45,11 @@ function PageHero({
         </nav>
 
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center flex-shrink-0 border border-white/20">
-            <span className="text-2xl">{icon}</span>
-          </div>
+          {icon && (
+            <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center flex-shrink-0 border border-white/20">
+              <span className="text-2xl">{icon}</span>
+            </div>
+          )}
           <div>
             <p className="text-white/75 text-xs font-bold uppercase tracking-widest mb-1">{tag}</p>
             <h1 className="text-3xl sm:text-4xl font-extrabold text-white leading-tight drop-shadow-lg">{title}</h1>
@@ -81,7 +83,7 @@ export default async function UrunlerPage({
           image="/images/headers/indirimler-header.webp"
           overlay="bg-gradient-to-r from-red-900/85 via-red-800/55 to-red-900/10"
           fallbackGradient="bg-gradient-to-r from-red-500 to-orange"
-          icon="⚡" tag="Kampanya" title="İndirimli Ürünler"
+          tag="Kampanya" title="İndirimli Ürünler"
           subtitle="Sınırlı süreli kampanya fiyatları" />
       )}
       {yeni && !indirim && (
@@ -89,7 +91,7 @@ export default async function UrunlerPage({
           image="/images/headers/yeni-gelenler-header.webp"
           overlay="bg-gradient-to-r from-[#0d1a40]/85 via-[#0d1a40]/50 to-[#0d1a40]/10"
           fallbackGradient="bg-gradient-to-r from-navy-dark to-navy"
-          icon="✨" tag="Koleksiyon" title="Yeni Gelenler"
+          tag="Koleksiyon" title="Yeni Gelenler"
           subtitle="En taze koleksiyonlar burada" />
       )}
       {cokSatan && (
@@ -97,15 +99,15 @@ export default async function UrunlerPage({
           image="/images/Gemini_Generated_Image_qlnnl6qlnnl6qlnn.webp"
           overlay="bg-gradient-to-r from-amber-900/85 via-amber-800/50 to-amber-900/10"
           fallbackGradient="bg-gradient-to-r from-amber-500 to-orange-500"
-          icon="🔥" tag="Popüler" title="En Çok Satanlar"
+          tag="Popüler" title="En Çok Satanlar"
           subtitle="Müşterilerimizin en çok tercih ettiği ürünler" />
       )}
       {yuksekPuan && (
         <PageHero
-          image="/images/Gemini_Generated_Image_mvxrihmvxrihmvxr.webp"
+          image="/images/sale-banner-guven.webp"
           overlay="bg-gradient-to-r from-violet-900/85 via-violet-800/50 to-violet-900/10"
           fallbackGradient="bg-gradient-to-r from-violet-500 to-purple-600"
-          icon="⭐" tag="Kalite" title="Yüksek Puanlı Ürünler"
+          tag="Kalite" title="Yüksek Puanlı Ürünler"
           subtitle="4 yıldız ve üzeri değerlendirilen ürünler" />
       )}
       {!hasHero && (
@@ -113,7 +115,7 @@ export default async function UrunlerPage({
           image="/images/headers/tum-urunler-header.webp"
           overlay="bg-gradient-to-r from-black/80 via-black/40 to-transparent"
           fallbackGradient="bg-gradient-to-r from-navy-dark to-navy"
-          icon="🛍️" tag="Koleksiyon" title="Tüm Ürünler"
+          tag="Koleksiyon" title="Tüm Ürünler"
           subtitle="Binlerce ürün arasından seçim yapın" />
       )}
 

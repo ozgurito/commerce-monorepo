@@ -48,7 +48,7 @@ export default async function UrunDetayPage(
   if (!product) notFound()
 
   return (
-    <div className="max-w-[1280px] mx-auto px-5 py-6">
+    <div className="max-w-[1280px] mx-auto px-5 py-3 sm:py-6">
       <Breadcrumb categoryId={product.categoryId} productName={product.name} />
 
       <ProductDetailPanel product={product} />
@@ -65,6 +65,10 @@ export default async function UrunDetayPage(
 
       {/* Son İncelenenler */}
       <RecentlyViewedProducts currentProductId={product.id} />
+
+      {/* ProductInfo.tsx'teki mobil sabit alt bar (fiyat + Hemen Al + Sepete Ekle) sayfanın
+          gerçek sonunu (Yorumlar/Benzer Ürünler/Son İncelenenler dahil) kapatmasın diye boşluk. */}
+      <div className="md:hidden" style={{ height: 'calc(4.5rem + env(safe-area-inset-bottom))' }} aria-hidden="true" />
     </div>
   )
 }

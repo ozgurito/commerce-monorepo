@@ -10,6 +10,7 @@ import { wishlistApi } from '@/domains/wishlist/wishlist.api'
 import { useAuthStore } from '@/store/auth.store'
 import { useUIStore } from '@/store/ui.store'
 import { useCartStore } from '@/store/cart.store'
+import { useGuestCartStore } from '@/store/guest-cart.store'
 import { QUERY_KEYS } from '@/lib/query-keys'
 import { formatPrice, FREE_SHIPPING_THRESHOLD } from '@/utils/format'
 import { getProductBadge } from '@/utils/product-badge'
@@ -254,10 +255,8 @@ export function ProductInfo({ product, onGalleryChange, onColorSelect, imageClic
     },
   })
 
-  const handleAddToCart = () => {
-    if (!token) { openAuthModal('login'); return }
-
-    // Hangi gruplar gerçekten zorunlu (birden fazla seçenek var) ama seçilmedi?
+  // Varyant seçim/stok doğrulaması ortak — hem sepete ekle hem hemen al kullanır
+  const validateSelection = (): boolean => {
     const missing: string[] = []
     if (sizeRequired && !selections['Beden']) missing.push('Beden')
     if (colorRequired && !selections['Renk']) missing.push('Renk')
@@ -266,40 +265,61 @@ export function ProductInfo({ product, onGalleryChange, onColorSelect, imageClic
       setErrorGroups(missing)
       variantRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       toast.error(`Lütfen ${missing.join(' ve ')} seçin`)
-      return
+      return false
     }
 
-    // Kullanıcı açıkça seçim yaptıysa ve o kombinasyonun stoğu yoksa engelle
     if ((selectedSize || selectedColor) && activeVariant && activeVariant.stock === 0) {
       toast.error('Seçili beden/renk kombinasyonu stokta kalmadı')
-      return
+      return false
     }
 
     setErrorGroups([])
+    return true
+  }
+
+  const addToGuestCart = () => {
+    // Seçili rengin görseli varsa onu kullan — yoksa ürünün genel görseline düş
+    // (sipariş/sepet detayında yanlış renk görünmesin diye backend'deki aynı mantık).
+    const colorImage = effectiveColor?.color
+      ? colorSwatches.find(cs => cs.color === effectiveColor.color)?.image.imageUrl
+      : null
+
+    useGuestCartStore.getState().addItem({
+      productId: product.id,
+      variantId: activeVariant?.id ?? null,
+      name: product.name,
+      slug: product.slug,
+      price: displayPrice,
+      imageUrl: colorImage ?? product.imageUrl ?? product.images?.[0]?.imageUrl ?? null,
+      variantLabel: [effectiveSize?.size, effectiveColor?.color].filter(Boolean).join(' - ') || null,
+      maxStock: effectiveStock,
+    }, quantity)
+  }
+
+  const handleAddToCart = () => {
+    if (!validateSelection()) return
+
+    // Giriş yapılmamışsa misafir sepetine ekle — üyelik yalnızca ödeme adımında istenir
+    if (!token) {
+      addToGuestCart()
+      openDrawer()
+      toast.success('Ürün sepete eklendi')
+      return
+    }
+
     cartMutation.mutate()
   }
 
   const handleBuyNow = () => {
-    if (!token) { openAuthModal('login'); return }
+    if (!validateSelection()) return
 
-    const missing: string[] = []
-    if (sizeRequired && !selections['Beden']) missing.push('Beden')
-    if (colorRequired && !selections['Renk']) missing.push('Renk')
-
-    if (missing.length > 0) {
-      setErrorGroups(missing)
-      variantRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      toast.error(`Lütfen ${missing.join(' ve ')} seçin`)
+    if (!token) {
+      addToGuestCart()
+      toast.success('Ürün sepete eklendi, satın almak için giriş yapmanız gerekiyor')
+      openAuthModal('login')
       return
     }
 
-    // Kullanıcı açıkça seçim yaptıysa ve o kombinasyonun stoğu yoksa engelle
-    if ((selectedSize || selectedColor) && activeVariant && activeVariant.stock === 0) {
-      toast.error('Seçili beden/renk kombinasyonu stokta kalmadı')
-      return
-    }
-
-    setErrorGroups([])
     buyNowMutation.mutate()
   }
 
@@ -749,7 +769,7 @@ export function ProductInfo({ product, onGalleryChange, onColorSelect, imageClic
       )}
 
       {/* Trust badges */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 gap-2">
         {[
           { icon: Shield,    label: 'Güvenli Ödeme', sub: '256-bit SSL' },
           { icon: RotateCcw, label: '14 Gün İade',    sub: 'Yasal Süre' },
@@ -807,6 +827,48 @@ export function ProductInfo({ product, onGalleryChange, onColorSelect, imageClic
           Model: {product.sku}
         </p>
       )}
+
+      {/* Mobil sabit alt bar — fiyat + Hemen Al + Sepete Ekle, scroll boyunca ekranda kalır.
+          Bu sayfada genel MobileBottomNav gizlenir (bkz. MobileBottomNav.tsx), o yüzden bar bottom-0'a oturur.
+          MobileBottomNav.tsx ile BİREBİR AYNI yapı kullanılıyor (fixed bottom-0 + sadece
+          env(safe-area-inset-bottom) padding, transform/GPU-layer hack'i olmadan) — o zaten
+          sorunsuz çalışıyor, burada da aynı davranışı garantiler. */}
+      <div className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-gray-200
+                      shadow-[0_-4px_16px_rgba(0,0,0,0.08)]"
+           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        <div className="px-3 py-2.5 flex items-center gap-2">
+          <div className="flex flex-col leading-none flex-shrink-0 max-w-[26%]">
+            <span className="text-base font-extrabold text-orange truncate">
+              {formatPrice(displayPrice)}
+            </span>
+            {hasDiscount && (
+              <span className="text-[10px] text-gray-400 line-through truncate">
+                {formatPrice(product.comparePrice!)}
+              </span>
+            )}
+          </div>
+          <button
+            onClick={handleBuyNow}
+            disabled={isOutOfStock || buyNowMutation.isPending}
+            className="flex-1 flex items-center justify-center gap-1 border-2 border-orange
+                       text-orange active:scale-[0.98] font-extrabold py-3 rounded-xl transition-all
+                       text-[13px] disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <Zap size={14} />
+            Hemen Al
+          </button>
+          <button
+            onClick={handleAddToCart}
+            disabled={isOutOfStock || cartMutation.isPending}
+            className="flex-[1.4] flex items-center justify-center gap-1 bg-orange active:scale-[0.98]
+                       text-white font-extrabold py-3 rounded-xl transition-all text-[13px]
+                       disabled:opacity-60 disabled:cursor-not-allowed shadow-md shadow-orange/25"
+          >
+            <ShoppingBag size={14} />
+            {isOutOfStock ? 'Stokta Yok' : cartMutation.isPending ? 'Ekleniyor…' : 'Sepete Ekle'}
+          </button>
+        </div>
+      </div>
 
     </div>
   )

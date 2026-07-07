@@ -65,6 +65,11 @@ export function ProductGallery({
   const [hovered, setHovered] = useState(false)
   const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 })
 
+  // Parmakla kaydırma (swipe) — mobilde ana görsel ve lightbox üzerinde
+  const touchStartX = useRef<number | null>(null)
+  const touchDeltaX = useRef(0)
+  const SWIPE_THRESHOLD = 40
+
   // Thumbnail scroll
   const thumbRef = useRef<HTMLDivElement>(null)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
@@ -91,6 +96,34 @@ export function ProductGallery({
 
   const scrollThumbs = (dir: 'left' | 'right') => {
     thumbRef.current?.scrollBy({ left: dir === 'left' ? -200 : 200, behavior: 'smooth' })
+  }
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX
+    touchDeltaX.current = 0
+  }
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (touchStartX.current === null) return
+    touchDeltaX.current = e.touches[0].clientX - touchStartX.current
+  }
+  const handleTouchEndMainImage = () => {
+    if (touchStartX.current === null) return
+    const delta = touchDeltaX.current
+    if (delta > SWIPE_THRESHOLD) switchImage(Math.max(0, activeIdx - 1))
+    else if (delta < -SWIPE_THRESHOLD) switchImage(Math.min(galleryImages.length - 1, activeIdx + 1))
+    touchStartX.current = null
+    touchDeltaX.current = 0
+  }
+  const handleTouchEndLightbox = () => {
+    if (touchStartX.current === null || lightboxIdx === null) return
+    const delta = touchDeltaX.current
+    if (delta > SWIPE_THRESHOLD && lightboxIdx > 0) {
+      setLightboxIdx(lightboxIdx - 1)
+    } else if (delta < -SWIPE_THRESHOLD && lightboxIdx < galleryImages.length - 1) {
+      setLightboxIdx(lightboxIdx + 1)
+    }
+    touchStartX.current = null
+    touchDeltaX.current = 0
   }
 
   const active = galleryImages[activeIdx] ?? allImages[0]
@@ -162,12 +195,16 @@ export function ProductGallery({
   return (
     <div className="flex flex-col gap-3">
 
-      {/* ── Ana Görsel ── */}
+      {/* ── Ana Görsel — mobilde kenarsız (tam genişlik), masaüstünde köşeli/paddingli kart ── */}
       <div
-        className="relative aspect-square rounded-2xl overflow-hidden bg-gray-50 cursor-zoom-in select-none"
+        className="relative aspect-square overflow-hidden bg-gray-50 cursor-zoom-in select-none
+                   -mx-5 rounded-none sm:mx-0 sm:rounded-2xl"
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
         onMouseMove={handleMouseMove}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEndMainImage}
         onClick={() => setLightboxIdx(galleryImages.findIndex(img => img.id === active.id))}
       >
         <div
@@ -188,7 +225,7 @@ export function ProductGallery({
             fill
             priority
             sizes="(max-width:768px) 100vw, 50vw"
-            className="object-contain"
+            className="object-cover sm:object-contain"
             draggable={false}
           />
         </div>
@@ -198,11 +235,29 @@ export function ProductGallery({
             <ZoomIn size={16} className="text-gray-600" />
           </div>
         )}
+
+        {/* Mobilde nokta göstergesi — thumbnail satırı gizli olduğu için kaç görsel olduğunu
+            ve parmakla kaydırılabildiğini gösterir */}
+        {galleryImages.length > 1 && (
+          <div className="sm:hidden absolute bottom-2.5 left-1/2 -translate-x-1/2
+                          flex items-center gap-1.5 pointer-events-none">
+            {galleryImages.map((img, i) => (
+              <span
+                key={img.id}
+                className={`rounded-full transition-all ${
+                  i === activeIdx ? 'w-4 h-1.5 bg-white' : 'w-1.5 h-1.5 bg-white/50'
+                }`}
+                style={{ boxShadow: '0 0 3px rgba(0,0,0,.4)' }}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* ── Galeri Thumbnailları + Scroll Okları ── */}
+      {/* ── Galeri Thumbnailları + Scroll Okları — mobilde gizli (renk seçimi + lightbox yeterli),
+          masaüstünde görünür ── */}
       {galleryImages.length > 1 && (
-        <div className="relative">
+        <div className="relative hidden sm:block">
           {/* Sol ok */}
           {canScrollLeft && (
             <button
@@ -260,6 +315,9 @@ export function ProductGallery({
         <div
           className="fixed inset-0 z-[500] bg-black/92 flex items-center justify-center p-4"
           onClick={() => setLightboxIdx(null)}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEndLightbox}
         >
           <button onClick={() => setLightboxIdx(null)}
             className="absolute top-4 right-4 text-white/70 hover:text-white

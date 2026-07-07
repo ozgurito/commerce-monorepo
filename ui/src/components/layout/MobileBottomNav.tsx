@@ -16,6 +16,9 @@ export function MobileBottomNav() {
   if (pathname.startsWith('/admin')) return null
   // Auth sayfalarında da gizle
   if (pathname.startsWith('/giris') || pathname.startsWith('/kayit')) return null
+  // Ürün detay sayfasında kendi sabit sepet barı var (fiyat + Hemen Al + Sepete Ekle) —
+  // ikisi üst üste binmesin diye burada genel alt navigasyonu gizliyoruz (Trendyol'daki gibi).
+  if (/^\/urunler\/[^/]+\/?$/.test(pathname)) return null
 
   const isHome     = pathname === '/'
   const isSearch   = pathname.startsWith('/urunler') || pathname.startsWith('/arama') || pathname.startsWith('/kategori')

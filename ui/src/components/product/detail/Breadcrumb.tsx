@@ -19,17 +19,19 @@ export function Breadcrumb({ categoryId, productName }: Props) {
   })
 
   return (
-    <nav aria-label="Breadcrumb" className="flex items-center flex-wrap gap-1 text-xs text-gray-400 mb-6">
-      <Link href="/" className="hover:text-orange transition-colors">Ana Sayfa</Link>
+    <nav aria-label="Breadcrumb"
+         className="flex items-center gap-1 text-xs text-gray-400 mb-3 sm:mb-6
+                    overflow-x-auto whitespace-nowrap scrollbar-none">
+      <Link href="/" className="hover:text-orange transition-colors flex-shrink-0">Ana Sayfa</Link>
       <ChevronRight size={12} className="flex-shrink-0" />
-      <Link href="/urunler" className="hover:text-orange transition-colors">Ürünler</Link>
+      <Link href="/urunler" className="hover:text-orange transition-colors flex-shrink-0">Ürünler</Link>
 
       {path.map((cat) => (
-        <span key={cat.id} className="flex items-center gap-1">
+        <span key={cat.id} className="flex items-center gap-1 flex-shrink-0">
           <ChevronRight size={12} className="flex-shrink-0" />
           <Link
             href={`/kategori/${cat.slug}`}
-            className="hover:text-orange transition-colors"
+            className="hover:text-orange transition-colors flex-shrink-0"
           >
             {cat.name}
           </Link>
@@ -37,7 +39,7 @@ export function Breadcrumb({ categoryId, productName }: Props) {
       ))}
 
       <ChevronRight size={12} className="flex-shrink-0" />
-      <span className="text-gray-600 font-medium truncate max-w-[200px]">{productName}</span>
+      <span className="text-gray-600 font-medium truncate max-w-[160px] flex-shrink-0">{productName}</span>
     </nav>
   )
 }
