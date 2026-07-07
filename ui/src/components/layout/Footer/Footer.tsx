@@ -38,7 +38,6 @@ const SOCIALS = [
 const FOOTER_LINKS: Record<string, { label: string; href: string }[]> = {
   'Kurumsal': [
     { label: 'Hakkımızda', href: '/hakkimizda' },
-    { label: 'Basın', href: '/basin' },
     { label: 'İletişim', href: '/iletisim' },
   ],
   'Yardım': [
@@ -162,7 +161,7 @@ export function Footer() {
             © {new Date().getFullYear()} AlışverişNoktan. Tüm hakları saklıdır.
           </p>
           <div className="flex items-center gap-2">
-            {['VISA', 'MC', 'TROY', 'İyzico'].map((pay) => (
+            {['VISA', 'MC', 'TROY', 'PayTR'].map((pay) => (
               <span
                 key={pay}
                 className="h-7 px-3 bg-white/10 rounded text-[10px] font-bold text-white/60

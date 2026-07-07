@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 }
 
 const STATS = [
-  { value: '50.000+', label: 'Mutlu Müşteri' },
+  { value: '1.000+',  label: 'Mutlu Müşteri' },
   { value: '500+',    label: 'Ürün Çeşidi' },
   { value: '4.8',     label: 'Ortalama Puan' },
   { value: '81 İl',   label: 'Teslimat' },
@@ -35,15 +35,8 @@ const VALUES = [
   {
     icon: Heart,
     title: 'Müşteri Önce',
-    desc: '14 gün koşulsuz iade garantisi ve 7/24 destek ekibimizle alışverişin her adımında yanınızdayız.',
+    desc: '14 gün iade garantisi ve 7/24 destek ekibimizle alışverişin her adımında yanınızdayız.',
   },
-]
-
-const TIMELINE = [
-  { year: '2020', text: 'AlışverişNoktan, İstanbul\'da küçük bir ekiple kuruldu.' },
-  { year: '2021', text: 'İlk 10.000 siparişimize ulaştık; kategorilerimizi genişlettik.' },
-  { year: '2022', text: 'Mobil uygulamamızı yayına aldık ve 81 ile teslimat ağı kurduk.' },
-  { year: '2024', text: '50.000 mutlu müşteriyle Türkiye\'nin güvenilir giyim adresi olduk.' },
 ]
 
 export default function HakkimizdaPage() {
@@ -120,32 +113,6 @@ export default function HakkimizdaPage() {
                 </div>
                 <h3 className="font-bold text-navy-dark text-sm">{title}</h3>
                 <p className="text-xs text-gray-500 leading-relaxed">{desc}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Tarihçe */}
-        <section>
-          <h2 className="text-2xl font-extrabold text-navy-dark mb-8">Yolculuğumuz</h2>
-          <div className="relative space-y-0">
-            {TIMELINE.map((item, i) => (
-              <div key={item.year} className="flex gap-6">
-                {/* Sol — yıl + çizgi */}
-                <div className="flex flex-col items-center">
-                  <div className="w-10 h-10 rounded-full bg-orange flex items-center justify-center
-                                  text-white text-xs font-extrabold flex-shrink-0">
-                    {item.year.slice(2)}
-                  </div>
-                  {i < TIMELINE.length - 1 && (
-                    <div className="w-px flex-1 bg-gray-200 my-1" />
-                  )}
-                </div>
-                {/* Sağ — içerik */}
-                <div className="pb-8">
-                  <p className="text-xs font-bold text-orange mb-1">{item.year}</p>
-                  <p className="text-sm text-gray-600">{item.text}</p>
-                </div>
               </div>
             ))}
           </div>
