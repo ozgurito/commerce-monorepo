@@ -16,16 +16,16 @@ import java.math.BigDecimal;
 @Slf4j
 public class ShippingService {
 
-    // Kargo politikası: 1000₺ ve üzeri (ara toplam, indirim ÖNCESİ) ücretsiz; altında sabit 29,90₺.
+    // Kargo politikası: 1000₺ ve üzeri (ara toplam, indirim ÖNCESİ) ücretsiz; altında sabit 100₺.
     // Ağırlık bazlı kademe kaldırıldı — ileride DB/admin paneline taşınabilir.
     private static final BigDecimal FREE_SHIPPING_THRESHOLD = new BigDecimal("1000.00");
-    private static final BigDecimal FLAT_RATE = new BigDecimal("29.90");
+    private static final BigDecimal FLAT_RATE = new BigDecimal("100.00");
 
     /**
      * Kargo ücretini hesaplar (tutar bazlı, tek standart).
      *
      * @param orderSubtotal  Ürün ara toplamı (indirim öncesi)
-     * @return               1000₺ ve üzeri → 0; altında → 29,90₺
+     * @return               1000₺ ve üzeri → 0; altında → 100₺
      */
     public BigDecimal calculate(BigDecimal orderSubtotal) {
         if (orderSubtotal != null

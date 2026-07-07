@@ -10,7 +10,7 @@ export default function IadePage() {
   return (
     <div className="max-w-[860px] mx-auto px-5 py-12">
       <h1 className="text-3xl font-extrabold text-navy-dark mb-2">İade & Değişim</h1>
-      <p className="text-gray-500 mb-10">14 gün içinde koşulsuz iade garantisi</p>
+      <p className="text-gray-500 mb-10">14 gün içinde iade garantisi</p>
 
       {/* Hero Banner */}
       <div className="bg-gradient-to-r from-navy-dark to-navy rounded-2xl p-6 mb-10 text-white flex items-center gap-4">
@@ -18,9 +18,9 @@ export default function IadePage() {
           <RotateCcw size={24} className="text-white" />
         </div>
         <div>
-          <p className="font-extrabold text-lg">14 Gün Koşulsuz İade</p>
+          <p className="font-extrabold text-lg">14 Gün İade</p>
           <p className="text-white/70 text-sm mt-0.5">
-            Ürünü beğenmezseniz, hiçbir soru sormadan iade alıyoruz.
+            Ürünü beğenmezseniz, iade koşullarına uygun şekilde iade alıyoruz.
           </p>
         </div>
       </div>

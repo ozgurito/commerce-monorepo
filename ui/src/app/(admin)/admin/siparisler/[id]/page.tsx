@@ -55,7 +55,6 @@ export default function AdminSiparisDetayPage({ params }: Props) {
   const [orderId, setOrderId] = useState<number | null>(null)
   const [selectedStatus, setSelectedStatus] = useState<OrderStatus | null>(null)
   const [trackingNumber, setTrackingNumber] = useState('')
-  const [selectedCarrier, setSelectedCarrier] = useState('ARAS')
   const [labelLoading, setLabelLoading] = useState(false)
   const [invoiceLoading, setInvoiceLoading] = useState(false)
 
@@ -73,8 +72,7 @@ export default function AdminSiparisDetayPage({ params }: Props) {
   useEffect(() => {
     if (order?.status) setSelectedStatus(order.status)
     if (order?.trackingNumber) setTrackingNumber(order.trackingNumber)
-    if (order?.shippingCarrier) setSelectedCarrier(order.shippingCarrier)
-  }, [order?.status, order?.trackingNumber, order?.shippingCarrier])
+  }, [order?.status, order?.trackingNumber])
 
   const displayStatus: OrderStatus = selectedStatus ?? order?.status ?? 'PENDING'
 
@@ -312,17 +310,11 @@ export default function AdminSiparisDetayPage({ params }: Props) {
               </button>
             </div>
             <div className="space-y-2">
-              <select
-                value={selectedCarrier}
-                onChange={(e) => setSelectedCarrier(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-semibold
-                           focus:outline-none focus:border-orange focus:ring-1 focus:ring-orange/20 bg-white"
-              >
-                <option value="ARAS">Aras Kargo</option>
-                <option value="YURTICI">Yurtiçi Kargo</option>
-                <option value="MNG">MNG Kargo</option>
-                <option value="PTT">PTT Kargo</option>
-              </select>
+              {/* Kargo firması sabit — sözleşmede taahhüt edildiği gibi tek anlaşmalı firma Aras Kargo */}
+              <div className="w-full border border-gray-100 bg-gray-50 rounded-xl px-3 py-2.5
+                             text-sm font-semibold text-gray-500">
+                Kargo Firması: <span className="text-navy-dark">Aras Kargo</span>
+              </div>
               <div className="flex items-center gap-3">
                 <input
                   value={trackingNumber}
@@ -334,7 +326,7 @@ export default function AdminSiparisDetayPage({ params }: Props) {
                 <button
                   onClick={() => {
                     if (!trackingNumber.trim()) { toast.error('Takip numarası girin'); return }
-                    trackingMutation.mutate({ carrier: selectedCarrier, trackingNumber })
+                    trackingMutation.mutate({ carrier: 'ARAS', trackingNumber })
                   }}
                   disabled={trackingMutation.isPending}
                   className="flex items-center gap-2 bg-orange hover:bg-orange-dark text-white

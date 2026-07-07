@@ -110,7 +110,7 @@ export default function KargoTakipPage() {
         <div className="space-y-3">
           {[
             { q: 'Kargom ne zaman gelecek?', a: 'Siparişiniz onaylandıktan sonra 1–3 iş günü içinde teslim edilir.' },
-            { q: 'Kargo ücretini nasıl öğrenirim?', a: '1000 TL ve üzeri siparişlerde kargo ücretsizdir. Altında kalan siparişler için 29,90 TL kargo ücreti uygulanır.' },
+            { q: 'Kargo ücretini nasıl öğrenirim?', a: '1000 TL ve üzeri siparişlerde kargo ücretsizdir. Altında kalan siparişler için 100 TL kargo ücreti uygulanır.' },
             { q: 'Kargom kaybolursa ne yapmalıyım?', a: 'Müşteri hizmetlerimizi arayın: 0541 877 16 35. 24 saat içinde dönüş sağlarız.' },
           ].map(({ q, a }) => (
             <div key={q} className="border border-gray-100 rounded-xl p-4">
