@@ -1,15 +1,17 @@
 'use client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   ArrowLeft, Package, MapPin, CreditCard,
-  Clock, CheckCircle2, Truck, Loader2, AlertCircle, XCircle, RefreshCw, FileText,
+  Clock, CheckCircle2, Truck, Loader2, AlertCircle, XCircle, RefreshCw, FileText, Phone,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { ordersApi } from '@/domains/orders/orders.api'
 import { formatPrice } from '@/utils/format'
 import { QUERY_KEYS } from '@/lib/query-keys'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import type { OrderStatus } from '@/domains/orders/orders.types'
 
 /* ── Status config ── */
@@ -50,6 +52,7 @@ export default function SiparisDetayPage({ params }: Props) {
   const queryClient = useQueryClient()
   const [orderId, setOrderId] = useState<number | null>(null)
   const [invoiceLoading, setInvoiceLoading] = useState(false)
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false)
 
   const handleDownloadInvoice = async () => {
     if (!orderId) return
@@ -81,11 +84,13 @@ export default function SiparisDetayPage({ params }: Props) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.orders.detail(orderId ?? 0) })
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.orders.all })
+      setShowCancelConfirm(false)
       toast.success('Sipariş iptal edildi')
     },
     onError: (err: unknown) => {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
       toast.error(msg ?? 'İptal işlemi başarısız')
+      setShowCancelConfirm(false)
     },
   })
 
@@ -113,32 +118,40 @@ export default function SiparisDetayPage({ params }: Props) {
   const status = STATUS_CONFIG[order.status]
   const stepIdx = STATUS_STEP_INDEX[order.status]
   const isCancelled = order.status === 'CANCELLED' || order.status === 'REFUNDED'
-  const canCancel = order.status === 'PENDING' || order.status === 'PAID'
+  // Ödeme alınmadan önce (PENDING) kendi kendine iptal serbest — para hareketi yok.
+  // Ödeme alındıktan sonra (PAID ve sonrası) her iptal bir İADE gerektirir; bunu
+  // otomatik/tek tıkla yapmak yerine önce müşteri hizmetleriyle iletişime yönlendiriyoruz.
+  const canCancel = order.status === 'PENDING'
+  const needsSupportForCancel =
+    order.status === 'PAID' || order.status === 'PROCESSING' ||
+    order.status === 'SHIPPED' || order.status === 'DELIVERED'
 
   return (
     <div className="space-y-5">
 
       {/* ── Header ── */}
-      <div className="flex items-center gap-3">
-        <Link href="/hesabim/siparislerim"
-          className="w-8 h-8 rounded-xl bg-gray-100 hover:bg-orange hover:text-white
-                     flex items-center justify-center transition-colors text-gray-500">
-          <ArrowLeft size={16} />
-        </Link>
-        <div>
-          <h1 className="text-lg font-extrabold text-navy-dark">
-            Sipariş #{order.orderNumber}
-          </h1>
-          <p className="text-xs text-gray-400">
-            {new Date(order.createdAt).toLocaleDateString('tr-TR', { dateStyle: 'long' })}
-            {' — '}
-            <span className={`font-semibold ${status.badge.includes('green') ? 'text-green-600' : ''}`}>
-              {status.label}
-            </span>
-          </p>
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <Link href="/hesabim/siparislerim"
+            className="w-8 h-8 rounded-xl bg-gray-100 hover:bg-orange hover:text-white
+                       flex items-center justify-center transition-colors text-gray-500 flex-shrink-0">
+            <ArrowLeft size={16} />
+          </Link>
+          <div className="min-w-0">
+            <h1 className="text-lg font-extrabold text-navy-dark truncate">
+              Sipariş #{order.orderNumber}
+            </h1>
+            <p className="text-xs text-gray-400 truncate">
+              {new Date(order.createdAt).toLocaleDateString('tr-TR', { dateStyle: 'long' })}
+              {' — '}
+              <span className={`font-semibold ${status.badge.includes('green') ? 'text-green-600' : ''}`}>
+                {status.label}
+              </span>
+            </p>
+          </div>
         </div>
 
-        <div className="ml-auto flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center justify-between sm:justify-end sm:ml-auto gap-2 flex-shrink-0">
           <button
             onClick={handleDownloadInvoice}
             disabled={invoiceLoading}
@@ -226,11 +239,23 @@ export default function SiparisDetayPage({ params }: Props) {
             {order.items.map((item) => (
               <div key={item.id}
                 className="flex items-center gap-3 py-2.5 border-b border-gray-50 last:border-0">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-navy/5 to-orange/10
-                                flex items-center justify-center flex-shrink-0 font-extrabold
-                                text-navy-dark text-sm">
-                  {item.productName.charAt(0)}
-                </div>
+                {item.imageUrl ? (
+                  <div className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0 bg-gray-50">
+                    <Image
+                      src={item.imageUrl}
+                      alt={item.productName}
+                      width={40}
+                      height={40}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-navy/5 to-orange/10
+                                  flex items-center justify-center flex-shrink-0 font-extrabold
+                                  text-navy-dark text-sm">
+                    {item.productName.charAt(0)}
+                  </div>
+                )}
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-gray-800 truncate leading-snug">
                     {item.productName}
@@ -274,11 +299,7 @@ export default function SiparisDetayPage({ params }: Props) {
           {/* Cancel button */}
           {canCancel && (
             <button
-              onClick={() => {
-                if (confirm('Siparişi iptal etmek istediğinizden emin misiniz?')) {
-                  cancelMutation.mutate()
-                }
-              }}
+              onClick={() => setShowCancelConfirm(true)}
               disabled={cancelMutation.isPending}
               className="mt-4 w-full flex items-center justify-center gap-1.5 text-sm text-red-500
                          font-semibold border border-red-200 rounded-xl py-2.5 hover:bg-red-50
@@ -288,6 +309,28 @@ export default function SiparisDetayPage({ params }: Props) {
                 ? <><Loader2 size={13} className="animate-spin" /> İptal ediliyor…</>
                 : <><XCircle size={14} /> Siparişi İptal Et</>}
             </button>
+          )}
+
+          {/* Ödeme alınmış siparişlerde iptal/iade için önce iletişime yönlendir */}
+          {needsSupportForCancel && (
+            <div className="mt-4 bg-amber-50 border border-amber-200 rounded-xl p-4">
+              <p className="text-sm font-bold text-amber-800 mb-1">
+                İptal veya iade mi istiyorsunuz?
+              </p>
+              <p className="text-xs text-amber-700 mb-3 leading-relaxed">
+                Bu sipariş için ödeme alındığından iptal işlemi bir iade gerektirir.
+                Talebinizi değerlendirebilmemiz için lütfen önce müşteri hizmetlerimizle
+                iletişime geçin.
+              </p>
+              <Link
+                href="/iletisim"
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-white
+                           bg-amber-500 hover:bg-amber-600 px-3.5 py-2 rounded-lg transition-colors"
+              >
+                <Phone size={12} />
+                İletişime Geç
+              </Link>
+            </div>
           )}
         </div>
 
@@ -334,6 +377,18 @@ export default function SiparisDetayPage({ params }: Props) {
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={showCancelConfirm}
+        danger
+        title="Siparişi iptal et"
+        message="Siparişi iptal etmek istediğinizden emin misiniz? Henüz ödeme alınmadığı için bu işlem anında uygulanır ve geri alınamaz."
+        confirmLabel="Evet, iptal et"
+        cancelLabel="Vazgeç"
+        loading={cancelMutation.isPending}
+        onConfirm={() => cancelMutation.mutate()}
+        onCancel={() => setShowCancelConfirm(false)}
+      />
     </div>
   )
 }

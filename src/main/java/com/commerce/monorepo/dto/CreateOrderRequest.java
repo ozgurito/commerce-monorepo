@@ -33,7 +33,7 @@ public class CreateOrderRequest {
 
     private String couponCode;
 
-    /** Ödeme yöntemi — varsayılan kredi kartı (iyzico) */
+    /** Ödeme yöntemi — varsayılan kredi kartı */
     private PaymentMethod paymentMethod = PaymentMethod.CREDIT_CARD;
 
     /** Misafir müşteri email adresi (login olmadıysa) */

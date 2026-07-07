@@ -251,8 +251,12 @@ public class OrderService {
             throw new BaseException(ErrorCode.ORDER_FORBIDDEN);
         }
         
-        // Sadece PENDING veya PAID durumunda iptal edilebilir
-        if (order.getStatus() != OrderStatus.PENDING && order.getStatus() != OrderStatus.PAID) {
+        // Sadece PENDING durumunda kendi kendine iptal serbest — henüz ödeme alınmadı.
+        // PAID ve sonrası durumlarda iptal bir İADE gerektirir; bunu otomatik/tek tıkla
+        // yapmak yerine müşteri hizmetleri üzerinden yürütülmesi gerekiyor (bkz. frontend
+        // "İletişime Geç" yönlendirmesi). Bu kısıtlama API'den doğrudan çağrıda da geçerli
+        // olsun diye burada da uygulanıyor.
+        if (order.getStatus() != OrderStatus.PENDING) {
             throw new BaseException(ErrorCode.ORDER_NOT_CANCELABLE);
         }
         
@@ -339,7 +343,7 @@ public class OrderService {
         dto.setStatus(order.getStatus());
         dto.setPaymentStatus(order.getPaymentStatus());
         dto.setPaymentMethod(order.getPaymentMethod());
-        dto.setPaymentId(order.getIyzicoPaymentId());
+        dto.setPaymentId(order.getPaymentId());
         dto.setShippingAddress(order.getShippingAddress());
         dto.setBillingAddress(order.getBillingAddress());
         dto.setCouponCode(order.getCouponCode());
@@ -359,7 +363,7 @@ public class OrderService {
                 .filter(id -> id != null)
                 .collect(Collectors.toList());
 
-        // productId → birincil görsel URL (repository üzerinden güvenli fetch)
+        // productId → birincil görsel URL (yedek — varyantın kendi renk görseli yoksa kullanılır)
         Map<Long, String> imageMap = new java.util.HashMap<>();
         for (Long pid : productIds) {
             List<ProductImage> imgs = productImageRepository.findByProductIdOrderByDisplayOrder(pid);
@@ -376,6 +380,23 @@ public class OrderService {
                 .stream()
                 .collect(Collectors.toMap(ProductVariant::getId, v -> v));
 
+        // "productId:renk" → sipariş edilen rengin kendi fotoğrafı (varsa). Bu olmadan
+        // her zaman ürünün genel/birincil görseli gösteriliyordu — sipariş edilen renk
+        // farklıysa (örn. Pembe sipariş edilmiş ama görsel Lacivert oluyordu) yanlış
+        // görünüyordu.
+        Map<String, String> colorImageMap = new java.util.HashMap<>();
+        variantMap.values().stream()
+                .filter(v -> v.getColor() != null && !v.getColor().isBlank() && v.getProduct() != null)
+                .map(v -> Map.entry(v.getProduct().getId(), v.getColor()))
+                .distinct()
+                .forEach(entry -> {
+                    List<ProductImage> colorImgs = productImageRepository
+                            .findByProductIdAndVariantColorOrderByDisplayOrder(entry.getKey(), entry.getValue());
+                    if (!colorImgs.isEmpty()) {
+                        colorImageMap.put(entry.getKey() + ":" + entry.getValue(), colorImgs.get(0).getImageUrl());
+                    }
+                });
+
         dto.setItems(order.getItems().stream()
                 .map(item -> {
                     OrderItemDto itemDto = new OrderItemDto();
@@ -387,7 +408,6 @@ public class OrderService {
                     itemDto.setQuantity(item.getQuantity());
                     itemDto.setUnitPrice(item.getUnitPrice());
                     itemDto.setTotalPrice(item.getTotalPrice());
-                    itemDto.setImageUrl(p != null ? imageMap.get(p.getId()) : null);
 
                     if (item.getProductVariantId() != null) {
                         ProductVariant variant = variantMap.get(item.getProductVariantId());
@@ -398,6 +418,12 @@ public class OrderService {
                             itemDto.setColor(variant.getColor());
                         }
                     }
+
+                    // Görsel: önce sipariş edilen rengin kendi fotoğrafını dene, yoksa genel görsele düş
+                    String colorKey = (p != null && itemDto.getColor() != null)
+                            ? p.getId() + ":" + itemDto.getColor() : null;
+                    String colorImage = colorKey != null ? colorImageMap.get(colorKey) : null;
+                    itemDto.setImageUrl(colorImage != null ? colorImage : (p != null ? imageMap.get(p.getId()) : null));
 
                     return itemDto;
                 })

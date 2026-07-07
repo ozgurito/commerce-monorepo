@@ -1,12 +1,9 @@
 package com.commerce.monorepo.service;
 
+import com.commerce.monorepo.dto.ParsedProductGroup;
+import com.commerce.monorepo.dto.ParsedVariantRow;
 import com.commerce.monorepo.dto.ProductImportResultDto;
 import com.commerce.monorepo.dto.ProductImportResultDto.ImportErrorRow;
-import com.commerce.monorepo.entity.Product;
-import com.commerce.monorepo.entity.ProductImage;
-import com.commerce.monorepo.entity.ProductVariant;
-import com.commerce.monorepo.repository.CategoryRepository;
-import com.commerce.monorepo.repository.ProductImageRepository;
 import com.commerce.monorepo.repository.ProductRepository;
 import com.commerce.monorepo.repository.ProductVariantRepository;
 import lombok.RequiredArgsConstructor;
@@ -14,7 +11,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -47,9 +43,8 @@ import java.util.*;
 public class ProductImportService {
 
     private final ProductRepository        productRepository;
-    private final CategoryRepository       categoryRepository;
-    private final ProductImageRepository   productImageRepository;
     private final ProductVariantRepository productVariantRepository;
+    private final ProductImportRowService  productImportRowService;
 
     // ── Excel sütun başlıkları (Türkçe) — normalize edilmiş lookup anahtarları ──
     // Not: norm() önce Türkçe→Latin dönüşümü yapar, sonra ENGLISH locale ile küçük harf,
@@ -68,7 +63,14 @@ public class ProductImportService {
 
     // ────────────────────────────────────────────────────────────────────────────
 
-    @Transactional
+    /**
+     * NOT: Kasıtlı olarak {@code @Transactional} DEĞİL. Bu metod sadece Excel'i okuyup
+     * gruplara ayırıyor (salt-okunur ön kontroller hariç yazma yapmıyor); asıl kayıt
+     * her grup için ayrı ayrı {@link ProductImportRowService#persistGroup} üzerinden,
+     * kendi bağımsız (REQUIRES_NEW) transaction'ında gerçekleşir. Bu metodu transactional
+     * yapmak, tüm grupları tekrar TEK bir transaction'a sokup aynı zincirleme hata riskini
+     * geri getirirdi.
+     */
     public ProductImportResultDto importFromExcel(MultipartFile file) throws IOException {
         List<ImportErrorRow> errors = new ArrayList<>();
         int successCount = 0;
@@ -142,6 +144,15 @@ public class ProductImportService {
                     }
                     BigDecimal price = new BigDecimal(priceStr);
 
+                    // Model Kodu (Product.sku, unique) zaten kayıtlı mı? — bu kontrol
+                    // eksikti; kontrolsüz save() unique constraint ihlali fırlatıp
+                    // (eski kodda) TÜM sonraki grupları da zincirleme başarısız ediyordu.
+                    if (productRepository.existsBySku(modelKodu)) {
+                        errors.add(new ImportErrorRow(firstRowNo, urunAdi,
+                                "Model Kodu zaten kayıtlı: " + modelKodu));
+                        continue;
+                    }
+
                     // Duplicate barkod ön kontrolü (variant SKU zaten DB'de var mı?)
                     boolean hasDuplicate = false;
                     for (Row row : rows) {
@@ -159,49 +170,24 @@ public class ProductImportService {
                             .mapToInt(r -> parseIntSafe(cellStr(r, col.get(C_STOK))))
                             .sum();
 
-                    // ── Product kaydı ────────────────────────────────────────────
-                    Product product = new Product();
-                    product.setName(urunAdi);
-                    product.setSlug(generateSlug(urunAdi));
-                    product.setPrice(price);
-                    product.setStock(Math.max(totalStock, 0));
-                    product.setSku(modelKodu);
-                    product.setIsActive(true);
-                    product.setIsFeatured(true);   // Import edilen ürünler "Yeni Gelenler"de görünsün
-                    product.setAllowReviews(true);
+                    String description = col.containsKey(C_ACIKLAMA)
+                            ? cellStr(firstRow, col.get(C_ACIKLAMA)).trim() : null;
+                    String gender = col.containsKey(C_CINSIYET)
+                            ? cellStr(firstRow, col.get(C_CINSIYET)).trim() : null;
+                    String categoryName = col.containsKey(C_KATEGORI)
+                            ? cellStr(firstRow, col.get(C_KATEGORI)).trim() : null;
 
-                    if (col.containsKey(C_ACIKLAMA)) {
-                        String desc = cellStr(firstRow, col.get(C_ACIKLAMA)).trim();
-                        if (!desc.isBlank()) product.setDescription(desc);
-                    }
-                    if (col.containsKey(C_CINSIYET)) {
-                        String gender = cellStr(firstRow, col.get(C_CINSIYET)).trim();
-                        if (!gender.isBlank()) product.setGender(gender);
-                    }
-                    if (col.containsKey(C_KATEGORI)) {
-                        String catName = cellStr(firstRow, col.get(C_KATEGORI)).trim();
-                        if (!catName.isBlank()) {
-                            categoryRepository.findByNameIgnoreCase(catName)
-                                    .ifPresent(product::setCategory);
-                        }
-                    }
-
-                    Product saved = productRepository.save(product);
-
-                    // ── Varyantlar: Excel'deki her satır → TEK kombinasyon ProductVariant ──
+                    // ── Excel satırlarını POI'den bağımsız düz veriye çevir ──
                     //
                     //  ┌─ satır ─────────────────────────────────────────────┐
                     //  │ Barkod=BAR001 | Ürün Rengi=Lacivert | Beden=M      │
                     //  └──────────────────────────────────────────────────────┘
                     //                        ↓
-                    //  ProductVariant { color="Lacivert", size="M", sku="BAR001" }
+                    //  ParsedVariantRow { color="Lacivert", size="M", sku="BAR001" }
                     //
-                    //  color ve size AYNI variant objesine yazılır. Hiçbir zaman
+                    //  color ve size AYNI satıra yazılır. Hiçbir zaman
                     //  color-only veya size-only ayrı kayıt oluşturulmaz.
-
-                    // renk → ilk variant eşlemesi (in-memory, DB flush sorunu yok)
-                    Map<String, ProductVariant> colorVariantMap = new LinkedHashMap<>();
-
+                    List<ParsedVariantRow> variantRows = new ArrayList<>();
                     for (Row row : rows) {
                         String renk   = col.containsKey(C_RENK)
                                 ? cellStr(row, col.get(C_RENK)).trim() : "";
@@ -211,65 +197,27 @@ public class ProductImportService {
                                 ? cellStr(row, col.get(C_BARKOD)).trim() : "";
                         int varStock  = parseIntSafe(cellStr(row, col.get(C_STOK)));
 
-                        ProductVariant variant = new ProductVariant();
-                        variant.setProduct(saved);
-                        variant.setName(buildVariantName(renk, beden));
-                        variant.setVariantType("color-size");
-                        variant.setColor(renk.isBlank()   ? null : renk);
-                        variant.setSize(beden.isBlank()   ? null : beden);
-                        variant.setSku(barkod.isBlank()   ? null : barkod);
-                        variant.setStock(Math.max(varStock, 0));
-                        variant.setPriceModifier(BigDecimal.ZERO);
-                        variant.setIsActive(true);
-
-                        productVariantRepository.save(variant);
-
-                        // Renk başına ilk variant'ı map'e kaydet (görsel eşlemesi için)
-                        if (!renk.isBlank()) {
-                            colorVariantMap.putIfAbsent(renk.toLowerCase(), variant);
-                        }
-
-                        log.debug("  → Variant: name='{}' color='{}' size='{}' sku='{}' stock={}",
-                                variant.getName(), variant.getColor(), variant.getSize(),
-                                variant.getSku(), variant.getStock());
-                    }
-
-                    // ── Görseller: Her satırdan o rengin görsellerini oku + variant'a bağla ──
-                    // Aynı rengin 5 bedeni aynı URL'e sahip → dedup ile sadece 1 kez kaydedilir
-                    Set<String> addedUrls = new LinkedHashSet<>();
-                    int imgOrder = 0;
-
-                    for (Row row : rows) {
-                        String rowRenk = col.containsKey(C_RENK)
-                                ? cellStr(row, col.get(C_RENK)).trim() : "";
-
-                        // In-memory map'ten variant bul (transaction flush gerektirmez)
-                        ProductVariant matchedVariant = colorVariantMap.get(rowRenk.toLowerCase());
-
+                        List<String> imageUrls = new ArrayList<>();
                         for (int n = 1; n <= 5; n++) {
                             String gorselKey = norm("Gorsel " + n);
                             if (!col.containsKey(gorselKey)) continue;
                             String url = cellStr(row, col.get(gorselKey)).trim();
-                            if (url.isBlank() || addedUrls.contains(url)) continue;
-
-                            addedUrls.add(url);
-                            ProductImage img = new ProductImage();
-                            img.setProduct(saved);
-                            img.setImageUrl(url);
-                            img.setDisplayOrder(imgOrder);
-                            img.setIsPrimary(imgOrder == 0);
-                            img.setVariant(matchedVariant); // renk-görsel bağlantısı
-                            if (matchedVariant != null) {
-                                img.setAltText(matchedVariant.getColor()); // alt text = renk adı
-                            }
-                            productImageRepository.save(img);
-                            imgOrder++;
+                            if (!url.isBlank()) imageUrls.add(url);
                         }
+
+                        variantRows.add(new ParsedVariantRow(barkod, renk, beden, varStock, imageUrls));
                     }
 
+                    ParsedProductGroup group = new ParsedProductGroup(
+                            modelKodu, urunAdi, price, totalStock,
+                            description, gender, categoryName, variantRows);
+
+                    // ── Asıl kayıt — kendi bağımsız (REQUIRES_NEW) transaction'ında ──
+                    // Bu satırda gerçek bir DB hatası oluşsa bile SADECE bu grup etkilenir;
+                    // önceki/sonraki gruplar tamamen bağımsız kalır (bkz. ProductImportRowService).
+                    productImportRowService.persistGroup(group);
+
                     successCount++;
-                    log.info("✓ Ürün aktarıldı: '{}' [{}] — {} varyant, {} görsel",
-                            urunAdi, modelKodu, rows.size(), imgOrder);
 
                 } catch (NumberFormatException e) {
                     errors.add(new ImportErrorRow(firstRowNo, urunAdi,
@@ -351,16 +299,6 @@ public class ProductImportService {
         catch (NumberFormatException e) { return 0; }
     }
 
-    /** "Renk - Beden" formatında varyant adı. Boş olanlar atlanır. */
-    private String buildVariantName(String renk, String beden) {
-        boolean hasRenk  = renk  != null && !renk.isBlank();
-        boolean hasBeden = beden != null && !beden.isBlank();
-        if (hasRenk && hasBeden) return renk + " - " + beden;
-        if (hasRenk)             return renk;
-        if (hasBeden)            return beden;
-        return "Standart";
-    }
-
     /**
      * Türkçe karakter normalizasyonu — JVM locale BAĞIMSIZ.
      *
@@ -387,13 +325,6 @@ public class ProductImportService {
         // Adım 3: ENGLISH locale ile küçük harf + boşluk kaldır
         return r.toLowerCase(Locale.ENGLISH)
                 .replaceAll("\\s+", "");
-    }
-
-    /** URL-güvenli slug üretir + UUID suffix ile çakışmayı önler */
-    private String generateSlug(String name) {
-        String slug = norm(name).replaceAll("[^a-z0-9]+", "-").replaceAll("^-|-$", "");
-        if (slug.isBlank()) slug = "urun";
-        return slug + "-" + UUID.randomUUID().toString().substring(0, 5);
     }
 
     private ProductImportResultDto makeResult(int success, List<ImportErrorRow> errors) {

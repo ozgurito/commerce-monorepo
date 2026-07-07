@@ -100,15 +100,15 @@ export default function SiparislerimPage() {
                 <div className={`h-1 ${st.dot}`} />
 
                 <div className="p-5">
-                  <div className="flex items-start justify-between gap-3">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                     {/* Left */}
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
                       <div className="w-11 h-11 bg-orange/8 rounded-xl flex items-center
                                       justify-center flex-shrink-0">
                         <Package size={20} className="text-orange" />
                       </div>
-                      <div>
-                        <p className="font-extrabold text-navy-dark text-sm">
+                      <div className="min-w-0">
+                        <p className="font-extrabold text-navy-dark text-sm truncate">
                           Sipariş #{order.orderNumber}
                         </p>
                         <p className="text-xs text-gray-400 mt-0.5">
@@ -118,7 +118,7 @@ export default function SiparislerimPage() {
                     </div>
 
                     {/* Right */}
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="flex items-center justify-between sm:justify-end gap-2 flex-shrink-0">
                       <span className={`inline-flex items-center gap-1.5 text-xs font-bold
                                         px-2.5 py-1.5 rounded-full border ${st.bg} ${st.color}`}>
                         {st.icon}
