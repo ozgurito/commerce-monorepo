@@ -4,13 +4,15 @@ const WHATSAPP_MESSAGE = 'Merhaba! AlışverişNoktan hakkında bilgi almak isti
 export function WhatsAppButton() {
   const href = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`
 
+  // Mobilde her sayfada alttaki sabit bar (MobileBottomNav veya ürün detayındaki sepet barı)
+  // bottom-0'da olduğu için ikon her durumda bunun üstüne (bottom-24) oturur.
   return (
     <a
       href={href}
       target="_blank"
       rel="noopener noreferrer"
       aria-label="WhatsApp ile iletişime geç"
-      className="fixed bottom-6 right-6 z-50"
+      className="fixed bottom-24 right-6 z-50 lg:bottom-6"
     >
       <div
         className="w-[56px] h-[56px] rounded-full shadow-2xl flex items-center justify-center

@@ -31,12 +31,12 @@ export function UserMenu() {
     return (
       <button
         onClick={() => openAuthModal('login')}
-        className="flex flex-col items-center gap-[3px] px-3 py-[7px] text-white/85
+        className="flex flex-col items-center gap-[3px] px-1.5 sm:px-3 py-[7px] text-white/85
                    text-[11px] font-semibold rounded-xl hover:bg-white/10
                    transition-colors flex-shrink-0"
       >
         <User size={23} strokeWidth={1.8} />
-        <span>Giriş Yap</span>
+        <span className="hidden sm:block">Giriş Yap</span>
       </button>
     )
   }
@@ -45,7 +45,7 @@ export function UserMenu() {
     <div ref={ref} className="relative flex-shrink-0">
       <button
         onClick={() => setOpen(o => !o)}
-        className="flex flex-col items-center gap-[3px] px-3 py-[7px] text-white/85
+        className="flex flex-col items-center gap-[3px] px-1.5 sm:px-3 py-[7px] text-white/85
                    text-[11px] font-semibold rounded-xl hover:bg-white/10
                    transition-colors"
       >
@@ -61,7 +61,7 @@ export function UserMenu() {
                         ${open ? 'rotate-180' : ''}`}
           />
         </div>
-        <span className="max-w-[70px] truncate">{firstName}</span>
+        <span className="hidden sm:block max-w-[70px] truncate">{firstName}</span>
       </button>
 
       {open && (

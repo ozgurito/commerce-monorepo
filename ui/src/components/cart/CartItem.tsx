@@ -172,7 +172,7 @@ export function CartItem({ item }: Props) {
               aria-label="Ürünü kaldır"
               className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-300
                          hover:bg-red-50 hover:text-red-500 transition-colors disabled:opacity-40
-                         opacity-0 group-hover:opacity-100"
+                         sm:opacity-0 sm:group-hover:opacity-100"
             >
               <Trash2 size={13} />
             </button>

@@ -28,11 +28,13 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
       <Header />
       <CategoryNav />
 
-      <main className="flex-1 bg-gray-50/60 min-h-screen">
+      <main className="flex-1 bg-gray-50/60">
         <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10 xl:px-14 py-6 sm:py-8">
           <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-start">
             <AccountSidebar />
-            <div className="flex-1 min-w-0">{children}</div>
+            {/* items-start ile mobilde (flex-col) bu kutu otomatik genişlemiyor —
+                w-full ile zorluyoruz, md:w-auto ile masaüstünde flex-1 davranışına geri dönüyor */}
+            <div className="flex-1 min-w-0 w-full md:w-auto">{children}</div>
           </div>
         </div>
       </main>

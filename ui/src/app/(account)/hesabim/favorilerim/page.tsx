@@ -138,7 +138,7 @@ export default function FavorilerimPage() {
                   disabled={removeMutation.isPending}
                   className="absolute top-2 right-2 w-8 h-8 bg-white rounded-full shadow-md
                              flex items-center justify-center text-red-400 hover:text-red-500
-                             hover:scale-110 transition-all opacity-0 group-hover:opacity-100"
+                             hover:scale-110 transition-all sm:opacity-0 sm:group-hover:opacity-100"
                 >
                   <Trash2 size={14} />
                 </button>

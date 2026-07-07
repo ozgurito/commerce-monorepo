@@ -33,8 +33,9 @@ export function SortBar({
 
   return (
     <div className="mb-4">
-      {/* Top row: result count + controls */}
-      <div className="flex items-center justify-between gap-3 py-2.5 border-b border-gray-100">
+      {/* Top row: result count + controls — mobilde sabit (sticky), "Filtrele" her zaman erişilebilir kalsın */}
+      <div className="sticky top-[112px] lg:static z-[150] bg-gray-50
+                      flex items-center justify-between gap-3 py-2.5 border-b border-gray-100">
 
         {/* Left: filter button (mobile) + count */}
         <div className="flex items-center gap-3">

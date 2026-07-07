@@ -130,39 +130,46 @@ export function FilterSidebar({ filters, onFilterChange, onReset, isOpen, onClos
       {/* Mobile overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-[300] lg:hidden backdrop-blur-sm"
+          className="fixed inset-0 bg-black/50 z-[400] lg:hidden backdrop-blur-sm"
           onClick={onClose}
         />
       )}
 
+      {/* Mobilde tam genişlik, alttan açılan "bottom sheet"; masaüstünde eskisi gibi sol sidebar */}
       <aside
-        className={`fixed top-0 left-0 h-full w-[300px] bg-white z-[310] shadow-2xl
+        className={`fixed inset-x-0 bottom-0 h-[90vh] max-h-[90vh] rounded-t-3xl
+                    bg-white z-[410] shadow-2xl
                     transform transition-transform duration-300 ease-in-out
-                    lg:relative lg:shadow-none lg:w-[240px] lg:translate-x-0
-                    lg:z-auto lg:h-auto lg:top-auto lg:sticky lg:self-start
+                    ${isOpen ? 'translate-y-0' : 'translate-y-full'}
+                    lg:relative lg:inset-auto lg:bottom-auto lg:rounded-none
+                    lg:shadow-none lg:w-[240px] lg:translate-y-0 lg:z-auto
+                    lg:h-auto lg:sticky lg:top-[calc(68px+44px+1rem)] lg:self-start
                     lg:max-h-[calc(100vh-140px)]
-                    ${isOpen ? 'translate-x-0' : '-translate-x-full'}
                     flex flex-col`}
-        style={{ top: 'calc(68px + 44px + 1rem)' }}
       >
-        {/* Mobile header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 lg:hidden">
-          <div className="flex items-center gap-2">
-            <SlidersHorizontal size={16} className="text-navy-dark" />
-            <span className="font-extrabold text-navy-dark text-sm">Filtreler</span>
-            {activeFilterCount > 0 && (
-              <span className="text-xs bg-orange text-white rounded-full px-2 py-0.5 font-bold">
-                {activeFilterCount}
-              </span>
-            )}
+        {/* Mobile: sürükleme tutamacı + başlık */}
+        <div className="lg:hidden flex-shrink-0">
+          <div className="flex justify-center pt-2.5 pb-1">
+            <div className="w-10 h-1.5 rounded-full bg-gray-200" />
           </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center
-                       text-gray-500 transition-colors"
-          >
-            <X size={17} />
-          </button>
+          <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
+            <div className="flex items-center gap-2">
+              <SlidersHorizontal size={16} className="text-navy-dark" />
+              <span className="font-extrabold text-navy-dark text-sm">Filtreler</span>
+              {activeFilterCount > 0 && (
+                <span className="text-xs bg-orange text-white rounded-full px-2 py-0.5 font-bold">
+                  {activeFilterCount}
+                </span>
+              )}
+            </div>
+            <button
+              onClick={onClose}
+              className="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center
+                         text-gray-500 transition-colors"
+            >
+              <X size={17} />
+            </button>
+          </div>
         </div>
 
         {/* Desktop header */}
@@ -297,7 +304,8 @@ export function FilterSidebar({ filters, onFilterChange, onReset, isOpen, onClos
         </div>
 
         {/* Uygula / Temizle barı — taslak filtreleri tek seferde uygular (desktop + mobil) */}
-        <div className="flex-shrink-0 border-t border-gray-100 px-4 lg:px-0 py-3 bg-white">
+        <div className="flex-shrink-0 border-t border-gray-100 px-4 lg:px-0 py-3 bg-white"
+             style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))' }}>
           <div className="flex gap-2">
             {activeFilterCount > 0 && (
               <button

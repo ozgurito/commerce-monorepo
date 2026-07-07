@@ -11,7 +11,7 @@ export function HeaderActions() {
   const { isAuthenticated } = useAuthStore()
   const { openAuthModal } = useUIStore()
 
-  const iconBtn = `flex flex-col items-center gap-[3px] px-3 py-[7px] text-white/85
+  const iconBtn = `flex flex-col items-center gap-[3px] px-1.5 sm:px-3 py-[7px] text-white/85
                    text-[11px] font-semibold rounded-xl hover:bg-white/10
                    transition-colors cursor-pointer flex-shrink-0`
 
