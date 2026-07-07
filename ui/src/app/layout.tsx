@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { Providers } from './providers'
 import { WhatsAppButton } from '@/components/ui/WhatsAppButton'
+import { CookieConsentBanner } from '@/components/ui/CookieConsentBanner'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -27,6 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-full flex flex-col">
         <Providers>{children}</Providers>
         <WhatsAppButton />
+        <CookieConsentBanner />
       </body>
     </html>
   )

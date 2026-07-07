@@ -40,9 +40,6 @@ public class User {
     @Column(name = "phone", length = 20)
     private String phone;
 
-    @Column(name = "identity_number", length = 11)
-    private String identityNumber;
-
     @Column(name = "is_guest", nullable = false)
     private Boolean isGuest = false;
 

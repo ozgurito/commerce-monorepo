@@ -5,16 +5,15 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Loader2, Save, Info, Mail, Phone, CreditCard, Shield, Star, Package, Heart, MapPin, ShoppingBag, ChevronRight } from 'lucide-react'
+import { Loader2, Save, Mail, Phone, CreditCard, Shield, Star, Package, Heart, MapPin, ShoppingBag, ChevronRight } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { userApi } from '@/domains/user/user.api'
 import { useAuthStore } from '@/store/auth.store'
 import { QUERY_KEYS } from '@/lib/query-keys'
 
 const schema = z.object({
-  fullName:       z.string().min(3, 'Ad Soyad en az 3 karakter'),
-  phone:          z.string().regex(/^[0-9]{10,11}$/, 'Geçerli telefon numarası girin').optional().or(z.literal('')),
-  identityNumber: z.string().regex(/^[0-9]{11}$/, 'TCKN 11 haneli olmalı').optional().or(z.literal('')),
+  fullName: z.string().min(3, 'Ad Soyad en az 3 karakter'),
+  phone:    z.string().regex(/^[0-9]{10,11}$/, 'Geçerli telefon numarası girin').optional().or(z.literal('')),
 })
 type FormValues = z.infer<typeof schema>
 
@@ -40,9 +39,8 @@ export default function HesabimPage() {
   useEffect(() => {
     if (user) {
       reset({
-        fullName:       user.fullName ?? '',
-        phone:          user.phone ?? '',
-        identityNumber: user.identityNumber ?? '',
+        fullName: user.fullName ?? '',
+        phone:    user.phone ?? '',
       })
     }
   }, [user, reset])
@@ -50,9 +48,8 @@ export default function HesabimPage() {
   const mutation = useMutation({
     mutationFn: (values: FormValues) =>
       userApi.updateProfile({
-        fullName:       values.fullName,
-        phone:          values.phone || undefined,
-        identityNumber: values.identityNumber || undefined,
+        fullName: values.fullName,
+        phone:    values.phone || undefined,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.user.me })
@@ -170,28 +167,6 @@ export default function HesabimPage() {
             {errors.phone && (
               <p className="text-xs text-red-500 mt-1">{errors.phone.message}</p>
             )}
-          </div>
-
-          {/* TCKN */}
-          <div>
-            <label className="block text-xs font-bold text-gray-600 mb-1.5">
-              TC Kimlik Numarası (TCKN)
-            </label>
-            <input
-              {...register('identityNumber')}
-              placeholder="11 haneli TCKN"
-              maxLength={11}
-              className={inputCls(!!errors.identityNumber)}
-            />
-            {errors.identityNumber && (
-              <p className="text-xs text-red-500 mt-1">{errors.identityNumber.message}</p>
-            )}
-            <div className="flex items-start gap-1.5 mt-1.5 p-3 bg-blue-50 rounded-xl">
-              <Info size={12} className="text-blue-400 flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-blue-600">
-                Kredi kartı ödemeleri için gereklidir. Girilmezse sistem otomatik değer kullanır.
-              </p>
-            </div>
           </div>
 
           <button

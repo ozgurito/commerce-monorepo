@@ -3,7 +3,6 @@ export interface UserDto {
   email: string
   fullName: string | null
   phone: string | null
-  identityNumber: string | null
   role: string
   isActive: boolean
   emailVerified: boolean
@@ -14,5 +13,4 @@ export interface UserDto {
 export interface UpdateProfileRequest {
   fullName?: string
   phone?: string
-  identityNumber?: string
 }

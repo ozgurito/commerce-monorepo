@@ -9,12 +9,12 @@ const SECTIONS = [
   {
     title: '1. Veri Sorumlusu',
     content:
-      'AlışverişNoktan Elektronik Ticaret A.Ş. ("Şirket"), 6698 sayılı Kişisel Verilerin Korunması Kanunu ("KVKK") uyarınca veri sorumlusu sıfatıyla hareket etmektedir. Şirket unvanı: AlışverişNoktan Elektronik Ticaret A.Ş., Adres: Maslak Mahallesi, Büyükdere Cad. No:123 Kat:5, Sarıyer / İstanbul.',
+      'Şeyhmus Adan (Şahıs İşletmesi) — "FECCY" markası ("Şirket"), 6698 sayılı Kişisel Verilerin Korunması Kanunu ("KVKK") uyarınca veri sorumlusu sıfatıyla hareket etmektedir. İşletme unvanı: Şeyhmus Adan, Adres: İzmir.',
   },
   {
     title: '2. İşlenen Kişisel Veriler',
     content:
-      'Kimlik verileri (ad, soyad, T.C. kimlik numarası), iletişim verileri (e-posta, telefon, adres), finansal veriler (ödeme bilgileri, sipariş tutarları), müşteri işlem verileri (sipariş geçmişi, iade talepleri), pazarlama verileri (çerez verileri, tercih ve ilgi alanları) işlenmektedir.',
+      'Kimlik verileri (ad, soyad), iletişim verileri (e-posta, telefon, adres), finansal veriler (ödeme bilgileri, sipariş tutarları), müşteri işlem verileri (sipariş geçmişi, iade talepleri), pazarlama verileri (çerez verileri, tercih ve ilgi alanları) işlenmektedir.',
   },
   {
     title: '3. Kişisel Verilerin İşlenme Amaçları',

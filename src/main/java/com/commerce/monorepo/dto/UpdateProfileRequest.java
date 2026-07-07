@@ -9,9 +9,6 @@ public record UpdateProfileRequest(
 
     @Size(max = 20, message = "Telefon en fazla 20 karakter olabilir")
     @Pattern(regexp = "^[0-9+\\-\\s]*$", message = "Geçersiz telefon formatı")
-    String phone,
-
-    @Pattern(regexp = "^[0-9]{11}$", message = "T.C. kimlik no 11 haneli sayı olmalı")
-    String identityNumber
+    String phone
 ) {}
 

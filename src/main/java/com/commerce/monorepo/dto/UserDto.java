@@ -7,7 +7,6 @@ public record UserDto(
         String email,
         String fullName,
         String phone,
-        String identityNumber,
         String role,
         Boolean isActive,
         Boolean emailVerified,

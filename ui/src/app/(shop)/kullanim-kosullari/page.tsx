@@ -9,7 +9,7 @@ const SECTIONS = [
   {
     title: '1. Genel Hükümler',
     content:
-      'Bu kullanım koşulları, AlışverişNoktan Elektronik Ticaret A.Ş. ("Şirket") ile siteyi kullanan kişiler ("Kullanıcı") arasındaki ilişkiyi düzenlemektedir. Siteye erişim sağlayarak bu koşulları kabul etmiş sayılırsınız.',
+      'Bu kullanım koşulları, Şeyhmus Adan (Şahıs İşletmesi) — "FECCY" markası ("Şirket") ile siteyi kullanan kişiler ("Kullanıcı") arasındaki ilişkiyi düzenlemektedir. Siteye erişim sağlayarak bu koşulları kabul etmiş sayılırsınız.',
   },
   {
     title: '2. Üyelik',
