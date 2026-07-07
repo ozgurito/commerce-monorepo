@@ -9,15 +9,20 @@ import { cartApi } from '@/domains/cart/cart.api'
 import { userApi } from '@/domains/user/user.api'
 import { useCartStore } from '@/store/cart.store'
 import { useAuthStore } from '@/store/auth.store'
+import { useUIStore } from '@/store/ui.store'
+import { useGuestCartStore } from '@/store/guest-cart.store'
 import { useRecentlyViewed, type RecentItem } from '@/hooks/useRecentlyViewed'
 import { formatPrice, FREE_SHIPPING_THRESHOLD, SHIPPING_COST } from '@/utils/format'
 import { QUERY_KEYS } from '@/lib/query-keys'
 import { CartItem } from './CartItem'
+import { GuestCartItem } from './GuestCartItem'
 import { CouponInput } from './CouponInput'
 
 export function CartDrawer() {
   const { isDrawerOpen, closeDrawer, syncFromCart, couponCode: appliedCoupon, discountAmount, applyCoupon, clearCoupon } = useCartStore()
   const { token } = useAuthStore()
+  const { openAuthModal } = useUIStore()
+  const guestItems = useGuestCartStore((s) => s.items)
   const queryClient = useQueryClient()
   const { get: getRecentlyViewed } = useRecentlyViewed()
   const [recentItems, setRecentItems] = useState<RecentItem[]>([])
@@ -47,9 +52,16 @@ export function CartDrawer() {
     onError: () => toast.error('Kupon uygulanamadı'),
   })
 
+  // Header/mobil nav rozeti: giriş yoksa misafir sepetinden, girişliyken sunucu sepetinden senkronize et
   useEffect(() => {
-    if (cart) syncFromCart(cart.itemCount, cart.totalAmount)
-  }, [cart, syncFromCart])
+    if (token) {
+      if (cart) syncFromCart(cart.itemCount, cart.totalAmount)
+    } else {
+      const guestItemCount = guestItems.reduce((sum, i) => sum + i.quantity, 0)
+      const guestTotal = guestItems.reduce((sum, i) => sum + i.price * i.quantity, 0)
+      syncFromCart(guestItemCount, guestTotal)
+    }
+  }, [token, cart, guestItems, syncFromCart])
 
   useEffect(() => {
     if (isDrawerOpen) setRecentItems(getRecentlyViewed().slice(0, 4))
@@ -78,15 +90,25 @@ export function CartDrawer() {
   })
 
   const items = cart?.items ?? []
-  const isEmpty = items.length === 0
-  const totalQty = cart?.itemCount ?? 0   // backend: toplam miktar (2 adet = 2 sayılır)
-  const subtotal = cart?.totalAmount ?? 0
-  const discount = discountAmount ?? 0
+  const isEmpty = token ? items.length === 0 : guestItems.length === 0
+  const totalQty = token
+    ? (cart?.itemCount ?? 0)   // backend: toplam miktar (2 adet = 2 sayılır)
+    : guestItems.reduce((sum, i) => sum + i.quantity, 0)
+  const subtotal = token
+    ? (cart?.totalAmount ?? 0)
+    : guestItems.reduce((sum, i) => sum + i.price * i.quantity, 0)
+  const discount = token ? (discountAmount ?? 0) : 0
   const discountedSubtotal = Math.max(0, subtotal - discount)
-  // Kargo: ara toplam (indirim öncesi) ≥ 1000₺ → ücretsiz; altında 29,90₺
+  // Kargo: ara toplam (indirim öncesi) ≥ 1000₺ → ücretsiz; altında 100₺
   const hasFreeShipping = subtotal >= FREE_SHIPPING_THRESHOLD
   const shipping = hasFreeShipping ? 0 : SHIPPING_COST
   const grandTotal = discountedSubtotal + shipping
+
+  const handleGuestCheckout = () => {
+    closeDrawer()
+    toast('Ödemeye geçmek için giriş yapmanız gerekiyor', { icon: '🔒' })
+    openAuthModal('login')
+  }
   const amountUntilFreeShipping = Math.max(0, FREE_SHIPPING_THRESHOLD - subtotal)
 
   return (
@@ -128,9 +150,16 @@ export function CartDrawer() {
                 </h2>
               </div>
               <div className="flex items-center gap-2">
-                {items.length > 0 && (
+                {!isEmpty && (
                   <button
-                    onClick={() => clearMutation.mutate()}
+                    onClick={() => {
+                      if (token) {
+                        clearMutation.mutate()
+                      } else {
+                        useGuestCartStore.getState().clear()
+                        toast.success('Sepet temizlendi')
+                      }
+                    }}
                     disabled={clearMutation.isPending}
                     className="flex items-center gap-1 text-xs text-gray-400 hover:text-red-500
                                transition-colors disabled:opacity-40"
@@ -151,22 +180,7 @@ export function CartDrawer() {
             </div>
 
             {/* İçerik */}
-            {!token ? (
-              <div className="flex-1 flex flex-col items-center justify-center gap-4 px-5">
-                <ShoppingBag size={48} className="text-gray-200" />
-                <p className="text-gray-500 font-medium text-center">
-                  Sepetini görmek için giriş yapman gerekiyor
-                </p>
-                <Link
-                  href="/giris"
-                  onClick={closeDrawer}
-                  className="px-6 py-3 bg-orange text-white font-bold rounded-xl
-                             hover:bg-orange-dark transition-colors"
-                >
-                  Giriş Yap
-                </Link>
-              </div>
-            ) : isEmpty ? (
+            {isEmpty ? (
               <div className="flex-1 flex flex-col items-center gap-4 px-5 py-8 overflow-y-auto">
                 <ShoppingBag size={48} className="text-gray-200" />
                 <p className="text-gray-500 font-medium">Sepetiniz boş</p>
@@ -226,15 +240,25 @@ export function CartDrawer() {
               <>
                 {/* Ürün listesi */}
                 <div className="flex-1 overflow-y-auto px-5">
-                  {items.map((item) => (
-                    <CartItem key={item.id} item={item} />
-                  ))}
+                  {token
+                    ? items.map((item) => <CartItem key={item.id} item={item} />)
+                    : guestItems.map((item) => (
+                        <GuestCartItem key={`${item.productId}-${item.variantId ?? 'none'}`} item={item} />
+                      ))}
                 </div>
 
                 {/* Alt panel */}
                 <div className="border-t border-gray-100 px-5 py-4 space-y-4 bg-white">
+                  {!token && (
+                    <div className="flex items-center gap-2 bg-blue-50 border border-blue-100
+                                    rounded-xl px-3 py-2.5 text-xs text-blue-700">
+                      <ShoppingBag size={15} className="flex-shrink-0 text-blue-500" />
+                      Ödemeye geçerken giriş yapmanız istenecek — sepetiniz kaybolmaz.
+                    </div>
+                  )}
+
                   {/* Hoş geldiniz kuponu banner */}
-                  {welcomeCoupon?.eligible && !appliedCoupon && (
+                  {token && welcomeCoupon?.eligible && !appliedCoupon && (
                     <div className="flex items-center gap-2 bg-amber-50 border border-amber-200
                                     rounded-xl px-3 py-2.5">
                       <Gift size={15} className="text-amber-500 flex-shrink-0" />
@@ -254,12 +278,14 @@ export function CartDrawer() {
                     </div>
                   )}
 
-                  <CouponInput
-                    appliedCoupon={appliedCoupon}
-                    discountAmount={discountAmount}
-                    onApplied={applyCoupon}
-                    onRemoved={clearCoupon}
-                  />
+                  {token && (
+                    <CouponInput
+                      appliedCoupon={appliedCoupon}
+                      discountAmount={discountAmount}
+                      onApplied={applyCoupon}
+                      onRemoved={clearCoupon}
+                    />
+                  )}
 
                   {/* Ücretsiz kargo progress */}
                   {!isEmpty && (
@@ -316,14 +342,24 @@ export function CartDrawer() {
                     </div>
                   </div>
 
-                  <Link
-                    href="/odeme"
-                    onClick={closeDrawer}
-                    className="block w-full text-center bg-orange hover:bg-orange-dark text-white
-                               font-bold py-3.5 rounded-xl transition-colors"
-                  >
-                    Ödemeye Geç
-                  </Link>
+                  {token ? (
+                    <Link
+                      href="/odeme"
+                      onClick={closeDrawer}
+                      className="block w-full text-center bg-orange hover:bg-orange-dark text-white
+                                 font-bold py-3.5 rounded-xl transition-colors"
+                    >
+                      Ödemeye Geç
+                    </Link>
+                  ) : (
+                    <button
+                      onClick={handleGuestCheckout}
+                      className="block w-full text-center bg-orange hover:bg-orange-dark text-white
+                                 font-bold py-3.5 rounded-xl transition-colors"
+                    >
+                      Ödemeye Geç
+                    </button>
+                  )}
                   <button
                     onClick={closeDrawer}
                     className="block w-full text-center text-sm text-gray-500 hover:text-navy-dark

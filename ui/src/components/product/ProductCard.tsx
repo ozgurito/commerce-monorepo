@@ -36,6 +36,7 @@ import { wishlistApi } from '@/domains/wishlist/wishlist.api'
 import { useAuthStore } from '@/store/auth.store'
 import { useUIStore } from '@/store/ui.store'
 import { useCartStore } from '@/store/cart.store'
+import { useGuestCartStore } from '@/store/guest-cart.store'
 import { QUERY_KEYS } from '@/lib/query-keys'
 import { formatPrice } from '@/utils/format'
 import { getProductBadge } from '@/utils/product-badge'
@@ -98,10 +99,24 @@ export function ProductCard({ product, priority = false }: Props) {
 
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault()
-    if (!token) { openAuthModal('login'); return }
     if (isOutOfStock) return
     setAddingCart(true)
     try {
+      // Giriş yapılmamışsa misafir sepetine ekle — üyelik yalnızca ödeme adımında istenir
+      if (!token) {
+        useGuestCartStore.getState().addItem({
+          productId: product.id,
+          variantId: null,
+          name: product.name,
+          slug: product.slug,
+          price: product.price,
+          imageUrl: product.imageUrl ?? null,
+          variantLabel: null,
+          maxStock: product.stock,
+        }, 1)
+        openDrawer()
+        return
+      }
       const { cartApi } = await import('@/domains/cart/cart.api')
       await cartApi.addItem({ productId: product.id, quantity: 1 })
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.cart.all })

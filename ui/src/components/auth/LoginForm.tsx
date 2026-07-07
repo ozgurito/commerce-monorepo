@@ -7,6 +7,7 @@ import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { authApi } from '@/domains/auth/auth.api'
 import { useAuthStore } from '@/store/auth.store'
+import { mergeGuestCartIntoServerCart } from '@/store/guest-cart.store'
 
 const schema = z.object({
   email:    z.string().email('Geçerli bir e-posta girin'),
@@ -41,6 +42,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: Props) {
     try {
       const res = await authApi.login(values)
       login(res)
+      await mergeGuestCartIntoServerCart()
       toast.success('Giriş yapıldı!')
       onSuccess?.()
     } catch (err: unknown) {
