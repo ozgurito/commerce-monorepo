@@ -3,9 +3,9 @@ package com.commerce.monorepo.service.payment;
 import com.commerce.monorepo.config.IyzicoProperties;
 import com.commerce.monorepo.dto.OrderDto;
 import com.commerce.monorepo.dto.OrderItemDto;
-import com.commerce.monorepo.dto.payment.IyzicoCallbackRequest;
-import com.commerce.monorepo.dto.payment.IyzicoCheckoutInitRequest;
-import com.commerce.monorepo.dto.payment.IyzicoCheckoutInitResponse;
+import com.commerce.monorepo.dto.payment.CardPaymentCallbackRequest;
+import com.commerce.monorepo.dto.payment.CardPaymentInitRequest;
+import com.commerce.monorepo.dto.payment.CardPaymentInitResponse;
 import com.commerce.monorepo.entity.*;
 import com.commerce.monorepo.exception.BaseException;
 import com.commerce.monorepo.exception.ErrorCode;
@@ -32,10 +32,18 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Kart ile ödeme servisi — sağlayıcıdan bağımsız isimlendirilmiştir (DTO'lar, Order
+ * kolonları, endpoint yolları "iyzico" ismini taşımaz), çünkü ödeme sağlayıcısı
+ * PayTR'ye geçiş sürecindedir. Bu sınıfın İÇİNDEKİ gerçek entegrasyon şu an hâlâ
+ * iyzico SDK'sını kullanıyor — PayTR'nin gerçek API bilgileri (merchant_id/key/salt)
+ * elde edilip sandbox'ta test edildikten sonra bu implementasyon PayTR'nin
+ * iFrame API'sine göre güncellenecek (dış görünen sınıf/DTO isimleri değişmeyecek).
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class IyzicoPaymentService {
+public class CardPaymentService {
 
     private final IyzicoProperties properties;
     private final OrderRepository orderRepository;
@@ -43,7 +51,7 @@ public class IyzicoPaymentService {
     private final com.commerce.monorepo.service.EmailService emailService;
 
     @Transactional
-    public IyzicoCheckoutInitResponse initCheckout(IyzicoCheckoutInitRequest req) {
+    public CardPaymentInitResponse initCheckout(CardPaymentInitRequest req) {
         Order order = orderRepository.findByIdWithItems(req.getOrderId())
                 .orElseThrow(() -> new BaseException(ErrorCode.ORDER_NOT_FOUND));
 
@@ -76,9 +84,9 @@ public class IyzicoPaymentService {
                 : order.getUser().getGuestEmail();
         buyer.setEmail(buyerEmail);
         buyer.setGsmNumber(extractPhone(order.getShippingAddress()));
-        // TCKN: kullanıcı profilinden al, yoksa iyzico sandbox default
-        String tckn = order.getUser().getIdentityNumber();
-        buyer.setIdentityNumber(tckn != null && !tckn.isBlank() ? tckn : "11111111111");
+        // TCKN artık müşteriden toplanmıyor (KVKK kapsamını daraltmak için) —
+        // ödeme sağlayıcısı API'si bu alanı zorunlu kıldığından sabit bir placeholder gönderiyoruz.
+        buyer.setIdentityNumber("11111111111");
         buyer.setRegistrationAddress(extractAddress(order.getShippingAddress()));
         buyer.setCity(safe(order.getShippingAddress() != null ? order.getShippingAddress().getCity() : null));
         buyer.setCountry(safe(order.getShippingAddress() != null ? order.getShippingAddress().getCountry() : "Turkey"));
@@ -103,22 +111,22 @@ public class IyzicoPaymentService {
 
         CheckoutFormInitialize response = CheckoutFormInitialize.create(request, options());
         if (response == null || !Status.SUCCESS.getValue().equalsIgnoreCase(response.getStatus())) {
-            String errorMsg = response != null 
-                    ? String.format("Iyzico Error: %s (Status: %s, Error Code: %s)", 
-                        response.getErrorMessage(), 
-                        response.getStatus(), 
+            String errorMsg = response != null
+                    ? String.format("Ödeme sağlayıcısı hatası: %s (Status: %s, Error Code: %s)",
+                        response.getErrorMessage(),
+                        response.getStatus(),
                         response.getErrorCode())
-                    : "Bilinmeyen iyzico hatası (response null)";
-            log.error("Iyzico checkout init failed for order {}: {}", order.getId(), errorMsg);
+                    : "Bilinmeyen ödeme sağlayıcısı hatası (response null)";
+            log.error("Kart ödeme başlatma başarısız — sipariş {}: {}", order.getId(), errorMsg);
             throw new BaseException(ErrorCode.PAYMENT_INIT_FAILED, errorMsg);
         }
 
         order.setPaymentStatus(PaymentStatus.INITIATED);
-        order.setIyzicoToken(response.getToken());
-        order.setIyzicoConversationId(response.getConversationId());
+        order.setPaymentToken(response.getToken());
+        order.setPaymentReference(response.getConversationId());
         orderRepository.save(order);
 
-        return IyzicoCheckoutInitResponse.builder()
+        return CardPaymentInitResponse.builder()
                 .token(response.getToken())
                 .paymentPageUrl(response.getPaymentPageUrl())
                 .conversationId(response.getConversationId())
@@ -128,14 +136,14 @@ public class IyzicoPaymentService {
     }
 
     @Transactional
-    public OrderDto handleCallback(IyzicoCallbackRequest req) {
+    public OrderDto handleCallback(CardPaymentCallbackRequest req) {
         RetrieveCheckoutFormRequest request = new RetrieveCheckoutFormRequest();
         request.setLocale(Locale.TR.getValue());
         request.setToken(req.getToken());
 
         CheckoutForm checkoutForm = CheckoutForm.retrieve(request, options());
         if (checkoutForm == null) {
-            throw new BaseException(ErrorCode.PAYMENT_CALLBACK_INVALID, "iyzico checkout form boş döndü");
+            throw new BaseException(ErrorCode.PAYMENT_CALLBACK_INVALID, "Ödeme sağlayıcısı checkout form boş döndü");
         }
 
         String conversationId = checkoutForm.getConversationId();
@@ -150,17 +158,17 @@ public class IyzicoPaymentService {
             order.setPaymentStatus(PaymentStatus.FAILED);
             order.setStatus(OrderStatus.PENDING);
             orderRepository.save(order);
-            
+
             // Ödeme başarısız emaili
             emailService.sendPaymentFailedEmail(order, checkoutForm.getErrorMessage());
-            
+
             throw new BaseException(ErrorCode.PAYMENT_CALLBACK_INVALID, checkoutForm.getErrorMessage());
         }
 
         order.setPaymentStatus(PaymentStatus.PAID);
         order.setStatus(OrderStatus.PAID);
-        order.setIyzicoPaymentId(checkoutForm.getPaymentId());
-        order.setIyzicoToken(req.getToken());
+        order.setPaymentId(checkoutForm.getPaymentId());
+        order.setPaymentToken(req.getToken());
         orderRepository.save(order);
 
         // Ödeme başarılı emaili
@@ -236,7 +244,7 @@ public class IyzicoPaymentService {
         dto.setTotal(order.getTotal());
         dto.setStatus(order.getStatus());
         dto.setPaymentStatus(order.getPaymentStatus());
-        dto.setPaymentId(order.getIyzicoPaymentId());
+        dto.setPaymentId(order.getPaymentId());
         dto.setShippingAddress(order.getShippingAddress());
         dto.setBillingAddress(order.getBillingAddress());
         dto.setCreatedAt(order.getCreatedAt());
@@ -249,7 +257,7 @@ public class IyzicoPaymentService {
                     itemDto.setQuantity(it.getQuantity());
                     itemDto.setUnitPrice(it.getUnitPrice());
                     itemDto.setTotalPrice(it.getTotalPrice());
-                    
+
                     // Variant bilgilerini ekle
                     Long variantId = it.getProductVariantId();
                     if (variantId != null) {
@@ -262,10 +270,9 @@ public class IyzicoPaymentService {
                             itemDto.setColor(variant.getColor());
                         }
                     }
-                    
+
                     return itemDto;
                 }).toList());
         return dto;
     }
 }
-

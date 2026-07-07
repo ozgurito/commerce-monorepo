@@ -4,8 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 @Data
-public class IyzicoCallbackRequest {
+public class CardPaymentCallbackRequest {
     @NotBlank
     private String token;
 }
-

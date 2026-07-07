@@ -5,7 +5,7 @@ import lombok.Data;
 
 @Data
 @Builder
-public class IyzicoCheckoutInitResponse {
+public class CardPaymentInitResponse {
     private String token;
     private String paymentPageUrl;
     private String conversationId;
@@ -13,4 +13,3 @@ public class IyzicoCheckoutInitResponse {
     private String basketId;
     private String expiresAt;
 }
-

@@ -4,7 +4,7 @@ import { useSearchParams } from 'next/navigation'
 import { Loader2, AlertCircle } from 'lucide-react'
 import { paymentsApi } from '@/domains/payments/payments.api'
 
-function IyzicoContent() {
+function CardPaymentContent() {
   const searchParams = useSearchParams()
   const orderId = searchParams.get('orderId')
   const [error, setError] = useState<string | null>(
@@ -15,7 +15,7 @@ function IyzicoContent() {
     if (!orderId) return
 
     paymentsApi
-      .iyzicoInit({ orderId: Number(orderId) })
+      .cardPaymentInit({ orderId: Number(orderId) })
       .then((res) => {
         window.location.href = res.paymentPageUrl
       })
@@ -56,20 +56,20 @@ function IyzicoContent() {
         Ödeme Sayfasına Yönlendiriliyorsunuz
       </h1>
       <p className="text-sm text-gray-500">
-        Lütfen bekleyin, iyzico ödeme sayfasına aktarılıyorsunuz…
+        Lütfen bekleyin, güvenli ödeme sayfasına aktarılıyorsunuz…
       </p>
     </div>
   )
 }
 
-export default function IyzicoPage() {
+export default function CardPaymentPage() {
   return (
     <Suspense fallback={
       <div className="max-w-[480px] mx-auto px-5 py-20 text-center">
         <Loader2 size={36} className="text-orange animate-spin mx-auto" />
       </div>
     }>
-      <IyzicoContent />
+      <CardPaymentContent />
     </Suspense>
   )
 }

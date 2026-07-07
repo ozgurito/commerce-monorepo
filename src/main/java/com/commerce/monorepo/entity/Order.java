@@ -93,14 +93,14 @@ public class Order extends BaseEntity {
     @Column(name = "payment_method", nullable = false, length = 30)
     private PaymentMethod paymentMethod = PaymentMethod.CREDIT_CARD;
 
-    @Column(name = "iyzico_token", length = 200)
-    private String iyzicoToken;
+    @Column(name = "payment_token", length = 200)
+    private String paymentToken;
 
-    @Column(name = "iyzico_payment_id", length = 100)
-    private String iyzicoPaymentId;
+    @Column(name = "payment_id", length = 100)
+    private String paymentId;
 
-    @Column(name = "iyzico_conversation_id", length = 100)
-    private String iyzicoConversationId;
+    @Column(name = "payment_reference", length = 100)
+    private String paymentReference;
 
     @Column(name = "tracking_number", length = 100)
     private String trackingNumber;

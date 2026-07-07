@@ -12,7 +12,7 @@ const OPTIONS: {
   {
     value: 'CREDIT_CARD',
     label: 'Kredi / Banka Kartı',
-    desc: 'iyzico güvencesiyle güvenli ödeme',
+    desc: 'PayTR güvencesiyle güvenli ödeme',
     Icon: CreditCard,
     badge: 'Önerilen',
   },

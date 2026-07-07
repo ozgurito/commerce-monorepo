@@ -1,10 +1,10 @@
-// IyzicoCheckoutInitRequest — sadece orderId (tüm sipariş bilgisi değil)
-export interface IyzicoCheckoutInitRequest {
+// CardPaymentInitRequest — sadece orderId (tüm sipariş bilgisi değil)
+export interface CardPaymentInitRequest {
   orderId: number
   callbackUrl?: string
 }
 
-export interface IyzicoCheckoutInitResponse {
+export interface CardPaymentInitResponse {
   token: string
   paymentPageUrl: string
   conversationId: string

@@ -32,7 +32,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             "/api/auth/refresh",
             "/api/products",
             "/api/products/**",
-            "/api/payments/iyzico/callback",
+            "/api/payments/card/callback",
             "/assets/**",
             "/v3/api-docs/**",
             "/swagger-ui/**",

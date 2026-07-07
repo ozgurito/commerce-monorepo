@@ -20,7 +20,7 @@ public class IyzicoProperties {
     /**
      * Uygulama callback endpointi. Gönderilen request'teki callback boşsa bu kullanılır.
      */
-    private String callbackUrl = "http://localhost:8080/api/payments/iyzico/callback";
+    private String callbackUrl = "http://localhost:8080/api/payments/card/callback";
     /**
      * Ödeme formu dili (TR/EN).
      */

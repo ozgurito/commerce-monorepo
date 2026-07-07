@@ -45,7 +45,7 @@ public class SecurityConfig {
                                 "/api/auth/forgot-password",
                                 "/api/auth/reset-password",
                                 "/api/auth/reset-password/validate",
-                                "/api/payments/iyzico/callback",
+                                "/api/payments/card/callback",
                                 "/api/payments/bank-transfer/callback",
                                 "/api/orders/guest/**",      // Misafir sipariş takibi
                                 "/api/products",

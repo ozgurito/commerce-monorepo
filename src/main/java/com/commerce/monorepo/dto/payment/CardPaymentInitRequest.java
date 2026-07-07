@@ -4,12 +4,11 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 @Data
-public class IyzicoCheckoutInitRequest {
+public class CardPaymentInitRequest {
     @NotNull
     private Long orderId;
     /**
-     * Opsiyonel override; boş ise iyzico.callback-url property kullanılır.
+     * Opsiyonel override; boş ise ödeme sağlayıcısının varsayılan callback-url ayarı kullanılır.
      */
     private String callbackUrl;
 }
-

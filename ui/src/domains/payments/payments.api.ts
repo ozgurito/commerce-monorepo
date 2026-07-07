@@ -1,7 +1,7 @@
 import apiClient from '@/lib/api-client'
 import type {
-  IyzicoCheckoutInitRequest,
-  IyzicoCheckoutInitResponse,
+  CardPaymentInitRequest,
+  CardPaymentInitResponse,
   BankTransferInitRequest,
   BankTransferInitResponse,
   CodConfirmRequest,
@@ -9,8 +9,8 @@ import type {
 import type { OrderDto } from '@/domains/orders/orders.types'
 
 export const paymentsApi = {
-  iyzicoInit: async (req: IyzicoCheckoutInitRequest): Promise<IyzicoCheckoutInitResponse> => {
-    const { data } = await apiClient.post('/api/payments/iyzico/init', req)
+  cardPaymentInit: async (req: CardPaymentInitRequest): Promise<CardPaymentInitResponse> => {
+    const { data } = await apiClient.post('/api/payments/card/init', req)
     return data
   },
 

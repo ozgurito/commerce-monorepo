@@ -134,7 +134,7 @@ public class EmailService {
             context.setVariable("userName", user.getFullName() != null ? user.getFullName() : user.getEmail());
             context.setVariable("orderNumber", order.getOrderNumber());
             context.setVariable("total", formatCurrency(order.getTotal()));
-            context.setVariable("paymentId", order.getIyzicoPaymentId());
+            context.setVariable("paymentId", order.getPaymentId());
             context.setVariable("orderUrl", appProperties.getFrontendUrl() + "/hesabim/siparislerim/" + order.getId());
 
             String htmlContent = templateEngine.process("email/payment-success", context);

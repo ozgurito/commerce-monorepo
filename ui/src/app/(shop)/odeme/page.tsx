@@ -105,7 +105,7 @@ export default function OdemePage() {
 
       if (paymentMethod === 'CREDIT_CARD') {
         // Sepeti temizleme yok — /odeme/basarili sayfasında yapılacak
-        router.push(`/odeme/iyzico?orderId=${order.id}`)
+        router.push(`/odeme/kart?orderId=${order.id}`)
       } else {
         // Havale/COD: sipariş kesinleşti, hemen temizle
         syncFromCart(0, 0)

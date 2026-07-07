@@ -4,7 +4,7 @@ import com.commerce.monorepo.dto.OrderDto;
 import com.commerce.monorepo.dto.payment.*;
 import com.commerce.monorepo.service.payment.BankTransferPaymentService;
 import com.commerce.monorepo.service.payment.CodPaymentService;
-import com.commerce.monorepo.service.payment.IyzicoPaymentService;
+import com.commerce.monorepo.service.payment.CardPaymentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -16,28 +16,28 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/payments")
 @RequiredArgsConstructor
-@Tag(name = "Payments", description = "Ödeme işlemleri — iyzico, havale/EFT, kapıda ödeme")
+@Tag(name = "Payments", description = "Ödeme işlemleri — kart, havale/EFT, kapıda ödeme")
 public class PaymentController {
 
-    private final IyzicoPaymentService iyzicoPaymentService;
+    private final CardPaymentService cardPaymentService;
     private final BankTransferPaymentService bankTransferPaymentService;
     private final CodPaymentService codPaymentService;
 
-    // ====== iyzico ======
+    // ====== Kart ile ödeme ======
 
-    @PostMapping("/iyzico/init")
+    @PostMapping("/card/init")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "iyzico ödeme başlat", description = "Checkout form token döner")
-    public ResponseEntity<IyzicoCheckoutInitResponse> initIyzico(
-            @Valid @RequestBody IyzicoCheckoutInitRequest request) {
-        return ResponseEntity.ok(iyzicoPaymentService.initCheckout(request));
+    @Operation(summary = "Kart ile ödeme başlat", description = "Checkout form token döner")
+    public ResponseEntity<CardPaymentInitResponse> initCardPayment(
+            @Valid @RequestBody CardPaymentInitRequest request) {
+        return ResponseEntity.ok(cardPaymentService.initCheckout(request));
     }
 
-    @PostMapping("/iyzico/callback")
-    @Operation(summary = "iyzico 3D callback", description = "iyzico'dan gelen token ile ödemeyi doğrular (permitAll)")
-    public ResponseEntity<OrderDto> iyzicoCallback(
-            @Valid @RequestBody IyzicoCallbackRequest request) {
-        return ResponseEntity.ok(iyzicoPaymentService.handleCallback(request));
+    @PostMapping("/card/callback")
+    @Operation(summary = "Kart ödeme 3D callback", description = "Ödeme sağlayıcısından gelen token ile ödemeyi doğrular (permitAll)")
+    public ResponseEntity<OrderDto> cardPaymentCallback(
+            @Valid @RequestBody CardPaymentCallbackRequest request) {
+        return ResponseEntity.ok(cardPaymentService.handleCallback(request));
     }
 
     // ====== Havale / EFT ======
