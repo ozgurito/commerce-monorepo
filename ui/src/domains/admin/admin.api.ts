@@ -53,6 +53,7 @@ export interface CreateProductRequest {
   description: string
   price: number
   comparePrice?: number
+  taxRate?: number
   stock: number
   sku: string
   categoryId: number
@@ -66,6 +67,7 @@ export interface CreateProductRequest {
   fitType?: string
   gender?: string
   season?: string
+  specifications?: string
 }
 
 export interface CreateCategoryRequest {
@@ -91,6 +93,8 @@ export interface CreateCouponRequest {
   usageLimitPerUser?: number
   startsAt?: string
   expiresAt?: string
+  applicableCategoryIds?: number[]
+  applicableProductIds?: number[]
   firstOrderOnly?: boolean
   isActive?: boolean
 }
@@ -102,6 +106,7 @@ export interface CreateVariantRequest {
   color?: string     // COLOR veya COMBINED varyantı için
   colorHex?: string
   sku?: string       // COMBINED: Excel barkod değeri
+  priceModifier?: number  // varyanta özel fiyat farkı (₺)
   stock: number      // @NotNull — default 0
 }
 

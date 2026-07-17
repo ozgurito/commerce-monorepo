@@ -14,6 +14,8 @@ export interface CouponDto {
   usedCount: number                   // NOT usageCount
   startsAt: string | null
   expiresAt: string | null
+  applicableCategoryIds: number[]
+  applicableProductIds: number[]
   firstOrderOnly: boolean
   isActive: boolean
   isValid: boolean

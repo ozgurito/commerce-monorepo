@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -182,7 +183,7 @@ public class CouponService {
      */
     public ApplyCouponResponse applyCouponToCart(ApplyCouponRequest request) {
         User user = getCurrentUser();
-        
+
         // Kuponu bul
         Coupon coupon = couponRepository.findByCodeAndIsActiveTrue(request.code().toUpperCase())
                 .orElseThrow(() -> new BaseException(ErrorCode.COUPON_NOT_FOUND));
@@ -193,12 +194,14 @@ public class CouponService {
 
         // Sepet toplamını hesapla
         BigDecimal cartTotal = calculateCartTotal(cart);
+        // Kuponun kapsamına giren ürünlerin toplamı (kategoriye/ürüne özel kuponlar için)
+        BigDecimal eligibleTotal = calculateEligibleCartTotal(coupon, cart);
 
         // Kupon validasyonları
-        validateCoupon(coupon, user, cartTotal);
+        validateCoupon(coupon, user, eligibleTotal);
 
-        // İndirim hesapla
-        BigDecimal discountAmount = calculateDiscount(coupon, cartTotal);
+        // İndirim hesapla (yalnızca kapsam dahilindeki tutar üzerinden)
+        BigDecimal discountAmount = calculateDiscount(coupon, eligibleTotal);
 
         // Yeni toplam
         BigDecimal newTotal = cartTotal.subtract(discountAmount);
@@ -228,15 +231,18 @@ public class CouponService {
         }
 
         User user = order.getUser();
-        
+
         Coupon coupon = couponRepository.findByCodeAndIsActiveTrue(couponCode.toUpperCase())
                 .orElseThrow(() -> new BaseException(ErrorCode.COUPON_NOT_FOUND));
 
-        // Validasyonlar
-        validateCoupon(coupon, user, order.getSubtotal());
+        // Kuponun kapsamına giren kalemlerin toplamı (kategoriye/ürüne özel kuponlar için)
+        BigDecimal eligibleTotal = calculateEligibleOrderTotal(coupon, order);
 
-        // İndirim hesapla
-        BigDecimal discountAmount = calculateDiscount(coupon, order.getSubtotal());
+        // Validasyonlar
+        validateCoupon(coupon, user, eligibleTotal);
+
+        // İndirim hesapla (yalnızca kapsam dahilindeki tutar üzerinden)
+        BigDecimal discountAmount = calculateDiscount(coupon, eligibleTotal);
 
         // Order'a kupon bilgilerini ekle
         order.setCoupon(coupon);
@@ -275,7 +281,7 @@ public class CouponService {
 
     // ========== HELPER METHODS ==========
 
-    private void validateCoupon(Coupon coupon, User user, BigDecimal orderTotal) {
+    private void validateCoupon(Coupon coupon, User user, BigDecimal eligibleTotal) {
         // Kupon geçerli mi?
         if (!coupon.isValid()) {
             if (coupon.isExpired()) {
@@ -287,9 +293,14 @@ public class CouponService {
             throw new BaseException(ErrorCode.COUPON_INVALID);
         }
 
-        // Minimum sipariş tutarı kontrolü
-        if (coupon.getMinimumOrderAmount() != null && 
-            orderTotal.compareTo(coupon.getMinimumOrderAmount()) < 0) {
+        // Kapsam kontrolü: kategoriye/ürüne özel kuponda sepette/siparişte kapsama giren hiç ürün yoksa
+        if (isScoped(coupon) && eligibleTotal.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BaseException(ErrorCode.COUPON_NOT_APPLICABLE);
+        }
+
+        // Minimum sipariş tutarı kontrolü (kapsam dahilindeki tutar üzerinden)
+        if (coupon.getMinimumOrderAmount() != null &&
+            eligibleTotal.compareTo(coupon.getMinimumOrderAmount()) < 0) {
             throw new BaseException(ErrorCode.COUPON_MINIMUM_NOT_MET,
                 "Minimum sipariş tutarı: " + coupon.getMinimumOrderAmount() + " TL");
         }
@@ -357,6 +368,58 @@ public class CouponService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
+    /**
+     * Kuponun kategoriye ve/veya belirli ürünlere kapsamı daraltılmış mı?
+     */
+    private boolean isScoped(Coupon coupon) {
+        boolean hasCategoryScope = coupon.getApplicableCategoryIds() != null && coupon.getApplicableCategoryIds().length > 0;
+        boolean hasProductScope = coupon.getApplicableProductIds() != null && coupon.getApplicableProductIds().length > 0;
+        return hasCategoryScope || hasProductScope;
+    }
+
+    /**
+     * Bir ürün kuponun kapsamına giriyor mu? Kapsam belirtilmemişse (tüm ürünler) her zaman true.
+     */
+    private boolean isProductEligible(Coupon coupon, Product product) {
+        if (!isScoped(coupon)) return true;
+
+        Long[] productIds = coupon.getApplicableProductIds();
+        if (productIds != null) {
+            for (Long id : productIds) {
+                if (id.equals(product.getId())) return true;
+            }
+        }
+
+        Long[] categoryIds = coupon.getApplicableCategoryIds();
+        if (categoryIds != null && product.getCategory() != null) {
+            for (Long id : categoryIds) {
+                if (id.equals(product.getCategory().getId())) return true;
+            }
+        }
+
+        return false;
+    }
+
+    private BigDecimal calculateEligibleCartTotal(Coupon coupon, Cart cart) {
+        return cart.getItems().stream()
+                .filter(item -> isProductEligible(coupon, item.getProduct()))
+                .map(item -> {
+                    BigDecimal price = item.getProduct().getPrice();
+                    if (item.getProductVariant() != null && item.getProductVariant().getPriceModifier() != null) {
+                        price = price.add(item.getProductVariant().getPriceModifier());
+                    }
+                    return price.multiply(BigDecimal.valueOf(item.getQuantity()));
+                })
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private BigDecimal calculateEligibleOrderTotal(Coupon coupon, Order order) {
+        return order.getItems().stream()
+                .filter(item -> isProductEligible(coupon, item.getProduct()))
+                .map(OrderItem::getTotalPrice)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
     private User getCurrentUser() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         return userRepository.findByEmail(email)
@@ -377,6 +440,10 @@ public class CouponService {
                 .usedCount(coupon.getUsedCount())
                 .startsAt(coupon.getStartsAt())
                 .expiresAt(coupon.getExpiresAt())
+                .applicableCategoryIds(coupon.getApplicableCategoryIds() == null
+                        ? List.of() : Arrays.asList(coupon.getApplicableCategoryIds()))
+                .applicableProductIds(coupon.getApplicableProductIds() == null
+                        ? List.of() : Arrays.asList(coupon.getApplicableProductIds()))
                 .firstOrderOnly(coupon.getFirstOrderOnly())
                 .isActive(coupon.getIsActive())
                 .isValid(coupon.isValid())

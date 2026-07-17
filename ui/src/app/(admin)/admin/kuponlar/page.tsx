@@ -1,14 +1,21 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Plus, Edit2, Trash2, X, Loader2, Ticket, ToggleLeft, ToggleRight } from 'lucide-react'
+import { Plus, Edit2, Trash2, X, Loader2, Ticket, ToggleLeft, ToggleRight, Search } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { adminApi } from '@/domains/admin/admin.api'
+import { categoriesApi } from '@/domains/categories/categories.api'
+import { buildTreeOptions } from '@/components/admin/CategorySelect'
 import { formatPrice } from '@/utils/format'
 import type { CouponDto } from '@/domains/coupons/coupons.types'
+import type { ProductDto } from '@/domains/products/products.types'
+
+const PERCENTAGE_PRESETS = [5, 10, 15, 20, 25, 30, 40, 50]
+const FIXED_AMOUNT_PRESETS = [15, 20, 25, 50, 75, 100, 150, 200]
+const MIN_ORDER_PRESETS = [0, 100, 150, 200, 250, 300, 500, 750, 1000]
 
 const schema = z.object({
   code:                  z.string().min(3, 'En az 3 karakter'),
@@ -25,18 +32,31 @@ const schema = z.object({
 })
 type FormValues = z.infer<typeof schema>
 
+type ScopeType = 'ALL' | 'CATEGORY' | 'PRODUCT'
+interface ScopeValues {
+  scopeType: ScopeType
+  categoryIds: number[]
+  productIds: number[]
+}
+
 const inputCls = () =>
   'w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-1 focus:border-orange focus:ring-orange/20'
+
+const SCOPE_OPTIONS: { value: ScopeType; label: string }[] = [
+  { value: 'ALL', label: 'Tüm Ürünler' },
+  { value: 'CATEGORY', label: 'Kategori Seç' },
+  { value: 'PRODUCT', label: 'Belirli Ürün' },
+]
 
 interface ModalProps {
   editTarget: CouponDto | null
   onClose: () => void
-  onSave: (values: FormValues) => void
+  onSave: (values: FormValues, scope: ScopeValues) => void
   isLoading: boolean
 }
 
 function CouponModal({ editTarget, onClose, onSave, isLoading }: ModalProps) {
-  const { register, handleSubmit, control, formState: { errors } } = useForm<FormValues>({
+  const { register, handleSubmit, control, watch, setValue, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: editTarget
       ? {
@@ -55,11 +75,70 @@ function CouponModal({ editTarget, onClose, onSave, isLoading }: ModalProps) {
       : { discountType: 'PERCENTAGE', isActive: true, firstOrderOnly: false },
   })
   const discountType = useWatch({ control, name: 'discountType' })
+  const discountValueRaw = watch('discountValue')
+  const minOrderRaw = watch('minimumOrderAmount')
+
+  // ── Kapsam (Kupon Kapsamı) ──────────────────────────────────────
+  const [scopeType, setScopeType] = useState<ScopeType>(() => {
+    if (editTarget?.applicableProductIds?.length) return 'PRODUCT'
+    if (editTarget?.applicableCategoryIds?.length) return 'CATEGORY'
+    return 'ALL'
+  })
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>(editTarget?.applicableCategoryIds ?? [])
+  const [selectedProducts, setSelectedProducts] = useState<{ id: number; name: string }[]>([])
+  const [productQuery, setProductQuery] = useState('')
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ['categories'],
+    queryFn: categoriesApi.getAll,
+  })
+  const categoryOptions = buildTreeOptions(categories)
+
+  const editProductIds = editTarget?.applicableProductIds ?? []
+  const { data: resolvedEditProducts } = useQuery({
+    queryKey: ['admin', 'coupon-scope-products', editTarget?.id],
+    queryFn: () => Promise.all(editProductIds.map((id) => adminApi.getProduct(id))),
+    enabled: editProductIds.length > 0,
+  })
+  useEffect(() => {
+    if (resolvedEditProducts) {
+      setSelectedProducts(resolvedEditProducts.map((p) => ({ id: p.id, name: p.name })))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resolvedEditProducts])
+
+  const { data: searchResults = [], isFetching: searchLoading } = useQuery({
+    queryKey: ['admin', 'coupon-product-search', productQuery],
+    queryFn: () => adminApi.getProducts(0, 8, productQuery),
+    enabled: productQuery.trim().length >= 2,
+    select: (res) => res.content,
+  })
+
+  function toggleCategory(id: number) {
+    setSelectedCategoryIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  }
+  function addProduct(p: ProductDto) {
+    setSelectedProducts((prev) => (prev.some((sp) => sp.id === p.id) ? prev : [...prev, { id: p.id, name: p.name }]))
+    setProductQuery('')
+  }
+  function removeProduct(id: number) {
+    setSelectedProducts((prev) => prev.filter((p) => p.id !== id))
+  }
+
+  const discountPresets = discountType === 'PERCENTAGE' ? PERCENTAGE_PRESETS : FIXED_AMOUNT_PRESETS
+
+  function submit(values: FormValues) {
+    onSave(values, {
+      scopeType,
+      categoryIds: selectedCategoryIds,
+      productIds: selectedProducts.map((p) => p.id),
+    })
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-[520px] max-h-[90vh] overflow-y-auto p-6">
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-[640px] max-h-[90vh] overflow-y-auto p-6">
         <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
           <X size={18} />
         </button>
@@ -67,7 +146,7 @@ function CouponModal({ editTarget, onClose, onSave, isLoading }: ModalProps) {
           {editTarget ? 'Kuponu Düzenle' : 'Yeni Kupon'}
         </h3>
 
-        <form onSubmit={handleSubmit(onSave)} className="space-y-4">
+        <form onSubmit={handleSubmit(submit)} className="space-y-5">
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-gray-600 mb-1">Kupon Kodu *</label>
@@ -91,8 +170,20 @@ function CouponModal({ editTarget, onClose, onSave, isLoading }: ModalProps) {
               <label className="block text-xs font-bold text-gray-600 mb-1">
                 İndirim Değeri {discountType === 'PERCENTAGE' ? '(%)' : '(₺)'} *
               </label>
-              <input {...register('discountValue')} type="number" step="0.01" min="0"
-                className={inputCls()} />
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {discountPresets.map((v) => (
+                  <button type="button" key={v}
+                    onClick={() => setValue('discountValue', String(v), { shouldValidate: true })}
+                    className={`px-2.5 py-1 rounded-full text-xs font-semibold border transition-colors ${
+                      Number(discountValueRaw) === v
+                        ? 'bg-orange text-white border-orange'
+                        : 'border-gray-200 text-gray-600 hover:border-orange hover:text-orange'
+                    }`}>
+                    {discountType === 'PERCENTAGE' ? `%${v}` : `${v}₺`}
+                  </button>
+                ))}
+              </div>
+              <input {...register('discountValue')} type="number" step="0.01" min="0" className={inputCls()} />
             </div>
           )}
 
@@ -101,17 +192,106 @@ function CouponModal({ editTarget, onClose, onSave, isLoading }: ModalProps) {
             <input {...register('description')} placeholder="Opsiyonel" className={inputCls()} />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-gray-600 mb-1">Min. Sipariş (₺)</label>
-              <input {...register('minimumOrderAmount')} type="number" min="0"
-                placeholder="Opsiyonel" className={inputCls()} />
+          {/* ── Kupon Kapsamı ─────────────────────────────────── */}
+          <div>
+            <label className="block text-xs font-bold text-gray-600 mb-1.5">Kupon Kapsamı</label>
+            <div className="grid grid-cols-3 gap-2 mb-3">
+              {SCOPE_OPTIONS.map((opt) => (
+                <button type="button" key={opt.value} onClick={() => setScopeType(opt.value)}
+                  className={`px-3 py-2.5 rounded-xl text-xs font-bold border transition-colors ${
+                    scopeType === opt.value
+                      ? 'bg-orange text-white border-orange'
+                      : 'border-gray-200 text-gray-600 hover:border-orange hover:text-orange'
+                  }`}>
+                  {opt.label}
+                </button>
+              ))}
             </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-600 mb-1">Max. İndirim (₺)</label>
-              <input {...register('maximumDiscountAmount')} type="number" min="0"
-                placeholder="Opsiyonel" className={inputCls()} />
+
+            {scopeType === 'CATEGORY' && (
+              <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-xl p-2 space-y-0.5">
+                {categoryOptions.length === 0 ? (
+                  <p className="text-xs text-gray-400 text-center py-3">Kategori bulunamadı</p>
+                ) : (
+                  categoryOptions.map((o) => (
+                    <label key={o.id}
+                      className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-50 cursor-pointer text-sm">
+                      <input type="checkbox" className="w-4 h-4 accent-orange shrink-0"
+                        checked={selectedCategoryIds.includes(o.id)}
+                        onChange={() => toggleCategory(o.id)} />
+                      <span className="whitespace-pre text-gray-700">{o.label}</span>
+                    </label>
+                  ))
+                )}
+              </div>
+            )}
+
+            {scopeType === 'PRODUCT' && (
+              <div>
+                <div className="relative">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input type="text" value={productQuery} onChange={(e) => setProductQuery(e.target.value)}
+                    placeholder="Ürün ara (isim veya model kodu)..." className={`${inputCls()} pl-9`} />
+                </div>
+                {productQuery.trim().length >= 2 && (
+                  <div className="mt-1 max-h-40 overflow-y-auto border border-gray-200 rounded-xl divide-y divide-gray-50">
+                    {searchLoading ? (
+                      <div className="p-3 text-center"><Loader2 className="animate-spin mx-auto text-orange" size={16} /></div>
+                    ) : searchResults.length === 0 ? (
+                      <p className="p-3 text-xs text-gray-400 text-center">Sonuç yok</p>
+                    ) : (
+                      searchResults.map((p) => (
+                        <button type="button" key={p.id} onClick={() => addProduct(p)}
+                          disabled={selectedProducts.some((sp) => sp.id === p.id)}
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 disabled:opacity-40
+                                     disabled:cursor-not-allowed flex justify-between items-center gap-2">
+                          <span className="truncate">{p.name}</span>
+                          <span className="text-xs text-gray-400 shrink-0">{formatPrice(p.price)}</span>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+                {selectedProducts.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {selectedProducts.map((p) => (
+                      <span key={p.id}
+                        className="inline-flex items-center gap-1 bg-orange/10 text-orange text-xs font-semibold px-2.5 py-1 rounded-full">
+                        {p.name}
+                        <button type="button" onClick={() => removeProduct(p.id)} className="hover:text-orange-dark">
+                          <X size={12} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-gray-600 mb-1">Min. Sipariş Tutarı (₺)</label>
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {MIN_ORDER_PRESETS.map((v) => (
+                <button type="button" key={v}
+                  onClick={() => setValue('minimumOrderAmount', String(v), { shouldValidate: true })}
+                  className={`px-2.5 py-1 rounded-full text-xs font-semibold border transition-colors ${
+                    Number(minOrderRaw || 0) === v
+                      ? 'bg-orange text-white border-orange'
+                      : 'border-gray-200 text-gray-600 hover:border-orange hover:text-orange'
+                  }`}>
+                  {v === 0 ? 'Yok' : `${v}₺`}
+                </button>
+              ))}
             </div>
+            <input {...register('minimumOrderAmount')} type="number" min="0"
+              placeholder="Opsiyonel" className={inputCls()} />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-gray-600 mb-1">Max. İndirim (₺)</label>
+            <input {...register('maximumDiscountAmount')} type="number" min="0"
+              placeholder="Opsiyonel — sadece yüzde indirimde geçerli üst limit" className={inputCls()} />
           </div>
 
           <div>
@@ -167,6 +347,20 @@ function discountLabel(c: CouponDto) {
   return 'Ücretsiz Kargo'
 }
 
+function scopeLabel(c: CouponDto) {
+  if (c.applicableProductIds?.length) return `${c.applicableProductIds.length} Ürün`
+  if (c.applicableCategoryIds?.length) return `${c.applicableCategoryIds.length} Kategori`
+  return 'Tüm Ürünler'
+}
+
+// Backend LocalDateTime bekliyor — <input type="date"> düz "YYYY-MM-DD" gönderir, saat eklenmeli
+function toStartOfDayIso(dateStr?: string): string | undefined {
+  return dateStr ? `${dateStr}T00:00:00` : undefined
+}
+function toEndOfDayIso(dateStr?: string): string | undefined {
+  return dateStr ? `${dateStr}T23:59:59` : undefined
+}
+
 export default function AdminKuponlarPage() {
   const queryClient = useQueryClient()
   const [page, setPage] = useState(0)
@@ -179,7 +373,7 @@ export default function AdminKuponlarPage() {
   })
 
   const createMutation = useMutation({
-    mutationFn: (values: FormValues) =>
+    mutationFn: ({ values, scope }: { values: FormValues; scope: ScopeValues }) =>
       adminApi.createCoupon({
         code:                  values.code.toUpperCase(),
         description:           values.description,
@@ -188,8 +382,10 @@ export default function AdminKuponlarPage() {
         minimumOrderAmount:    values.minimumOrderAmount ? Number(values.minimumOrderAmount) : undefined,
         maximumDiscountAmount: values.maximumDiscountAmount ? Number(values.maximumDiscountAmount) : undefined,
         usageLimit:            values.usageLimit ? Number(values.usageLimit) : undefined,
-        startsAt:              values.startsAt || undefined,
-        expiresAt:             values.expiresAt || undefined,
+        startsAt:              toStartOfDayIso(values.startsAt),
+        expiresAt:             toEndOfDayIso(values.expiresAt),
+        applicableCategoryIds: scope.scopeType === 'CATEGORY' ? scope.categoryIds : [],
+        applicableProductIds:  scope.scopeType === 'PRODUCT' ? scope.productIds : [],
         firstOrderOnly:        values.firstOrderOnly,
         isActive:              values.isActive,
       }),
@@ -205,15 +401,17 @@ export default function AdminKuponlarPage() {
   })
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, values }: { id: number; values: FormValues }) =>
+    mutationFn: ({ id, values, scope }: { id: number; values: FormValues; scope: ScopeValues }) =>
       adminApi.updateCoupon(id, {
         description:           values.description,
         discountValue:         Number(values.discountValue),
         minimumOrderAmount:    values.minimumOrderAmount ? Number(values.minimumOrderAmount) : undefined,
         maximumDiscountAmount: values.maximumDiscountAmount ? Number(values.maximumDiscountAmount) : undefined,
         usageLimit:            values.usageLimit ? Number(values.usageLimit) : undefined,
-        startsAt:              values.startsAt || undefined,
-        expiresAt:             values.expiresAt || undefined,
+        startsAt:              toStartOfDayIso(values.startsAt),
+        expiresAt:             toEndOfDayIso(values.expiresAt),
+        applicableCategoryIds: scope.scopeType === 'CATEGORY' ? scope.categoryIds : [],
+        applicableProductIds:  scope.scopeType === 'PRODUCT' ? scope.productIds : [],
         firstOrderOnly:        values.firstOrderOnly,
         isActive:              values.isActive,
       }),
@@ -275,6 +473,7 @@ export default function AdminKuponlarPage() {
               <tr>
                 <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 uppercase">Kod</th>
                 <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase">İndirim</th>
+                <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase">Kapsam</th>
                 <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase">Min. Sipariş</th>
                 <th className="text-right px-4 py-3 text-xs font-bold text-gray-500 uppercase">Kullanım</th>
                 <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase">Bitiş</th>
@@ -290,6 +489,7 @@ export default function AdminKuponlarPage() {
                     {c.description && <p className="text-xs text-gray-400">{c.description}</p>}
                   </td>
                   <td className="px-4 py-3 font-semibold text-orange">{discountLabel(c)}</td>
+                  <td className="px-4 py-3 text-xs text-gray-500">{scopeLabel(c)}</td>
                   <td className="px-4 py-3 text-xs text-gray-500">
                     {c.minimumOrderAmount ? formatPrice(c.minimumOrderAmount) : '—'}
                   </td>
@@ -358,10 +558,10 @@ export default function AdminKuponlarPage() {
           editTarget={editTarget}
           onClose={() => { setShowModal(false); setEditTarget(null) }}
           isLoading={createMutation.isPending || updateMutation.isPending}
-          onSave={(values) =>
+          onSave={(values, scope) =>
             editTarget
-              ? updateMutation.mutate({ id: editTarget.id, values })
-              : createMutation.mutate(values)
+              ? updateMutation.mutate({ id: editTarget.id, values, scope })
+              : createMutation.mutate({ values, scope })
           }
         />
       )}

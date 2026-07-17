@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Builder
@@ -26,6 +27,8 @@ public class CouponDto {
     private Integer usedCount;
     private LocalDateTime startsAt;
     private LocalDateTime expiresAt;
+    private List<Long> applicableCategoryIds;
+    private List<Long> applicableProductIds;
     private Boolean firstOrderOnly;
     private Boolean isActive;
     private Boolean isValid;

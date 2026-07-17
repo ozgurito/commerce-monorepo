@@ -61,7 +61,8 @@ public enum ErrorCode {
     // PRODUCT
     PRODUCT_NOT_FOUND("5001", "Ürün bulunamadı", HttpStatus.NOT_FOUND),
     PRODUCT_IMAGE_NOT_FOUND("5001A", "Ürün resmi bulunamadı", HttpStatus.NOT_FOUND),
-    SKU_ALREADY_EXISTS("5002", "Bu SKU zaten kullanımda", HttpStatus.CONFLICT),
+    MODEL_KODU_ALREADY_EXISTS("5002", "Bu Model Kodu zaten kullanımda", HttpStatus.CONFLICT),
+    VARIANT_BARKOD_ALREADY_EXISTS("5002A", "Bu Barkod zaten kullanımda", HttpStatus.CONFLICT),
     INSUFFICIENT_STOCK("5003", "Yetersiz stok", HttpStatus.BAD_REQUEST),
 
     // CART

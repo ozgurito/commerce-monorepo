@@ -41,23 +41,23 @@ export default function HomePage() {
         <FeaturedProducts />
       </div>
 
-      {/* 6. Yeni Gelenler */}
-      <NewArrivalsSection />
-
-      {/* 7. İndirim + Güven bandı */}
+      {/* 6. İndirim + Güven bandı */}
       <div className="bg-gray-50">
         <SaleBannerStrip />
       </div>
 
-      {/* 8. Kategori kartları (T-Shirt, Hoodie, Sweatshirt, Tank Top) */}
+      {/* 7. Kategori kartları (T-Shirt, Hoodie, Sweatshirt, Tank Top) */}
       <div className="bg-white">
         <CategoryCards />
       </div>
 
-      {/* 9. Promo banners (Kadın, Erkek, Flaş Fırsat) */}
+      {/* 8. Promo banners (Kadın, Erkek, Flaş Fırsat) */}
       <div className="bg-gray-50">
         <PromoBanners />
       </div>
+
+      {/* 9. Yeni Gelenler */}
+      <NewArrivalsSection />
 
       {/* Spacer */}
       <div className="h-8" />

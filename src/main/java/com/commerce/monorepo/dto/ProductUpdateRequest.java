@@ -11,6 +11,7 @@ public record ProductUpdateRequest(
         @Min(0) Integer stock,
         String sku,
         Long categoryId,
+        @DecimalMin(value = "0.00") BigDecimal taxRate,
         Boolean isActive,
         Boolean isFeatured,
         Boolean isFlashDeal,
@@ -24,5 +25,6 @@ public record ProductUpdateRequest(
         String season,
         String originCountry,
         String gender,
-        String ageGroup
+        String ageGroup,
+        @Size(max = 10_000) String specifications
 ) {}

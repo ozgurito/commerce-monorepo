@@ -204,7 +204,7 @@ public class ProductService {
         return new ProductDetailDto(
                 product.getId(), product.getName(), product.getSlug(),
                 product.getDescription(), product.getShortDescription(),
-                product.getPrice(), product.getComparePrice(),
+                product.getPrice(), product.getComparePrice(), product.getTaxRate(),
                 product.getStock(), product.getSku(),
                 product.getIsActive(), product.getIsFeatured(), product.getAllowReviews(),
                 product.getCategory() != null ? product.getCategory().getId() : null,
@@ -215,6 +215,7 @@ public class ProductService {
                 product.getFitType(), product.getFabricComposition(), product.getCareInstructions(),
                 product.getModelInfo(), product.getSizeGuide(), product.getMaterial(),
                 product.getSeason(), product.getOriginCountry(), product.getGender(), product.getAgeGroup(),
+                product.getSpecifications(),
                 Boolean.TRUE.equals(product.getIsFlashDeal()), product.getFlashDealEndsAt()
         );
     }
@@ -230,9 +231,9 @@ public class ProductService {
 
     public ProductDto create(ProductCreateRequest r) {
 
-        // SKU kontrolü
+        // Model Kodu kontrolü
         if (r.sku() != null && repo.existsBySku(r.sku())) {
-            throw new BaseException(ErrorCode.SKU_ALREADY_EXISTS);
+            throw new BaseException(ErrorCode.MODEL_KODU_ALREADY_EXISTS);
         }
 
         var p = new Product();
@@ -243,7 +244,8 @@ public class ProductService {
         p.setStock(r.stock());
         p.setSku(r.sku());
         p.setIsActive(true);
-        
+        if (r.taxRate() != null) p.setTaxRate(r.taxRate());
+
         // Giyim spesifik alanlar
         p.setFitType(r.fitType());
         p.setFabricComposition(r.fabricComposition());
@@ -255,6 +257,7 @@ public class ProductService {
         p.setOriginCountry(r.originCountry());
         p.setGender(r.gender());
         p.setAgeGroup(r.ageGroup());
+        p.setSpecifications(r.specifications());
 
         // Category kontrolü
         if (r.categoryId() != null) {
@@ -282,11 +285,12 @@ public class ProductService {
             p.setComparePrice(r.comparePrice().compareTo(java.math.BigDecimal.ZERO) == 0 ? null : r.comparePrice());
         }
         if (r.stock() != null) p.setStock(r.stock());
+        if (r.taxRate() != null) p.setTaxRate(r.taxRate());
 
         if (r.sku() != null) {
-            // SKU başka bir üründe var mı?
+            // Model Kodu başka bir üründe var mı?
             if (repo.existsBySkuAndIdNot(r.sku(), id)) {
-                throw new BaseException(ErrorCode.SKU_ALREADY_EXISTS);
+                throw new BaseException(ErrorCode.MODEL_KODU_ALREADY_EXISTS);
             }
             p.setSku(r.sku());
         }
@@ -316,6 +320,7 @@ public class ProductService {
         if (r.originCountry() != null) p.setOriginCountry(r.originCountry());
         if (r.gender() != null) p.setGender(r.gender());
         if (r.ageGroup() != null) p.setAgeGroup(r.ageGroup());
+        if (r.specifications() != null) p.setSpecifications(r.specifications());
 
         return mapToDto(repo.save(p));
     }
@@ -449,6 +454,7 @@ public class ProductService {
                 .description(product.getDescription())
                 .price(product.getPrice())
                 .comparePrice(product.getComparePrice())
+                .taxRate(product.getTaxRate())
                 .stock(product.getStock())
                 .sku(product.getSku())
                 .active(Boolean.TRUE.equals(product.getIsActive()))
@@ -472,6 +478,7 @@ public class ProductService {
                 .originCountry(product.getOriginCountry())
                 .gender(product.getGender())
                 .ageGroup(product.getAgeGroup())
+                .specifications(product.getSpecifications())
                 .build();
     }
 
@@ -638,7 +645,7 @@ public class ProductService {
                 .orElseThrow(() -> new BaseException(ErrorCode.PRODUCT_NOT_FOUND));
 
         if (req.sku() != null && variantRepository.existsBySku(req.sku())) {
-            throw new BaseException(ErrorCode.SKU_ALREADY_EXISTS);
+            throw new BaseException(ErrorCode.VARIANT_BARKOD_ALREADY_EXISTS);
         }
 
         ProductVariant v = new ProductVariant();
@@ -666,7 +673,7 @@ public class ProductService {
         }
 
         if (req.sku() != null && !req.sku().equals(v.getSku()) && variantRepository.existsBySku(req.sku())) {
-            throw new BaseException(ErrorCode.SKU_ALREADY_EXISTS);
+            throw new BaseException(ErrorCode.VARIANT_BARKOD_ALREADY_EXISTS);
         }
 
         if (req.name() != null)          v.setName(req.name());

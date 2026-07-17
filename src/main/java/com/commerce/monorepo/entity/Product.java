@@ -42,6 +42,9 @@ public class Product extends BaseEntity {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
     
+    @Column(name = "tax_rate", nullable = false, precision = 5, scale = 2)
+    private BigDecimal taxRate = new BigDecimal("20.00");
+
     @Column(name = "compare_price", precision = 10, scale = 2)
     private BigDecimal comparePrice;
     
@@ -129,7 +132,11 @@ public class Product extends BaseEntity {
     
     @Column(name = "age_group", length = 50)
     private String ageGroup;
-    
+
+    // Kategoriye göre değişen dinamik özellikler (JSON metni, ör. {"Yaka Tipi":"V Yaka"})
+    @Column(name = "specifications", columnDefinition = "TEXT")
+    private String specifications;
+
     @OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
     @JsonIgnore
     private List<Review> reviews = new ArrayList<>();

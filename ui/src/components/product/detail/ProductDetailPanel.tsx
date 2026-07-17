@@ -1,8 +1,11 @@
 'use client'
 import { useState, useMemo } from 'react'
+import DOMPurify from 'dompurify'
 import { ChevronDown } from 'lucide-react'
 import { ProductGallery } from './ProductGallery'
 import { ProductInfo } from './ProductInfo'
+import { isHtmlContent } from '@/lib/html'
+import { parseSpecifications } from '@/domains/products/categoryFields'
 import type { ProductDetailDto } from '@/domains/products/products.types'
 
 interface Props {
@@ -77,7 +80,16 @@ export function ProductDetailPanel({ product }: Props) {
                 className={`text-gray-400 flex-shrink-0 transition-transform ${descOpen ? 'rotate-180' : ''}`} />
             </button>
             {descOpen && (
-              product.description.includes(';') ? (
+              isHtmlContent(product.description) ? (
+                <div
+                  className="text-sm text-gray-600 leading-relaxed mt-3
+                             [&_p]:mb-2 [&_p:last-child]:mb-0
+                             [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-2
+                             [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:mb-2
+                             [&_strong]:font-bold [&_em]:italic"
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(product.description) }}
+                />
+              ) : product.description.includes(';') ? (
                 <ul className="space-y-2 mt-3">
                   {product.description
                     .split(/[;]+/)
@@ -101,39 +113,45 @@ export function ProductDetailPanel({ product }: Props) {
         )}
 
         {/* Ürün Detayları */}
-        {(product.material || product.fabricComposition || product.careInstructions ||
-          product.fitType  || product.gender            || product.season           ||
-          product.originCountry) && (
-          <div className="border-t border-gray-100 pt-5">
-            <button
-              onClick={() => setDetailsOpen(o => !o)}
-              className="w-full flex items-center justify-between gap-2"
-              aria-expanded={detailsOpen}
-            >
-              <h3 className="text-base font-extrabold text-gray-800">Ürün Detayları</h3>
-              <ChevronDown size={18}
-                className={`text-gray-400 flex-shrink-0 transition-transform ${detailsOpen ? 'rotate-180' : ''}`} />
-            </button>
-            {detailsOpen && (
-              <div className="grid grid-cols-2 gap-2 mt-3">
-                {[
-                  { key: 'Materyal',       val: product.material },
-                  { key: 'Gramaj/İçerik', val: product.fabricComposition },
-                  { key: 'Yıkama',        val: product.careInstructions },
-                  { key: 'Kesim',         val: product.fitType },
-                  { key: 'Cinsiyet',      val: product.gender },
-                  { key: 'Sezon',         val: product.season },
-                  { key: 'Menşei',        val: product.originCountry },
-                ].filter(x => x.val).map(({ key, val }) => (
-                  <div key={key} className="bg-gray-50 rounded-xl p-2.5">
-                    <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">{key}</p>
-                    <p className="text-sm text-gray-800 font-semibold mt-0.5">{val}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+        {(() => {
+          const specs = parseSpecifications(product.specifications)
+          const detailRows = [
+            { key: 'Materyal',       val: product.material },
+            { key: 'Gramaj/İçerik', val: product.fabricComposition },
+            { key: 'Yıkama',        val: product.careInstructions },
+            { key: 'Kesim',         val: product.fitType },
+            { key: 'Cinsiyet',      val: product.gender },
+            { key: 'Sezon',         val: product.season },
+            { key: 'Menşei',        val: product.originCountry },
+            ...Object.entries(specs).map(([key, val]) => ({ key, val })),
+          ].filter(x => x.val)
+
+          if (!detailRows.length) return null
+
+          return (
+            <div className="border-t border-gray-100 pt-5">
+              <button
+                onClick={() => setDetailsOpen(o => !o)}
+                className="w-full flex items-center justify-between gap-2"
+                aria-expanded={detailsOpen}
+              >
+                <h3 className="text-base font-extrabold text-gray-800">Ürün Detayları</h3>
+                <ChevronDown size={18}
+                  className={`text-gray-400 flex-shrink-0 transition-transform ${detailsOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {detailsOpen && (
+                <div className="grid grid-cols-2 gap-2 mt-3">
+                  {detailRows.map(({ key, val }) => (
+                    <div key={key} className="bg-gray-50 rounded-xl p-2.5">
+                      <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">{key}</p>
+                      <p className="text-sm text-gray-800 font-semibold mt-0.5">{val}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )
+        })()}
       </div>
     </div>
   )

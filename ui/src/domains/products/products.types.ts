@@ -5,6 +5,7 @@ export interface ProductDto {
   description: string
   price: number
   comparePrice: number | null
+  taxRate: number
   stock: number
   sku: string
   active: boolean
@@ -26,6 +27,7 @@ export interface ProductDto {
   originCountry: string | null
   gender: string | null
   ageGroup: string | null
+  specifications: string | null
   createdAt: string
   updatedAt: string
 }
@@ -63,6 +65,7 @@ export interface ProductDetailDto {
   shortDescription: string | null
   price: number
   comparePrice: number | null
+  taxRate: number
   stock: number
   sku: string
   isActive: boolean      // NOT "active"
@@ -87,6 +90,7 @@ export interface ProductDetailDto {
   originCountry: string | null
   gender: string | null
   ageGroup: string | null
+  specifications: string | null
   createdAt: string
   updatedAt: string
 }

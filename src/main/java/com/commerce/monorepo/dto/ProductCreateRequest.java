@@ -10,6 +10,7 @@ public record ProductCreateRequest(
         @NotNull @Min(0) Integer stock,
         String sku,
         Long categoryId,
+        @DecimalMin(value = "0.00") BigDecimal taxRate,
         String fitType,
         String fabricComposition,
         String careInstructions,
@@ -19,5 +20,6 @@ public record ProductCreateRequest(
         String season,
         String originCountry,
         String gender,
-        String ageGroup
+        String ageGroup,
+        @Size(max = 10_000) String specifications
 ) {}

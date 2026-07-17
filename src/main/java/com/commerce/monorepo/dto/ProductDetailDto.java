@@ -13,6 +13,7 @@ public record ProductDetailDto(
     String shortDescription,
     BigDecimal price,
     BigDecimal comparePrice,
+    BigDecimal taxRate,
     Integer stock,
     String sku,
     Boolean isActive,
@@ -37,6 +38,7 @@ public record ProductDetailDto(
     String originCountry,
     String gender,
     String ageGroup,
+    String specifications,
     Boolean isFlashDeal,
     Instant flashDealEndsAt
 ) {}

@@ -35,6 +35,9 @@ public class ProductDto {
     @JsonProperty("comparePrice")
     private BigDecimal comparePrice;
 
+    @JsonProperty("taxRate")
+    private BigDecimal taxRate;
+
     @JsonProperty("stock")
     private Integer stock;
 
@@ -103,4 +106,7 @@ public class ProductDto {
 
     @JsonProperty("ageGroup")
     private String ageGroup;
+
+    @JsonProperty("specifications")
+    private String specifications;
 }

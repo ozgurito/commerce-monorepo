@@ -137,7 +137,7 @@ function ProductRow({
           </div>
         </td>
 
-        {/* Model No (SKU) */}
+        {/* Model Kodu */}
         <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
           {p.sku ? (
             <span className="inline-block font-mono text-[11px] font-semibold text-navy-dark
@@ -378,7 +378,7 @@ export default function AdminUrunlerPage() {
     <thead className="border-b border-gray-100 bg-gray-50">
       <tr>
         <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 uppercase">Ürün</th>
-        <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase">Model No (SKU)</th>
+        <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase">Model Kodu</th>
         <th className="text-right px-4 py-3 text-xs font-bold text-gray-500 uppercase">Fiyat</th>
         <th className="text-right px-4 py-3 text-xs font-bold text-gray-500 uppercase">Stok</th>
         <th className="text-center px-4 py-3 text-xs font-bold text-gray-500 uppercase">Aktif</th>

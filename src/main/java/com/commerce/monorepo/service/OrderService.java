@@ -100,29 +100,21 @@ public class OrderService {
                     "Variant bu ürüne ait değil");
             }
             
-            // STOK KONTROLÜ
-            // Variant stoğu 0 veya null ise ürün stoğunu kontrol et (fallback)
-            int effectiveStock = (variant.getStock() != null && variant.getStock() > 0)
-                    ? variant.getStock()
-                    : variant.getProduct().getStock();
-            if (effectiveStock < itemReq.getQuantity()) {
+            // STOK KONTROLÜ — her sipariş kalemi zorunlu olarak bir variant'a bağlı (satır ~93),
+            // bu yüzden stok her zaman variant seviyesinde tutulur; product.stock'a yedek olarak
+            // düşülmez (aksi halde bir varyant tükendiğinde ürünün diğer varyantlarından "ödünç"
+            // stok gösterip tükenmiş bir renk/bedeni satılabilir yapıyordu).
+            int variantStock = variant.getStock() != null ? variant.getStock() : 0;
+            if (variantStock < itemReq.getQuantity()) {
                 throw new BaseException(ErrorCode.INSUFFICIENT_STOCK,
                     String.format("Ürün: %s, Mevcut stok: %d, İstenen: %d",
-                        variant.getProduct().getName(), effectiveStock, itemReq.getQuantity()));
+                        variant.getProduct().getName(), variantStock, itemReq.getQuantity()));
             }
 
-            // STOK DÜŞÜR
-            // Variant stoğu gerçekse variant'ı düşür, 0 ise ürün stoğunu düşür
-            int updated;
-            if (variant.getStock() != null && variant.getStock() > 0) {
-                updated = productVariantRepository.decreaseStock(variant.getId(), itemReq.getQuantity());
-            } else {
-                // Variant stoğu 0 — ürün stoğunu düşür
-                variant.getProduct().setStock(variant.getProduct().getStock() - itemReq.getQuantity());
-                updated = 1; // manuel güncellendi
-            }
+            // STOK DÜŞÜR — atomik, eşzamanlı satın almalara karşı güvenli (WHERE stock >= quantity)
+            int updated = productVariantRepository.decreaseStock(variant.getId(), itemReq.getQuantity());
             if (updated == 0) {
-                throw new BaseException(ErrorCode.INSUFFICIENT_STOCK, 
+                throw new BaseException(ErrorCode.INSUFFICIENT_STOCK,
                     "Stok güncellenemedi, başka bir kullanıcı ürünü satın almış olabilir");
             }
             
