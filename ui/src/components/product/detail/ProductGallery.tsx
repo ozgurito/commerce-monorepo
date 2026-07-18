@@ -70,6 +70,22 @@ export function ProductGallery({
   const touchDeltaX = useRef(0)
   const SWIPE_THRESHOLD = 40
 
+  // Lightbox pinch-to-zoom + zoomluyken tek parmakla kaydırma (pan)
+  const [zoomScale, setZoomScale] = useState(1)
+  const [zoomOffset, setZoomOffset] = useState({ x: 0, y: 0 })
+  const pinchStartDist = useRef<number | null>(null)
+  const pinchStartScale = useRef(1)
+  const panStart = useRef<{ x: number; y: number } | null>(null)
+  const panStartOffset = useRef({ x: 0, y: 0 })
+  const isGesturing = useRef(false)
+  const MAX_ZOOM = 4
+
+  const touchDistance = (touches: React.TouchList) => {
+    const dx = touches[0].clientX - touches[1].clientX
+    const dy = touches[0].clientY - touches[1].clientY
+    return Math.sqrt(dx * dx + dy * dy)
+  }
+
   // Thumbnail scroll
   const thumbRef = useRef<HTMLDivElement>(null)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
@@ -125,6 +141,65 @@ export function ProductGallery({
     touchStartX.current = null
     touchDeltaX.current = 0
   }
+
+  // ── Lightbox dokunuş yönetimi: 2 parmak → pinch-zoom, 1 parmak + zoomlu → pan,
+  //    1 parmak + zoomsuz → mevcut swipe-ile-fotoğraf-değiştirme. Üçü asla karışmaz. ──
+  const handleLightboxTouchStart = (e: React.TouchEvent) => {
+    isGesturing.current = true
+    if (e.touches.length === 2) {
+      pinchStartDist.current = touchDistance(e.touches)
+      pinchStartScale.current = zoomScale
+    } else if (e.touches.length === 1) {
+      if (zoomScale > 1) {
+        panStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
+        panStartOffset.current = zoomOffset
+      } else {
+        handleTouchStart(e)
+      }
+    }
+  }
+
+  const handleLightboxTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length === 2 && pinchStartDist.current !== null) {
+      e.preventDefault()
+      const dist = touchDistance(e.touches)
+      const scale = Math.min(MAX_ZOOM, Math.max(1, pinchStartScale.current * (dist / pinchStartDist.current)))
+      setZoomScale(scale)
+    } else if (e.touches.length === 1) {
+      if (zoomScale > 1 && panStart.current) {
+        setZoomOffset({
+          x: panStartOffset.current.x + (e.touches[0].clientX - panStart.current.x),
+          y: panStartOffset.current.y + (e.touches[0].clientY - panStart.current.y),
+        })
+      } else if (zoomScale === 1) {
+        handleTouchMove(e)
+      }
+    }
+  }
+
+  const handleLightboxTouchEnd = () => {
+    // Sadece hiç zoom yokken (yaklaşık 1x) swipe-ile-fotoğraf-değiştirmeye izin ver
+    if (zoomScale <= 1.02) {
+      handleTouchEndLightbox()
+    } else {
+      touchStartX.current = null
+      touchDeltaX.current = 0
+    }
+    // Hafifçe uzaklaşıldıysa (1x'e yakın) tamamen sıfırla
+    if (zoomScale <= 1.02) {
+      setZoomScale(1)
+      setZoomOffset({ x: 0, y: 0 })
+    }
+    pinchStartDist.current = null
+    panStart.current = null
+    isGesturing.current = false
+  }
+
+  // Fotoğraf değişince zoom/pan sıfırlanır
+  useEffect(() => {
+    setZoomScale(1)
+    setZoomOffset({ x: 0, y: 0 })
+  }, [lightboxIdx])
 
   const active = galleryImages[activeIdx] ?? allImages[0]
 
@@ -314,10 +389,10 @@ export function ProductGallery({
       {lightboxIdx !== null && galleryImages[lightboxIdx] && (
         <div
           className="fixed inset-0 z-[500] bg-black/92 flex items-center justify-center p-4"
-          onClick={() => setLightboxIdx(null)}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEndLightbox}
+          onClick={() => { if (zoomScale <= 1.02) setLightboxIdx(null) }}
+          onTouchStart={handleLightboxTouchStart}
+          onTouchMove={handleLightboxTouchMove}
+          onTouchEnd={handleLightboxTouchEnd}
         >
           <button onClick={() => setLightboxIdx(null)}
             className="absolute top-4 right-4 text-white/70 hover:text-white
@@ -332,14 +407,30 @@ export function ProductGallery({
               <ChevronLeft size={24} />
             </button>
           )}
-          <div className="relative w-full max-w-2xl aspect-square"
+          <div className="relative w-full max-w-2xl aspect-square overflow-hidden"
+               style={{ touchAction: 'none' }}
                onClick={e => e.stopPropagation()}>
-            <Image
-              src={galleryImages[lightboxIdx].imageUrl}
-              alt={galleryImages[lightboxIdx].altText ?? productName}
-              fill className="object-contain" sizes="100vw"
-            />
+            <div
+              className="absolute inset-0"
+              style={{
+                transform: `translate(${zoomOffset.x}px, ${zoomOffset.y}px) scale(${zoomScale})`,
+                transition: isGesturing.current ? 'none' : 'transform 0.2s ease-out',
+              }}
+            >
+              <Image
+                src={galleryImages[lightboxIdx].imageUrl}
+                alt={galleryImages[lightboxIdx].altText ?? productName}
+                fill className="object-contain" sizes="100vw"
+                draggable={false}
+              />
+            </div>
           </div>
+          {zoomScale > 1.02 && (
+            <p className="absolute bottom-14 left-1/2 -translate-x-1/2 text-white/60 text-xs
+                          bg-white/10 px-3 py-1 rounded-full pointer-events-none">
+              Yakınlaştırıldı — küçültmek için parmaklarını yaklaştır
+            </p>
+          )}
           {lightboxIdx < galleryImages.length - 1 && (
             <button
               onClick={e => { e.stopPropagation(); setLightboxIdx(i => i !== null ? i + 1 : i) }}

@@ -1,6 +1,6 @@
 'use client'
 import { useState, useMemo } from 'react'
-import DOMPurify from 'dompurify'
+import DOMPurify from 'isomorphic-dompurify'
 import { ChevronDown } from 'lucide-react'
 import { ProductGallery } from './ProductGallery'
 import { ProductInfo } from './ProductInfo'
