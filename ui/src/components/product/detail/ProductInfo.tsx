@@ -1,5 +1,6 @@
 'use client'
 import { useState, useRef, useEffect, useMemo } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Heart, ShoppingBag, Star, Minus, Plus, Truck, RotateCcw, Shield, Share2, Check, ShoppingCart, Zap, Clock, MapPin, Users, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -138,6 +139,13 @@ export function ProductInfo({ product, onGalleryChange, onColorSelect, imageClic
     return () => clearInterval(id)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product.id])
+
+  // Sosyal kanıt kutuları arasında Trendyol tarzı dikey kayan geçiş — tek slot, sırayla döner
+  const [tickerIdx, setTickerIdx] = useState(0)
+  useEffect(() => {
+    const id = setInterval(() => setTickerIdx(i => (i + 1) % 3), 3000)
+    return () => clearInterval(id)
+  }, [])
 
   // Görsel tıklanınca → o görselin rengi otomatik seçilir
   useEffect(() => {
@@ -334,6 +342,52 @@ export function ProductInfo({ product, onGalleryChange, onColorSelect, imageClic
     }
   }
 
+  // Sosyal kanıt ticker'ının döndüğü 3 mesaj — sırasıyla: inceliyor / satıldı / sepette
+  const socialProofSlides = [
+    {
+      bg: 'bg-blue-50 border-blue-100',
+      dot: (
+        <span className="relative flex h-2 w-2 flex-shrink-0">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-75" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-blue-500" />
+        </span>
+      ),
+      content: (
+        <span>
+          Şu an <strong className="text-blue-700">{Math.max(1, viewersNow)} kişi</strong> bu ürünü inceliyor
+        </span>
+      ),
+    },
+    {
+      bg: 'bg-orange-50 border-orange-100',
+      dot: (
+        <>
+          <span className="h-2 w-2 rounded-full bg-orange flex-shrink-0 animate-blink" />
+          <TrendingUp size={14} className="text-orange flex-shrink-0" />
+        </>
+      ),
+      content: (
+        <span>
+          Son 1 saatte <strong className="text-orange">{soldLastHour} adet</strong> satıldı
+        </span>
+      ),
+    },
+    {
+      bg: 'bg-amber-50 border-amber-100',
+      dot: (
+        <>
+          <span className="h-2 w-2 rounded-full bg-amber-500 flex-shrink-0 animate-blink" />
+          <ShoppingCart size={14} className="text-amber-500 flex-shrink-0" />
+        </>
+      ),
+      content: (
+        <span>
+          <strong className="text-gray-800">{inCartCount} kişinin</strong> sepetinde, tükenmeden al!
+        </span>
+      ),
+    },
+  ]
+
   return (
     <div className="space-y-5 lg:sticky lg:top-[130px]">
 
@@ -436,45 +490,23 @@ export function ProductInfo({ product, onGalleryChange, onColorSelect, imageClic
         </div>
       )}
 
-      {/* Sosyal kanıt — küçük kutular + her birinde canlı yanıp sönen nokta */}
+      {/* Sosyal kanıt — tek slot, Trendyol tarzı dikey kayarak mesajlar arasında döner */}
       {!isOutOfStock && (
-        <div className="space-y-1.5">
-          {/* Şu an inceliyor */}
-          <div className="flex items-center gap-2 text-sm text-gray-600 bg-blue-50 border border-blue-100
-                          rounded-xl px-3 py-2">
-            <span className="relative flex h-2 w-2 flex-shrink-0">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-blue-500" />
-            </span>
-            <span>
-              Şu an{' '}
-              <strong className="text-blue-700">{Math.max(1, viewersNow)} kişi</strong>
-              {' '}bu ürünü inceliyor
-            </span>
-          </div>
-
-          {/* Son saatte satış */}
-          <div className="flex items-center gap-2 text-sm text-gray-600 bg-orange-50 border border-orange-100
-                          rounded-xl px-3 py-2">
-            <span className="h-2 w-2 rounded-full bg-orange flex-shrink-0 animate-blink" />
-            <TrendingUp size={14} className="text-orange flex-shrink-0" />
-            <span>
-              Son 1 saatte{' '}
-              <strong className="text-orange">{soldLastHour} adet</strong>
-              {' '}satıldı
-            </span>
-          </div>
-
-          {/* Sepetinde */}
-          <div className="flex items-center gap-2 text-sm text-gray-600 bg-amber-50 border border-amber-100
-                          rounded-xl px-3 py-2">
-            <span className="h-2 w-2 rounded-full bg-amber-500 flex-shrink-0 animate-blink" />
-            <ShoppingCart size={14} className="text-amber-500 flex-shrink-0" />
-            <span>
-              <strong className="text-gray-800">{inCartCount} kişinin</strong>
-              {' '}sepetinde, tükenmeden al!
-            </span>
-          </div>
+        <div className={`relative overflow-hidden text-sm text-gray-600 border rounded-xl px-3 py-2
+                         h-[36px] transition-colors duration-300 ${socialProofSlides[tickerIdx].bg}`}>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={tickerIdx}
+              initial={{ y: 16, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: -16, opacity: 0 }}
+              transition={{ duration: 0.35, ease: 'easeInOut' }}
+              className="absolute inset-0 flex items-center gap-2 px-3"
+            >
+              {socialProofSlides[tickerIdx].dot}
+              {socialProofSlides[tickerIdx].content}
+            </motion.div>
+          </AnimatePresence>
         </div>
       )}
 

@@ -197,7 +197,7 @@ export function ProductGallery({
 
       {/* ── Ana Görsel — mobilde kenarsız (tam genişlik), masaüstünde köşeli/paddingli kart ── */}
       <div
-        className="relative aspect-square overflow-hidden bg-gray-50 cursor-zoom-in select-none
+        className="relative aspect-square overflow-hidden bg-white cursor-zoom-in select-none
                    -mx-5 rounded-none sm:mx-0 sm:rounded-2xl"
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
@@ -225,7 +225,7 @@ export function ProductGallery({
             fill
             priority
             sizes="(max-width:768px) 100vw, 50vw"
-            className="object-cover sm:object-contain"
+            className="object-contain"
             draggable={false}
           />
         </div>
