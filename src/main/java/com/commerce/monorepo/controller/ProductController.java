@@ -43,7 +43,8 @@ public class ProductController {
             @RequestParam(required = false, defaultValue = "createdAt") String sortBy,
             @RequestParam(required = false, defaultValue = "DESC") String sortDirection,
             @RequestParam(required = false, defaultValue = "0") int page,
-            @RequestParam(required = false, defaultValue = "20") int size) {
+            @RequestParam(required = false, defaultValue = "20") int size,
+            @RequestParam(required = false, defaultValue = "false") boolean expandByColor) {
 
         ProductSearchRequest req = ProductSearchRequest.builder()
                 .categoryId(categoryId)
@@ -58,6 +59,7 @@ public class ProductController {
                 .sortDirection(sortDirection)
                 .page(page)
                 .size(size)
+                .expandByColor(expandByColor)
                 .build();
 
         return service.listFiltered(req);
@@ -103,6 +105,14 @@ public class ProductController {
     @RateLimit(key = "product:slug", limit = 30, windowSeconds = 60)
     public ProductDetailDto getBySlug(@PathVariable String slug) {
         return service.getDetailBySlug(slug);
+    }
+
+    /** Model Kodu (SKU) ile ürün bul — Excel içe aktarımda "zaten var mı" kontrolü için (admin) */
+    @GetMapping("/by-sku/{sku}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @RateLimit(key = "product:by-sku", limit = 30, windowSeconds = 60)
+    public ProductDto getBySku(@PathVariable String sku) {
+        return service.getBySku(sku);
     }
 
     // ============================================

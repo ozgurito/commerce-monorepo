@@ -15,6 +15,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import com.commerce.monorepo.repository.specification.ProductSpecification;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -78,11 +79,16 @@ public class ProductService {
         }
 
         Sort sort = createSort(request.getSortBy(), request.getSortDirection());
-        Pageable pageable = PageRequest.of(request.getPage(), request.getSize(), sort);
 
         // R7 Aşama 2 — Tek renk filtresi aktifse kartta o rengin varyant görselini göster
         final String highlightColor = (request.getColors() != null && request.getColors().size() == 1)
                 ? request.getColors().get(0) : null;
+
+        if (Boolean.TRUE.equals(request.getExpandByColor())) {
+            return listFilteredExpandedByColor(request, sort);
+        }
+
+        Pageable pageable = PageRequest.of(request.getPage(), request.getSize(), sort);
 
         return repo.findAll(
                 ProductSpecification.buildSpecification(request),
@@ -97,6 +103,71 @@ public class ProductService {
             }
             return dto;
         });
+    }
+
+    // Kategori/arama sayfalarında renk-bazlı kart açılımı için üst sınır — küçük/orta ölçekli
+    // bir katalog varsayımıyla (yüzlerce ürün) bellekte açıp sayfalıyoruz. Katalog binlerce
+    // ürüne çıkarsa bu yaklaşım yerine DB seviyesinde (product,color) bazlı bir sorgu gerekir.
+    private static final int EXPAND_BY_COLOR_MAX_PRODUCTS = 1000;
+
+    /**
+     * Her ürünü, eşleşen her rengi için ayrı bir kart (ProductDto) satırına açar
+     * (Trendyol'daki gibi — aynı ürünün siyahı/beyazı ayrı kart). Sayfalama, açılmış
+     * satır listesi üzerinde yapılır; DB'den sadece filtreye uyan ürünler tek sefer çekilir.
+     */
+    private Page<ProductDto> listFilteredExpandedByColor(ProductSearchRequest request, Sort sort) {
+        List<Product> matched = repo.findAll(
+                ProductSpecification.buildSpecification(request),
+                PageRequest.of(0, EXPAND_BY_COLOR_MAX_PRODUCTS, sort)
+        ).getContent();
+
+        java.util.Set<String> requestedColors = (request.getColors() == null || request.getColors().isEmpty())
+                ? null
+                : request.getColors().stream()
+                        .map(SearchCategoryResolver::normalize)
+                        .collect(Collectors.toSet());
+
+        List<ProductDto> rows = new ArrayList<>();
+        for (Product p : matched) {
+            List<String> colors = p.getVariants().stream()
+                    .map(ProductVariant::getColor)
+                    .filter(StringUtils::hasText)
+                    .distinct()
+                    .toList();
+
+            // Renk filtresi aktifse, sadece istenen renklere ait kartları göster
+            if (requestedColors != null) {
+                colors = colors.stream()
+                        .filter(c -> requestedColors.contains(SearchCategoryResolver.normalize(c)))
+                        .toList();
+            }
+
+            if (colors.isEmpty()) {
+                rows.add(mapToDto(p));
+                continue;
+            }
+
+            for (String color : colors) {
+                ProductDto dto = mapToDto(p);
+                String colorImg = imageForColor(p, color);
+                String colorHex = p.getVariants().stream()
+                        .filter(v -> color.equals(v.getColor()) && v.getColorHex() != null)
+                        .map(ProductVariant::getColorHex)
+                        .findFirst().orElse(null);
+                dto = dto.toBuilder()
+                        .variantColor(color)
+                        .variantColorHex(colorHex)
+                        .imageUrl(colorImg != null ? colorImg : dto.getImageUrl())
+                        .build();
+                rows.add(dto);
+            }
+        }
+
+        int total = rows.size();
+        int fromIndex = Math.min(request.getPage() * request.getSize(), total);
+        int toIndex = Math.min(fromIndex + request.getSize(), total);
+        Pageable pageable = PageRequest.of(request.getPage(), request.getSize(), sort);
+        return new PageImpl<>(rows.subList(fromIndex, toIndex), pageable, total);
     }
 
     /**
@@ -162,6 +233,15 @@ public class ProductService {
     @Transactional(readOnly = true)
     public ProductDto get(Long id) {
         var p = repo.findById(id)
+                .orElseThrow(() -> new BaseException(ErrorCode.PRODUCT_NOT_FOUND));
+
+        return mapToDto(p);
+    }
+
+    /** Model Kodu (SKU) ile ürün bul — Excel içe aktarımda "zaten var mı" kontrolü için */
+    @Transactional(readOnly = true)
+    public ProductDto getBySku(String sku) {
+        var p = repo.findBySku(sku)
                 .orElseThrow(() -> new BaseException(ErrorCode.PRODUCT_NOT_FOUND));
 
         return mapToDto(p);

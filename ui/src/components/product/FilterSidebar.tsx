@@ -43,6 +43,8 @@ interface Props {
   onReset: () => void
   isOpen: boolean
   onClose: () => void
+  /** Her "Temizle" tıklamasında artan sayaç — filters değeri değişmese bile taslağı zorla senkronize eder */
+  resetSignal?: number
 }
 
 function FilterSection({
@@ -83,7 +85,7 @@ function FilterSection({
   )
 }
 
-export function FilterSidebar({ filters, onFilterChange, onReset, isOpen, onClose }: Props) {
+export function FilterSidebar({ filters, onFilterChange, onReset, isOpen, onClose, resetSignal }: Props) {
   const [mounted, setMounted] = useState(false)
   useEffect(() => { setMounted(true) }, [])
 
@@ -98,11 +100,15 @@ export function FilterSidebar({ filters, onFilterChange, onReset, isOpen, onClos
 
   // ── Taslak (draft) filtreler — "Uygula"ya basılana kadar URL'e yansımaz, ürün listesi yenilenmez ──
   const [draft, setDraft] = useState<Filters>(filters)
-  // Dışarıdan (navigasyon / temizle / uygula sonrası) filters değişince draft senkronize edilir
+  // Dışarıdan (navigasyon / temizle / uygula sonrası) filters değişince draft senkronize edilir.
+  // resetSignal ayrıca eklendi: "Temizle" tıklanınca filters değeri aslında değişmeyebilir
+  // (örn. kategori sayfasının kendi varsayılan kategorisine zaten eşitse) — bu durumda değer
+  // bazlı bağımlılıklar tetiklenmez ve taslak yanlış kalırdı. resetSignal her tıklamada
+  // artarak senkronizasyonu değerden bağımsız olarak garantiler.
   useEffect(() => {
     setDraft(filters)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.categoryId, filters.minPrice, filters.maxPrice, filters.colors.join(','), filters.sizes.join(',')])
+  }, [filters.categoryId, filters.minPrice, filters.maxPrice, filters.colors.join(','), filters.sizes.join(','), resetSignal])
 
   const patchDraft = (patch: Partial<Filters>) => setDraft((d) => ({ ...d, ...patch }))
 
@@ -186,7 +192,7 @@ export function FilterSidebar({ filters, onFilterChange, onReset, isOpen, onClos
           </div>
           {activeFilterCount > 0 && (
             <button
-              onClick={() => { setDraft({ colors: [], sizes: [] }); onReset() }}
+              onClick={onReset}
               className="text-xs font-bold text-orange hover:text-orange-dark transition-colors"
             >
               Temizle
@@ -309,7 +315,7 @@ export function FilterSidebar({ filters, onFilterChange, onReset, isOpen, onClos
           <div className="flex gap-2">
             {activeFilterCount > 0 && (
               <button
-                onClick={() => { setDraft({ colors: [], sizes: [] }); onReset() }}
+                onClick={onReset}
                 className="flex-1 border border-gray-200 text-gray-600 font-semibold
                            py-2.5 rounded-xl text-sm hover:bg-gray-50 transition-colors"
               >

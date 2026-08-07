@@ -138,6 +138,7 @@ public class Product extends BaseEntity {
     private String specifications;
 
     @OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
+    @BatchSize(size = 30)
     @JsonIgnore
     private List<Review> reviews = new ArrayList<>();
     

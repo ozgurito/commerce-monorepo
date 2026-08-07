@@ -639,14 +639,6 @@ export function ProductInfo({ product, onGalleryChange, onColorSelect, imageClic
         )}
       </div>
 
-      {/* Görsel bazlı renk seçimi aktifse seçili renk adını göster */}
-      {imagesHaveVariants && selections['Renk']?.color && (
-        <div className="flex items-center gap-2 text-sm">
-          <span className="font-semibold text-gray-600">Renk:</span>
-          <span className="font-extrabold text-navy-dark">{selections['Renk'].color}</span>
-          <span className="text-xs text-gray-400">(görselden seçildi)</span>
-        </div>
-      )}
       {imagesHaveVariants && colorSwatches.length > 1 && !selections['Renk'] && (
         <p className="text-xs text-gray-400 flex items-center gap-1">
           <span>👆</span> Görsele tıklayarak renk seçin

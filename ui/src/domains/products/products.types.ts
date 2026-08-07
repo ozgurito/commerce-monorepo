@@ -30,6 +30,9 @@ export interface ProductDto {
   specifications: string | null
   createdAt: string
   updatedAt: string
+  /** Sadece renge göre açılmış liste kartlarında dolu */
+  variantColor?: string | null
+  variantColorHex?: string | null
 }
 
 export interface ProductImageDto {
@@ -113,6 +116,8 @@ export interface ProductSearchRequest {
   sortDirection?: 'ASC' | 'DESC'
   page?: number
   size?: number
+  /** Kategori/arama listelerinde her rengi ayrı kart olarak aç (Trendyol tarzı) */
+  expandByColor?: boolean
 }
 
 export interface PagedResponse<T> {

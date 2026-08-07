@@ -1,5 +1,6 @@
 'use client'
 import { useState, useMemo } from 'react'
+import { useSearchParams } from 'next/navigation'
 import DOMPurify from 'isomorphic-dompurify'
 import { ChevronDown } from 'lucide-react'
 import { ProductGallery } from './ProductGallery'
@@ -13,9 +14,13 @@ interface Props {
 }
 
 export function ProductDetailPanel({ product }: Props) {
+  // Kategori/arama listesindeki renk-bazlı karttan gelindiyse (?renk=Siyah) o renk baştan seçili açılır
+  const searchParams = useSearchParams()
+  const initialColor = searchParams.get('renk')
+
   const [forcedGalleryIndex, setForcedGalleryIndex] = useState<number | undefined>(undefined)
-  const [activeColor, setActiveColor] = useState<string | null>(null)
-  const [imageClickColor, setImageClickColor] = useState<string | null>(null)
+  const [activeColor, setActiveColor] = useState<string | null>(initialColor)
+  const [imageClickColor, setImageClickColor] = useState<string | null>(initialColor)
   const [descOpen, setDescOpen] = useState(true)
   const [detailsOpen, setDetailsOpen] = useState(false)
 

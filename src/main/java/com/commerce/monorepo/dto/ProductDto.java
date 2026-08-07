@@ -109,4 +109,11 @@ public class ProductDto {
 
     @JsonProperty("specifications")
     private String specifications;
+
+    /** Sadece renge göre açılmış liste satırlarında dolu — hangi renge ait bu kart */
+    @JsonProperty("variantColor")
+    private String variantColor;
+
+    @JsonProperty("variantColorHex")
+    private String variantColorHex;
 }

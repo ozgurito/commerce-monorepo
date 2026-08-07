@@ -26,6 +26,7 @@ export function ProductsView({ defaultCategoryId }: Props = {}) {
   const pathname = usePathname()
   const [filterOpen, setFilterOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [resetSignal, setResetSignal] = useState(0)
   useEffect(() => { setMounted(true) }, [])
 
   // URL'den filtre değerlerini oku
@@ -59,6 +60,8 @@ export function ProductsView({ defaultCategoryId }: Props = {}) {
     sortBy:        yeni ? 'createdAt' : sortBy,
     sortDirection: yeni ? 'DESC'      : sortDir as 'ASC' | 'DESC',
     size: PAGE_SIZE, page,
+    // Kategori/arama/tüm-ürünler listelerinde her renk ayrı kart olarak açılsın (Trendyol tarzı)
+    expandByColor: true,
     ...(indirim && { inStockOnly: false }),
   }
 
@@ -110,6 +113,10 @@ export function ProductsView({ defaultCategoryId }: Props = {}) {
   }
 
   const handleReset = () => {
+    // filters.categoryId zaten defaultCategoryId'ye eşitse (kategori override edilmemişse)
+    // URL push sonrası değeri değişmeyebilir — resetSignal, FilterSidebar'daki taslağın
+    // değer değişmese bile her "Temizle" tıklamasında zorla senkronize olmasını garantiler.
+    setResetSignal((s) => s + 1)
     router.push(pathname, { scroll: false })
   }
 
@@ -131,13 +138,16 @@ export function ProductsView({ defaultCategoryId }: Props = {}) {
 
   return (
     <div className="flex gap-6">
-      {/* Sidebar */}
+      {/* Sidebar — key={pathname}: farklı bir kategori sayfasına geçildiğinde taslak
+          filtre state'i (draft) sıfırdan başlasın diye component tamamen yeniden mount edilir */}
       <FilterSidebar
+        key={pathname}
         filters={{ categoryId, minPrice, maxPrice, colors, sizes }}
         onFilterChange={handleFilterChange}
         onReset={handleReset}
         isOpen={filterOpen}
         onClose={() => setFilterOpen(false)}
+        resetSignal={resetSignal}
       />
 
       {/* Ana içerik */}
