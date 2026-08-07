@@ -45,8 +45,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     @Query(value = """
         SELECT
-            EXTRACT(YEAR FROM o.created_at)::int  AS year,
-            EXTRACT(MONTH FROM o.created_at)::int AS month,
+            CAST(EXTRACT(YEAR FROM o.created_at) AS integer)  AS year,
+            CAST(EXTRACT(MONTH FROM o.created_at) AS integer) AS month,
             COUNT(o.id)                           AS orderCount,
             COALESCE(SUM(o.total_amount), 0)      AS revenue
         FROM orders o
