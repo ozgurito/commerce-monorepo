@@ -24,6 +24,7 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     Page<Product> findByNameContainingIgnoreCaseAndIsActiveTrue(String name, Pageable pageable);
 
     Optional<Product> findBySlug(String slug);
+    Optional<Product> findBySku(String sku);
     List<Product> findByIsActiveTrueOrderByCreatedAtDesc();
     Page<Product> findByIsActiveTrue(Pageable pageable);
     List<Product> findByIsFeaturedTrueAndIsActiveTrue();

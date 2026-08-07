@@ -2,7 +2,7 @@ import apiClient from '@/lib/api-client'
 import type { DashboardStatsDto, LowStockAlertDto, MonthlyStatDto } from './admin.types'
 import type { OrderDto } from '@/domains/orders/orders.types'
 import type { OrderStatus } from '@/domains/orders/orders.types'
-import type { ProductDto, ProductDetailDto, ProductVariantDto } from '@/domains/products/products.types'
+import type { ProductDto, ProductDetailDto, ProductVariantDto, ProductImageDto } from '@/domains/products/products.types'
 import type { CategoryDto } from '@/domains/categories/categories.types'
 import type { ReviewDto } from '@/domains/reviews/reviews.types'
 import type { CouponDto } from '@/domains/coupons/coupons.types'
@@ -31,6 +31,13 @@ export interface PagedUsers {
   totalPages: number
   number: number
   last: boolean
+}
+
+export interface ArasTrackingStatusDto {
+  trackingNumber: string | null
+  carrier: string | null
+  statusJson: string | null
+  error: string | null
 }
 
 export interface ProductImportResultDto {
@@ -150,6 +157,12 @@ export const adminApi = {
     return data
   },
 
+  // Aras Kargo'dan güncel gönderi durumunu sorgular (sadece takip no + ARAS taşıyıcı için)
+  getTrackingStatus: async (id: number): Promise<ArasTrackingStatusDto> => {
+    const { data } = await apiClient.get(`/api/admin/orders/${id}/tracking-status`)
+    return data
+  },
+
   getShippingLabel: async (id: number): Promise<Blob> => {
     const { data } = await apiClient.get(`/api/admin/orders/${id}/shipping-label`, {
       responseType: 'blob',
@@ -186,6 +199,21 @@ export const adminApi = {
 
   getProduct: async (id: number): Promise<ProductDetailDto> => {
     const { data } = await apiClient.get(`/api/products/${id}/detail`)
+    return data
+  },
+
+  // Model Kodu (SKU) ile ürün ara — Excel içe aktarımda "zaten var mı" kontrolü için. Yoksa null döner.
+  getProductBySku: async (sku: string): Promise<ProductDto | null> => {
+    try {
+      const { data } = await apiClient.get(`/api/products/by-sku/${encodeURIComponent(sku)}`)
+      return data
+    } catch {
+      return null
+    }
+  },
+
+  getProductImages: async (productId: number): Promise<ProductImageDto[]> => {
+    const { data } = await apiClient.get(`/api/products/${productId}/images`)
     return data
   },
 
