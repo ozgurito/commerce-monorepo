@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -28,7 +28,7 @@ function VariantRows({ productId }: { productId: number }) {
   if (isLoading) {
     return (
       <tr>
-        <td colSpan={7} className="px-5 py-3 bg-orange/5">
+        <td colSpan={8} className="px-5 py-3 bg-orange/5">
           <div className="flex items-center gap-2 text-xs text-gray-400 pl-14">
             <Loader2 size={12} className="animate-spin" /> Varyantlar yükleniyor…
           </div>
@@ -40,7 +40,7 @@ function VariantRows({ productId }: { productId: number }) {
   if (variants.length === 0) {
     return (
       <tr>
-        <td colSpan={7} className="px-5 py-2 bg-gray-50">
+        <td colSpan={8} className="px-5 py-2 bg-gray-50">
           <p className="text-xs text-gray-400 pl-14">Varyant yok</p>
         </td>
       </tr>
@@ -52,7 +52,7 @@ function VariantRows({ productId }: { productId: number }) {
 
   return (
     <tr>
-      <td colSpan={7} className="bg-orange/5 border-t border-orange/10">
+      <td colSpan={8} className="bg-orange/5 border-t border-orange/10">
         <div className="pl-14 pr-4 py-2.5 flex flex-wrap gap-3">
           {colors.length > 0 && (
             <div className="flex items-center gap-1.5 flex-wrap">
@@ -90,26 +90,40 @@ function VariantRows({ productId }: { productId: number }) {
 function ProductRow({
   p,
   expanded,
+  selected,
   onToggleExpand,
   onDelete,
   onToggle,
+  onSelectToggle,
   deleteIsPending,
   toggleIsPending,
 }: {
   p: ProductDto
   expanded: boolean
+  selected: boolean
   onToggleExpand: () => void
   onDelete: (id: number, name: string) => void
   onToggle: (id: number, patch: Record<string, boolean>) => void
+  onSelectToggle: (id: number) => void
   deleteIsPending: boolean
   toggleIsPending: boolean
 }) {
   return (
     <>
       <tr
-        className="hover:bg-gray-50 transition-colors cursor-pointer select-none"
+        className={`hover:bg-gray-50 transition-colors cursor-pointer select-none ${selected ? 'bg-orange/5' : ''}`}
         onClick={onToggleExpand}
       >
+        {/* Select checkbox */}
+        <td className="px-3 py-3" onClick={e => e.stopPropagation()}>
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={() => onSelectToggle(p.id)}
+            className="w-4 h-4 accent-orange cursor-pointer"
+          />
+        </td>
+
         {/* Expand chevron + product */}
         <td className="px-5 py-3">
           <div className="flex items-center gap-2">
@@ -216,22 +230,29 @@ function CategoryGroup({
   categoryName,
   products,
   expandedIds,
+  selectedIds,
   onToggleExpand,
   onDelete,
   onToggle,
+  onSelectToggle,
+  onSelectGroup,
   deleteIsPending,
   toggleIsPending,
 }: {
   categoryName: string
   products: ProductDto[]
   expandedIds: Set<number>
+  selectedIds: Set<number>
   onToggleExpand: (id: number) => void
   onDelete: (id: number, name: string) => void
   onToggle: (id: number, patch: Record<string, boolean>) => void
+  onSelectToggle: (id: number) => void
+  onSelectGroup: (ids: number[], select: boolean) => void
   deleteIsPending: boolean
   toggleIsPending: boolean
 }) {
   const [collapsed, setCollapsed] = useState(false)
+  const allSelected = products.length > 0 && products.every(p => selectedIds.has(p.id))
 
   return (
     <>
@@ -240,6 +261,15 @@ function CategoryGroup({
         className="bg-gray-50 cursor-pointer select-none"
         onClick={() => setCollapsed(c => !c)}
       >
+        <td className="px-3 py-2" onClick={e => e.stopPropagation()}>
+          <input
+            type="checkbox"
+            checked={allSelected}
+            onChange={() => onSelectGroup(products.map(p => p.id), !allSelected)}
+            className="w-4 h-4 accent-orange cursor-pointer"
+            title={`${categoryName} kategorisindeki tüm ürünleri seç`}
+          />
+        </td>
         <td colSpan={7} className="px-5 py-2">
           <div className="flex items-center gap-2">
             {collapsed
@@ -259,9 +289,11 @@ function CategoryGroup({
           key={p.id}
           p={p}
           expanded={expandedIds.has(p.id)}
+          selected={selectedIds.has(p.id)}
           onToggleExpand={() => onToggleExpand(p.id)}
           onDelete={onDelete}
           onToggle={onToggle}
+          onSelectToggle={onSelectToggle}
           deleteIsPending={deleteIsPending}
           toggleIsPending={toggleIsPending}
         />
@@ -278,6 +310,7 @@ export default function AdminUrunlerPage() {
   const [categoryId, setCategoryId] = useState('')
   const [viewMode, setViewMode] = useState<ViewMode>('grouped')
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set())
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [deleteAllConfirm, setDeleteAllConfirm] = useState(false)
 
   const debouncedKeyword = useDebounce(keyword, 400)
@@ -328,6 +361,28 @@ export default function AdminUrunlerPage() {
     onError: () => toast.error('Silme işlemi başarısız'),
   })
 
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (ids: number[]) => {
+      let success = 0
+      let failed = 0
+      for (const id of ids) {
+        try {
+          await adminApi.deleteProduct(id)
+          success++
+        } catch {
+          failed++
+        }
+      }
+      return { success, failed }
+    },
+    onSuccess: ({ success, failed }) => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'products'] })
+      setSelectedIds(new Set())
+      if (failed === 0) toast.success(`${success} ürün silindi`)
+      else toast(`${success} ürün silindi, ${failed} tanesi silinemedi`, { icon: '⚠️' })
+    },
+  })
+
   const toggleMutation = useMutation({
     mutationFn: ({ id, patch }: { id: number; patch: Record<string, boolean> }) =>
       adminApi.updateProduct(id, patch),
@@ -356,6 +411,34 @@ export default function AdminUrunlerPage() {
     toggleMutation.mutate({ id, patch })
   }
 
+  const handleSelectToggle = (id: number) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  const handleSelectGroup = (ids: number[], select: boolean) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      ids.forEach(id => (select ? next.add(id) : next.delete(id)))
+      return next
+    })
+  }
+
+  const handleBulkDelete = () => {
+    if (selectedIds.size === 0) return
+    if (confirm(`${selectedIds.size} ürün silinsin mi? Bu işlem geri alınamaz.`)) {
+      bulkDeleteMutation.mutate([...selectedIds])
+    }
+  }
+
+  // Filtre değişince eski seçim görünmez ürünlere ait kalmasın diye temizlenir
+  useEffect(() => {
+    setSelectedIds(new Set())
+  }, [categoryId, debouncedKeyword, viewMode])
+
   /* Group by category — allData kullan (tüm ürünler), arama varsa products kullan */
   const groupSource = (viewMode === 'grouped' && !debouncedKeyword)
     ? (allData?.content ?? [])
@@ -374,9 +457,23 @@ export default function AdminUrunlerPage() {
     ? allLoading
     : isLoading
 
+  // "Hepsini seç" — grouped modda tüm yüklü ürünler, flat modda sadece o sayfadakiler
+  const visibleIds = (grouped ? groupSource : products).map(p => p.id)
+  const allVisibleSelected = visibleIds.length > 0 && visibleIds.every(id => selectedIds.has(id))
+  const toggleSelectAllVisible = () => handleSelectGroup(visibleIds, !allVisibleSelected)
+
   const tableHeader = (
     <thead className="border-b border-gray-100 bg-gray-50">
       <tr>
+        <th className="px-3 py-3 w-10">
+          <input
+            type="checkbox"
+            checked={allVisibleSelected}
+            onChange={toggleSelectAllVisible}
+            className="w-4 h-4 accent-orange cursor-pointer"
+            title="Görünen tüm ürünleri seç"
+          />
+        </th>
         <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 uppercase">Ürün</th>
         <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase">Model Kodu</th>
         <th className="text-right px-4 py-3 text-xs font-bold text-gray-500 uppercase">Fiyat</th>
@@ -442,6 +539,29 @@ export default function AdminUrunlerPage() {
           </Link>
         </div>
       </div>
+
+      {/* Toplu işlem çubuğu */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center gap-3 bg-orange/5 border border-orange/20 rounded-xl px-4 py-2.5">
+          <span className="text-sm font-bold text-navy-dark">{selectedIds.size} ürün seçildi</span>
+          <button
+            onClick={handleBulkDelete}
+            disabled={bulkDeleteMutation.isPending}
+            className="flex items-center gap-1.5 text-xs font-bold text-white bg-red-500 hover:bg-red-600
+                       px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+          >
+            {bulkDeleteMutation.isPending
+              ? <><Loader2 size={12} className="animate-spin" /> Siliniyor…</>
+              : <><Trash2 size={12} /> Seçilenleri Sil</>}
+          </button>
+          <button
+            onClick={() => setSelectedIds(new Set())}
+            className="text-xs font-semibold text-gray-500 hover:text-gray-700 px-2 py-1.5"
+          >
+            Seçimi Temizle
+          </button>
+        </div>
+      )}
 
       {/* Filters + View toggle */}
       <div className="flex gap-3 items-center">
@@ -521,9 +641,12 @@ export default function AdminUrunlerPage() {
                     categoryName={catName}
                     products={catProducts}
                     expandedIds={expandedIds}
+                    selectedIds={selectedIds}
                     onToggleExpand={toggleExpand}
                     onDelete={handleDelete}
                     onToggle={handleToggle}
+                    onSelectToggle={handleSelectToggle}
+                    onSelectGroup={handleSelectGroup}
                     deleteIsPending={deleteMutation.isPending}
                     toggleIsPending={toggleMutation.isPending}
                   />
@@ -540,9 +663,11 @@ export default function AdminUrunlerPage() {
                   key={p.id}
                   p={p}
                   expanded={expandedIds.has(p.id)}
+                  selected={selectedIds.has(p.id)}
                   onToggleExpand={() => toggleExpand(p.id)}
                   onDelete={handleDelete}
                   onToggle={handleToggle}
+                  onSelectToggle={handleSelectToggle}
                   deleteIsPending={deleteMutation.isPending}
                   toggleIsPending={toggleMutation.isPending}
                 />

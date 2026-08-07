@@ -46,6 +46,10 @@ public class ProductSearchRequest {
     private Integer page;
     private Integer size;
 
+    // Kategori/arama listelerinde her renk ayrı kart olarak açılsın mı?
+    // (Ana sayfa küratörlü bölümleri ve admin bunu hiç göndermez — false kalır.)
+    private Boolean expandByColor;
+
     // Varsayılan değerler
     public ProductSearchRequest withDefaults() {
         if (this.page == null) this.page = 0;
@@ -54,6 +58,7 @@ public class ProductSearchRequest {
         if (this.sortDirection == null) this.sortDirection = "DESC";
         if (this.includeSubcategories == null) this.includeSubcategories = true;
         if (this.inStockOnly == null) this.inStockOnly = false;
+        if (this.expandByColor == null) this.expandByColor = false;
         return this;
     }
 }
