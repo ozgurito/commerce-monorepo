@@ -1,13 +1,12 @@
 'use client'
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Heart, ShoppingBag, Star, Minus, Plus, Truck, RotateCcw, Shield, Share2, Check, ShoppingCart, Zap, Clock, Users, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { Heart, ShoppingBag, Star, Minus, Plus, Truck, RotateCcw, Shield, Share2, Check, ShoppingCart, Zap, Clock, Users, TrendingUp, ChevronLeft, ChevronRight, MessageCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { cartApi } from '@/domains/cart/cart.api'
-import { wishlistApi } from '@/domains/wishlist/wishlist.api'
 import { useAuthStore } from '@/store/auth.store'
 import { useUIStore } from '@/store/ui.store'
 import { useCartStore } from '@/store/cart.store'
@@ -63,9 +62,11 @@ interface Props {
   onColorSelect?: (color: string) => void  // renk seçilince activeColor'u güncelle
   imageClickColor?: string | null
   imagesHaveVariants?: boolean
+  wishlisted: boolean
+  onToggleWishlist: () => void
 }
 
-export function ProductInfo({ product, onGalleryChange, onColorSelect, imageClickColor, imagesHaveVariants }: Props) {
+export function ProductInfo({ product, onGalleryChange, onColorSelect, imageClickColor, imagesHaveVariants, wishlisted, onToggleWishlist }: Props) {
   // Beden ve renk grupları ayrı ayrı takip edilir
   const [selections, setSelections] = useState<Record<string, ProductVariantDto | null>>({})
   const [errorGroups, setErrorGroups] = useState<string[]>([])
@@ -105,7 +106,6 @@ export function ProductInfo({ product, onGalleryChange, onColorSelect, imageClic
     })
     return { colorToFirstImage: map, colorSwatches: swatches }
   }, [product.images])
-  const [wishlisted, setWishlisted] = useState(false)
   const [copied, setCopied] = useState(false)
   const [viewersNow, setViewersNow]   = useState(0)
   const [soldLastHour, setSoldLastHour] = useState(0)
@@ -165,17 +165,6 @@ export function ProductInfo({ product, onGalleryChange, onColorSelect, imageClic
   const queryClient = useQueryClient()
   const { push: pushRecent } = useRecentlyViewed()
   const router = useRouter()
-
-  // Wishlist başlangıç durumu — sayfa açılınca kontrol et
-  const { data: isInWishlist } = useQuery({
-    queryKey: QUERY_KEYS.wishlist.check(product.id),
-    queryFn: () => wishlistApi.check(product.id),
-    enabled: !!token,
-    staleTime: 60_000,
-  })
-  useEffect(() => {
-    if (isInWishlist !== undefined) setWishlisted(isInWishlist)
-  }, [isInWishlist])
 
   // Track recently viewed once on mount — pushRecent writes to localStorage only, no setState
   const trackedRef = useRef<null | true>(null)
@@ -252,15 +241,6 @@ export function ProductInfo({ product, onGalleryChange, onColorSelect, imageClic
       router.push('/odeme')
     },
     onError: () => toast.error('Bir hata oluştu, tekrar deneyin'),
-  })
-
-  const wishlistMutation = useMutation({
-    mutationFn: () => wishlisted ? wishlistApi.remove(product.id) : wishlistApi.add(product.id),
-    onSuccess: () => {
-      setWishlisted(w => !w)
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.wishlist.all })
-      toast.success(wishlisted ? 'Favorilerden kaldırıldı' : 'Favorilere eklendi')
-    },
   })
 
   // Varyant seçim/stok doğrulaması ortak — hem sepete ekle hem hemen al kullanır
@@ -431,9 +411,25 @@ export function ProductInfo({ product, onGalleryChange, onColorSelect, imageClic
             {copied ? 'Kopyalandı' : 'Paylaş'}
           </button>
         </div>
-        <h1 className="text-xl sm:text-2xl font-extrabold text-navy-dark leading-snug">
+        <h1 className="text-base sm:text-xl font-semibold text-navy-dark leading-snug">
           {product.name}
         </h1>
+
+        {/* Satıcıya sor — ürüne özel soru-cevap altyapımız yok, mevcut WhatsApp hattına
+            ürün adı önceden doldurulmuş halde yönlendiriyoruz. Marka rengimizde (turuncu),
+            belirgin ama Paylaş butonuyla aynı ağırlıkta — Trendyol'daki gibi sade bir link
+            değil, kendi marka diline uygun net bir CTA. */}
+        <a
+          href={`https://wa.me/905418771635?text=${encodeURIComponent(`Merhaba, "${product.name}" ürünü hakkında bilgi almak istiyorum.`)}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 text-sm font-semibold text-orange
+                     hover:text-orange-dark transition-colors mt-1.5"
+        >
+          <MessageCircle size={15} />
+          Satıcıya Ürünle İlgili Soru Sor
+          <ChevronRight size={14} />
+        </a>
 
         {/* Materyal rozetleri */}
         {(product.material || product.fitType) && (
@@ -741,11 +737,12 @@ export function ProductInfo({ product, onGalleryChange, onColorSelect, imageClic
           {isOutOfStock ? 'Stokta Yok' : cartMutation.isPending ? 'Ekleniyor…' : 'Sepete Ekle'}
         </button>
 
-        {/* Favori — yuvarlak */}
+        {/* Favori — yuvarlak. Mobilde galeri üzerindeki favori ikonu bu işi zaten görüyor,
+            burada tekrar göstermek yer kaplıyordu; masaüstünde (galeri üzerinde favori yok) kalıyor. */}
         <button
-          onClick={() => { if (!token) { openAuthModal('login'); return }; wishlistMutation.mutate() }}
+          onClick={onToggleWishlist}
           aria-label="Favorilere ekle"
-          className={`w-14 rounded-2xl border-2 flex items-center justify-center transition-all
+          className={`hidden sm:flex w-14 rounded-2xl border-2 items-center justify-center transition-all
                       active:scale-95 flex-shrink-0
                       ${wishlisted
                         ? 'border-red-300 bg-red-50 text-red-500 shadow-sm'

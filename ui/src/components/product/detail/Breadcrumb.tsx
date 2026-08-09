@@ -20,7 +20,7 @@ export function Breadcrumb({ categoryId, productName }: Props) {
 
   return (
     <nav aria-label="Breadcrumb"
-         className="flex items-center gap-1 text-xs text-gray-400 mb-3 sm:mb-6
+         className="hidden sm:flex items-center gap-1 text-xs text-gray-400 mb-3 sm:mb-6
                     overflow-x-auto whitespace-nowrap scrollbar-none">
       <Link href="/" className="hover:text-orange transition-colors flex-shrink-0">Ana Sayfa</Link>
       <ChevronRight size={12} className="flex-shrink-0" />

@@ -48,7 +48,7 @@ export default async function UrunDetayPage(
   if (!product) notFound()
 
   return (
-    <div className="max-w-[1280px] mx-auto px-5 py-3 sm:py-6">
+    <div className="max-w-[1280px] mx-auto px-5 pt-0 pb-3 sm:py-6">
       <Breadcrumb categoryId={product.categoryId} productName={product.name} />
 
       <ProductDetailPanel product={product} />

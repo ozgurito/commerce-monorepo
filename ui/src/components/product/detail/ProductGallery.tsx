@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import { TransformWrapper, TransformComponent, type ReactZoomPanPinchRef } from 'react-zoom-pan-pinch'
-import { ZoomIn, X, ChevronLeft, ChevronRight, ImageOff } from 'lucide-react'
+import { ZoomIn, X, ChevronLeft, ChevronRight, ImageOff, Heart } from 'lucide-react'
 import type { ProductImageDto } from '@/domains/products/products.types'
 
 interface Props {
@@ -13,6 +13,8 @@ interface Props {
   selectedColor?: string | null          // seçili renk (ProductDetailPanel'den)
   onImageChange?: (index: number, variantColor: string | null) => void
   onColorSwatch?: (color: string, firstIndex: number) => void  // renk swatchına tıklama
+  wishlisted?: boolean
+  onToggleWishlist?: () => void
 }
 
 export function ProductGallery({
@@ -23,6 +25,8 @@ export function ProductGallery({
   selectedColor,
   onImageChange,
   onColorSwatch,
+  wishlisted,
+  onToggleWishlist,
 }: Props) {
 
   const sorted = [...images].sort((a, b) => {
@@ -216,9 +220,11 @@ export function ProductGallery({
   return (
     <div className="flex flex-col gap-3">
 
-      {/* ── Ana Görsel — mobilde kenarsız (tam genişlik), masaüstünde köşeli/paddingli kart ── */}
+      {/* ── Ana Görsel — mobilde kenarsız + daha uzun oran (4/5, Trendyol tarzı büyük görsel),
+          masaüstünde köşeli/paddingli kare kart. object-contain korunuyor — görsel hiç
+          kırpılmıyor, sadece etrafındaki konteyner oranı büyüyor. ── */}
       <div
-        className="relative aspect-square overflow-hidden bg-white cursor-zoom-in select-none
+        className="relative aspect-[4/5] sm:aspect-square overflow-hidden bg-white cursor-zoom-in select-none
                    -mx-5 rounded-none sm:mx-0 sm:rounded-2xl"
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
@@ -228,6 +234,20 @@ export function ProductGallery({
         onTouchEnd={handleTouchEndMainImage}
         onClick={() => setLightboxIdx(galleryImages.findIndex(img => img.id === active.id))}
       >
+        {/* Favori — mobilde görsel üzerinde sağ üst köşe (Trendyol tarzı); masaüstünde
+            ProductInfo'daki CTA satırındaki favori butonu zaten var, burada tekrar gösterilmez. */}
+        {onToggleWishlist && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onToggleWishlist() }}
+            aria-label="Favorilere ekle"
+            className={`sm:hidden absolute top-3 right-3 z-10 w-9 h-9 rounded-full
+                       flex items-center justify-center transition-all active:scale-90
+                       backdrop-blur-sm shadow-sm
+                       ${wishlisted ? 'bg-red-50/90 text-red-500' : 'bg-white/80 text-gray-500'}`}
+          >
+            <Heart size={17} className={wishlisted ? 'fill-red-500' : ''} />
+          </button>
+        )}
         <div
           className="absolute inset-0 w-full h-full"
           style={{

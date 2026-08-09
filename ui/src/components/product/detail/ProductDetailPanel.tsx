@@ -1,12 +1,18 @@
 'use client'
-import { useState, useMemo } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import DOMPurify from 'isomorphic-dompurify'
 import { ChevronDown } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { ProductGallery } from './ProductGallery'
 import { ProductInfo } from './ProductInfo'
 import { isHtmlContent } from '@/lib/html'
 import { parseSpecifications } from '@/domains/products/categoryFields'
+import { wishlistApi } from '@/domains/wishlist/wishlist.api'
+import { useAuthStore } from '@/store/auth.store'
+import { useUIStore } from '@/store/ui.store'
+import { QUERY_KEYS } from '@/lib/query-keys'
 import type { ProductDetailDto } from '@/domains/products/products.types'
 
 interface Props {
@@ -27,6 +33,37 @@ export function ProductDetailPanel({ product }: Props) {
   const imagesHaveVariants = useMemo(() =>
     (product.images ?? []).some(img => img.variantColor),
   [product.images])
+
+  // ── Favori (wishlist) — hem galeri (mobilde görsel üzerinde) hem ProductInfo
+  // (masaüstünde CTA satırında) aynı butonu/durumu paylaşsın diye burada tutuluyor.
+  const { token } = useAuthStore()
+  const { openAuthModal } = useUIStore()
+  const queryClient = useQueryClient()
+  const [wishlisted, setWishlisted] = useState(false)
+
+  const { data: isInWishlist } = useQuery({
+    queryKey: QUERY_KEYS.wishlist.check(product.id),
+    queryFn: () => wishlistApi.check(product.id),
+    enabled: !!token,
+    staleTime: 60_000,
+  })
+  useEffect(() => {
+    if (isInWishlist !== undefined) setWishlisted(isInWishlist)
+  }, [isInWishlist])
+
+  const wishlistMutation = useMutation({
+    mutationFn: () => wishlisted ? wishlistApi.remove(product.id) : wishlistApi.add(product.id),
+    onSuccess: () => {
+      setWishlisted(w => !w)
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.wishlist.all })
+      toast.success(wishlisted ? 'Favorilerden kaldırıldı' : 'Favorilere eklendi')
+    },
+  })
+
+  const handleToggleWishlist = () => {
+    if (!token) { openAuthModal('login'); return }
+    wishlistMutation.mutate()
+  }
 
   // Görsel thumbnail tıklanınca → renk seç
   const handleImageChange = (_idx: number, variantColor: string | null) => {
@@ -56,6 +93,8 @@ export function ProductDetailPanel({ product }: Props) {
           selectedColor={activeColor}
           onImageChange={handleImageChange}
           onColorSwatch={handleColorSwatch}
+          wishlisted={wishlisted}
+          onToggleWishlist={handleToggleWishlist}
         />
       </div>
 
@@ -67,6 +106,8 @@ export function ProductDetailPanel({ product }: Props) {
           onColorSelect={(color) => setActiveColor(color)}
           imageClickColor={imageClickColor}
           imagesHaveVariants={imagesHaveVariants}
+          wishlisted={wishlisted}
+          onToggleWishlist={handleToggleWishlist}
         />
       </div>
 
