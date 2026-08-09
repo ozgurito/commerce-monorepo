@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Heart, ShoppingBag, Star, Minus, Plus, Truck, RotateCcw, Shield, Share2, Check, ShoppingCart, Zap, Clock, MapPin, Users, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Heart, ShoppingBag, Star, Minus, Plus, Truck, RotateCcw, Shield, Share2, Check, ShoppingCart, Zap, Clock, Users, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
@@ -510,8 +510,10 @@ export function ProductInfo({ product, onGalleryChange, onColorSelect, imageClic
         </div>
       )}
 
-      {/* Price section */}
-      <div className="bg-gray-50 rounded-2xl p-4 space-y-1">
+      {/* Price section — mobilde kaldırıldı (sabit alt barda zaten fiyat gösteriliyor,
+          burada tekrar göstermek yer kaplıyordu); breakpoint alt bardaki md:hidden ile
+          birebir aynı (768px) — aksi halde 640-768px arasında fiyat hiç görünmez olurdu. */}
+      <div className="hidden md:block bg-gray-50 rounded-2xl p-4 space-y-1">
         <div className="flex items-end gap-3">
           <span className="text-2xl sm:text-[2rem] font-extrabold text-orange leading-none">
             {formatPrice(displayPrice)}
@@ -639,11 +641,6 @@ export function ProductInfo({ product, onGalleryChange, onColorSelect, imageClic
         )}
       </div>
 
-      {imagesHaveVariants && colorSwatches.length > 1 && !selections['Renk'] && (
-        <p className="text-xs text-gray-400 flex items-center gap-1">
-          <span>👆</span> Görsele tıklayarak renk seçin
-        </p>
-      )}
 
       {/* Variant selector — görseller variant bilgisi taşıyorsa renk swatchları thumbnail üzerinden seçilir */}
       <div ref={variantRef}>
@@ -832,10 +829,6 @@ export function ProductInfo({ product, onGalleryChange, onColorSelect, imageClic
                   {sameMinMax ? minLabel : `${minLabel} – ${maxLabel}`}
                 </strong>
               </p>
-              <div className="flex items-center gap-1 mt-1.5 text-[10px] text-gray-400">
-                <MapPin size={10} />
-                <span>Türkiye geneli (Yurt içi kargo)</span>
-              </div>
             </div>
           </div>
         )

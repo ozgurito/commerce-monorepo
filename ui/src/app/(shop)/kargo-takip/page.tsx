@@ -34,26 +34,14 @@ export default function KargoTakipPage() {
 
       {/* Kargo Firmaları */}
       <section className="mb-10">
-        <h2 className="text-xl font-bold text-navy-dark mb-4">Çalıştığımız Kargo Firmaları</h2>
+        <h2 className="text-xl font-bold text-navy-dark mb-4">Çalıştığımız Kargo Firması</h2>
         <div className="space-y-3">
           {[
-            {
-              name: 'Yurtiçi Kargo',
-              url: 'https://www.yurticikargo.com/tr/online-islemler/gonderi-sorgula',
-              desc: 'Takip numaranızla anlık konum sorgulayın',
-              color: 'bg-red-50 border-red-100',
-            },
             {
               name: 'Aras Kargo',
               url: 'https://www.araskargo.com.tr/gonderi-sorgulama.aspx',
               desc: 'Takip numaranızla gönderi sorgulayın',
               color: 'bg-yellow-50 border-yellow-100',
-            },
-            {
-              name: 'MNG Kargo',
-              url: 'https://www.mngkargo.com.tr/wps/portal/mng/gonderitakip',
-              desc: 'Takip numaranızla kargo durumunu öğrenin',
-              color: 'bg-blue-50 border-blue-100',
             },
           ].map(({ name, url, desc, color }) => (
             <a
